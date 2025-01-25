@@ -5,8 +5,6 @@ from subsystems.sim_gyro import SimGyro
 from commands2 import (
     Subsystem,
     InstantCommand,
-    StartEndCommand,
-    InterruptionBehavior,
     RunCommand,
 )
 
@@ -126,7 +124,6 @@ class Drivetrain(Subsystem):
         self.field = Field2d()
         # these should be changed when actually using the field
         self.field.setRobotPose(Pose2d(10, 10, 0))
-        # TODO: x, y, theta velocity PIDs and respective event listeners on nettable
 
         """kinematics"""
         # module locations
@@ -193,12 +190,12 @@ class Drivetrain(Subsystem):
     def get_kinematics(self) -> SwerveDrive4Kinematics:
         return self.kinematics
 
-    def get_odometry(self) -> SwerveDrive4Odometry:
+    def get_odometry(self) -> SwerveDrive4PoseEstimator:
         return self.odometry
 
     def get_pose(self) -> Pose2d:
         # mayble flip if on red. Ideally just based on starting position, though
-        return self.odometry.getPose()
+        return self.odometry.getEstimatedPosition()
 
     def get_angle(self) -> Rotation2d:
         return self.gyro.get_angle()
@@ -300,7 +297,6 @@ class Drivetrain(Subsystem):
         get_theta: typing.Callable[[], float],
         use_field_oriented: typing.Callable[[], bool],
     ):
-        # return StartEndCommand(
         return RunCommand(
             lambda: self._run_chassis_speeds(
                 ChassisSpeeds.fromFieldRelativeSpeeds(

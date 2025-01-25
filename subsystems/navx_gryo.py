@@ -6,8 +6,6 @@ from wpilib import SerialPort
 
 from wpimath.geometry import Rotation2d
 
-from typing import Self
-
 
 class NavX(GyroBase):
     def __init__(
@@ -16,10 +14,12 @@ class NavX(GyroBase):
     ):
         self.hardware = AHRS(serial_type)
 
+    @staticmethod
     def fromMXP():
         return NavX(AHRS.NavXComType.kMXP_UART)
 
-    def fromUSB(port: int) -> Self:
+    @staticmethod
+    def fromUSB(port: int) -> GyroBase:
         if port == 1:
             return NavX(AHRS.NavXComType.kUSB1)
         elif port == 2:
