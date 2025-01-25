@@ -1,0 +1,35 @@
+{
+  "NTProvider": {
+    "types": {
+      "/FMSInfo": "FMSInfo"
+    }
+  },
+  "NetworkTables": {
+    "transitory": {
+      "Drivetrain": {
+        "config": {
+          "max_angular_velocity_deg": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true,
+        "velocity": {
+          "open": true
+        }
+      },
+      "swerve": {
+        "fl": {
+          "Commanded": {
+            "open": true
+          },
+          "State": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
+      }
+    }
+  }
+}
