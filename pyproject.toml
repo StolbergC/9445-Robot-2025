@@ -19,7 +19,6 @@ robotpy_extras = [
     "pathplannerlib",
     # "phoenix5",
     "phoenix6",
-    "photonvision",
     # "playingwithfusion",
     "rev",
     # "romi",
@@ -28,4 +27,4 @@ robotpy_extras = [
 ]
 
 # Other pip packages to install
-requires = []
+requires = ["photonlibpy"]

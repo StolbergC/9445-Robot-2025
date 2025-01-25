@@ -6,6 +6,7 @@ from commands2 import (
     Subsystem,
     InstantCommand,
     RunCommand,
+    WrapperCommand,
 )
 
 from wpilib import Field2d, RobotBase
@@ -63,7 +64,7 @@ class Drivetrain(Subsystem):
             self.gyro = SimGyro()
 
         """nettables"""
-        self.nettable = NetworkTableInstance.getDefault().getTable("Drivetrain")
+        self.nettable = NetworkTableInstance.getDefault().getTable("000Drivetrain")
         self.nettable.putNumber(
             "config/max_velocity_fps", metersToFeet(self.max_velocity_mps)
         )
@@ -296,7 +297,7 @@ class Drivetrain(Subsystem):
         get_y: typing.Callable[[], float],
         get_theta: typing.Callable[[], float],
         use_field_oriented: typing.Callable[[], bool],
-    ):
+    ) -> WrapperCommand:
         return RunCommand(
             lambda: self._run_chassis_speeds(
                 ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -316,9 +317,9 @@ class Drivetrain(Subsystem):
                 )
             ),
             self,
-        )
+        ).withName("Drive Joystick")
 
-    def drive_position(self, position: Translation2d) -> RunCommand:
+    def drive_position(self, position: Translation2d) -> WrapperCommand:
         return self.drive_joystick(
             lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
             lambda: self.y_pid.calculate(self.get_pose().Y(), position.X()),
@@ -326,4 +327,4 @@ class Drivetrain(Subsystem):
                 self.get_angle().degrees(), position.angle().degrees()
             ),
             lambda: True,
-        )
+        ).withName("Drive Position")

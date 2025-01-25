@@ -6,6 +6,18 @@
   },
   "NetworkTables": {
     "transitory": {
+      "000Drivetrain": {
+        "open": true
+      },
+      "000Wrist": {
+        "PID": {
+          "open": true
+        },
+        "State": {
+          "open": true
+        },
+        "open": true
+      },
       "Drivetrain": {
         "config": {
           "max_angular_velocity_deg": {
@@ -13,7 +25,6 @@
           },
           "open": true
         },
-        "open": true,
         "velocity": {
           "open": true
         }
@@ -27,9 +38,20 @@
             "open": true
           },
           "open": true
+        }
+      },
+      "wrist": {
+        "PID": {
+          "open": true
+        },
+        "State": {
+          "open": true
         },
         "open": true
       }
     }
+  },
+  "NetworkTables View": {
+    "visible": false
   }
 }

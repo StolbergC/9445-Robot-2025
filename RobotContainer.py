@@ -4,18 +4,24 @@ from commands2.button import Trigger
 from wpilib import Joystick, DriverStation
 
 from subsystems.drivetrain import Drivetrain
+from subsystems.wrist import Wrist
 
 
 class RobotContainer:
     def __init__(self) -> None:
         self.drivetrain = Drivetrain()
+        self.wrist = Wrist()
+
         self.driver_controller = Joystick(0)
-        # TODO: set the bindings for the controller
-        # this sets the motors to idle on disable
+        self.operator_controller = self.driver_controller
+        # self.operator_controller = Joystick(1)
+
         self.driver_controller.setYChannel(1)
         self.driver_controller.setXChannel(0)
         self.driver_controller.setTwistChannel(4)
         self.driver_controller.setThrottleChannel(3)
+
+        # this sets the motors to idle on disable
         Trigger(DriverStation.isEnabled).onTrue(
             self.drivetrain.set_drive_idle(False)
         ).onTrue(self.drivetrain.set_turn_idle(False))
@@ -34,8 +40,21 @@ class RobotContainer:
             )
         )
 
+        Trigger(lambda: self.operator_controller.getRawButtonPressed(1)).onTrue(
+            self.wrist.angle_score()
+        )
+
+        Trigger(lambda: self.operator_controller.getRawButtonPressed(2)).onTrue(
+            self.wrist.angle_zero()
+        )
+
+        Trigger(lambda: self.operator_controller.getRawButtonPressed(4)).onTrue(
+            self.wrist.angle_intake()
+        )
+
     def unset_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(WaitCommand(0))
+        self.wrist.setDefaultCommand(WaitCommand(0))
 
     def get_auto_command(self) -> Command:
         return Command()

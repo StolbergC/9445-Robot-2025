@@ -97,7 +97,7 @@ class SwerveModule(Subsystem):
 
         # networktables
         self.nettable = NetworkTableInstance.getDefault().getTable(
-            f"swerve/{self.name}"
+            f"00Swerve/{self.name}"
         )
 
         self.nettable.addListener("driveP", EventFlags.kValueAll, self._nt_pid_listener)
