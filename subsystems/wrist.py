@@ -14,6 +14,7 @@ from wpimath.geometry import Rotation2d
 
 class Wrist(Subsystem):
     def __init__(self):
+        super().__init__()
         self.motor = SparkMax(20, SparkBase.MotorType.kBrushless)
         self.motor_config = (
             SparkMaxConfig()

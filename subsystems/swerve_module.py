@@ -14,7 +14,7 @@ from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
 from wpimath.units import inchesToMeters, meters_per_second, meters_per_second_squared
 from wpimath.geometry import Rotation2d
-from wpimath.controller import PIDController, ProfiledPIDController
+from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
 
 module_offsets = {
