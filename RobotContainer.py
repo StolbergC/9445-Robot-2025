@@ -1,7 +1,7 @@
 from commands2 import Command, RunCommand, WaitCommand, InstantCommand
-from commands2.button import Trigger
+from commands2.button import Trigger, CommandJoystick
 
-from wpilib import Joystick, DriverStation
+from wpilib import DriverStation
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
@@ -23,7 +23,7 @@ class RobotContainer:
         self.drivetrain = Drivetrain()
         self.wrist = Wrist()
 
-        self.driver_controller = Joystick(0)
+        self.driver_controller = CommandJoystick(0)
         self.operator_controller = self.driver_controller
         # self.operator_controller = Joystick(1)
 
@@ -51,20 +51,18 @@ class RobotContainer:
             )
         )
 
-        Trigger(lambda: self.operator_controller.getRawButtonPressed(button_a)).onTrue(
-            self.wrist.angle_score()
-        )
+        self.driver_controller.button(button_lpush).or_(
+            self.driver_controller.button(button_rpush)
+        ).whileTrue(self.drivetrain.defense_mode())
 
-        Trigger(lambda: self.operator_controller.getRawButtonPressed(button_b)).onTrue(
-            self.wrist.angle_zero()
-        )
+        self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
-        Trigger(lambda: self.operator_controller.getRawButtonPressed(button_y)).onTrue(
-            self.wrist.angle_intake()
-        )
+        self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
 
-        lb_trigger = Trigger(lambda: self.driver_controller.getRawButton(button_lb))
-        rb_trigger = Trigger(lambda: self.driver_controller.getRawButton(button_rb))
+        self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
+
+        lb_trigger = self.operator_controller.button(button_lb)
+        rb_trigger = self.operator_controller.button(button_rb)
 
         # drive to the algae on the closest reef when lb and rb are pressed
         lb_trigger.and_(rb_trigger).whileTrue(WaitCommand(0))

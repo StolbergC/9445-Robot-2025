@@ -3,6 +3,7 @@ from subsystems.navx_gryo import NavX
 from subsystems.sim_gyro import SimGyro
 
 from commands2 import (
+    StartEndCommand,
     Subsystem,
     InstantCommand,
     RunCommand,
@@ -328,3 +329,10 @@ class Drivetrain(Subsystem):
             ),
             lambda: True,
         ).withName("Drive Position")
+
+    def defense_mode(self) -> StartEndCommand:
+        start_speed = self.max_velocity_mps
+        return StartEndCommand(
+            lambda: setattr(self, "max_velocity_mps", 500),
+            lambda: setattr(self, "max_velocity_mps", start_speed),
+        )
