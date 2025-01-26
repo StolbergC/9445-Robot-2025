@@ -1,10 +1,21 @@
-from commands2 import Command, WaitCommand, InstantCommand
+from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 from commands2.button import Trigger
 
 from wpilib import Joystick, DriverStation
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
+
+button_a = 1
+button_b = 2
+button_x = 3
+button_y = 4
+button_lb = 5
+button_rb = 6
+button_left = 7
+button_right = 8
+button_lpush = 9
+button_rpush = 10
 
 
 class RobotContainer:
@@ -40,17 +51,29 @@ class RobotContainer:
             )
         )
 
-        Trigger(lambda: self.operator_controller.getRawButtonPressed(1)).onTrue(
+        Trigger(lambda: self.operator_controller.getRawButtonPressed(button_a)).onTrue(
             self.wrist.angle_score()
         )
 
-        Trigger(lambda: self.operator_controller.getRawButtonPressed(2)).onTrue(
+        Trigger(lambda: self.operator_controller.getRawButtonPressed(button_b)).onTrue(
             self.wrist.angle_zero()
         )
 
-        Trigger(lambda: self.operator_controller.getRawButtonPressed(4)).onTrue(
+        Trigger(lambda: self.operator_controller.getRawButtonPressed(button_y)).onTrue(
             self.wrist.angle_intake()
         )
+
+        lb_trigger = Trigger(lambda: self.driver_controller.getRawButton(button_lb))
+        rb_trigger = Trigger(lambda: self.driver_controller.getRawButton(button_rb))
+
+        # drive to the algae on the closest reef when lb and rb are pressed
+        lb_trigger.and_(rb_trigger).whileTrue(WaitCommand(0))
+
+        # drive to the left peg on the closest part of the reef when only lb is pressed
+        lb_trigger.and_(rb_trigger.not_()).whileTrue(WaitCommand(0))
+
+        # drive to the right peg on the closest part of the reef when only lb is pressed
+        rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
 
     def unset_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(WaitCommand(0))
