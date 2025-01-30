@@ -21,7 +21,7 @@ button_rpush = 10
 class RobotContainer:
     def __init__(self) -> None:
         self.drivetrain = Drivetrain()
-        self.wrist = Wrist()
+        # self.wrist = Wrist()
 
         self.driver_controller = CommandJoystick(0)
         self.operator_controller = self.driver_controller
@@ -55,11 +55,11 @@ class RobotContainer:
             self.driver_controller.button(button_rpush)
         ).whileTrue(self.drivetrain.defense_mode())
 
-        self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
+        # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
-        self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
+        # self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
 
-        self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
+        # self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
 
         lb_trigger = self.operator_controller.button(button_lb)
         rb_trigger = self.operator_controller.button(button_rb)
@@ -72,6 +72,12 @@ class RobotContainer:
 
         # drive to the right peg on the closest part of the reef when only lb is pressed
         rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
+
+        self.driver_controller.button(button_a).whileTrue(
+            self.drivetrain.drive_forward(1)
+        )
+
+        # self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_pose(Pose2d()))
 
     def unset_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(WaitCommand(0))

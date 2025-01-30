@@ -12,8 +12,9 @@ from commands2 import (
 
 from wpilib import Field2d, RobotBase
 from wpimath.geometry import Translation2d, Pose2d, Rotation2d
-from wpimath.units import inchesToMeters, feetToMeters, metersToFeet
-from wpimath.controller import PIDController
+from wpimath.units import inchesToMeters, feetToMeters, metersToFeet, feet
+from wpimath.controller import ProfiledPIDController
+from wpimath.trajectory import TrapezoidProfile
 from wpimath.kinematics import (
     SwerveDrive4Kinematics,
     SwerveModulePosition,
@@ -54,9 +55,33 @@ class Drivetrain(Subsystem):
             "br", 12, 14, 13, False, True, self.max_velocity_mps, max_accel
         )
 
-        self.x_pid = PIDController(0.05, 0, 0)
-        self.y_pid = PIDController(0.05, 0, 0)
-        self.t_pid = PIDController(0.05, 0, 0)
+        self.x_pid = ProfiledPIDController(
+            0.05,
+            0,
+            0,
+            TrapezoidProfile.Constraints(
+                self.max_velocity_mps, self.max_velocity_mps * 5
+            ),
+        )
+
+        self.y_pid = ProfiledPIDController(
+            0.05,
+            0,
+            0,
+            TrapezoidProfile.Constraints(
+                self.max_velocity_mps, self.max_velocity_mps * 5
+            ),
+        )
+
+        self.t_pid = ProfiledPIDController(
+            0.05,
+            0,
+            0,
+            TrapezoidProfile.Constraints(
+                self.max_angular_velocity.degrees(),
+                self.max_angular_velocity.degrees() * 5,
+            ),
+        )
 
         if RobotBase.isReal():
             # self.gyro = NavX.fromMXP()
@@ -77,8 +102,28 @@ class Drivetrain(Subsystem):
             if isinstance(v := ev.data, ValueEventData):
                 if key == "max_velocity_fps":
                     self.max_velocity_mps = feetToMeters(v.value.value())
+                    self.x_pid.setConstraints(
+                        TrapezoidProfile.Constraints(
+                            self.max_velocity_mps, self.max_velocity_mps * 5
+                        )
+                    )
+                    self.y_pid.setConstraints(
+                        TrapezoidProfile.Constraints(
+                            self.max_velocity_mps, self.max_velocity_mps * 5
+                        )
+                    )
+                    self.fl.set_max_vel(self.max_velocity_mps)
+                    self.fr.set_max_vel(self.max_velocity_mps)
+                    self.bl.set_max_vel(self.max_velocity_mps)
+                    self.br.set_max_vel(self.max_velocity_mps)
                 elif key == "max_angular_velocity_degps":
                     self.max_angular_velocity = Rotation2d.fromDegrees(v.value.value())
+                    self.t_pid.setConstraints(
+                        TrapezoidProfile.Constraints(
+                            self.max_angular_velocity.degrees(),
+                            self.max_angular_velocity.degrees() * 5,
+                        )
+                    )
                 elif key[1:].startswith("PID"):
                     const = key.split("/")[0]
                     pid = key[0]
@@ -123,9 +168,22 @@ class Drivetrain(Subsystem):
         self.nettable.addListener("tPID/P", EventFlags.kValueAll, nettable_listener)
         self.nettable.addListener("tPID/I", EventFlags.kValueAll, nettable_listener)
         self.nettable.addListener("tPID/D", EventFlags.kValueAll, nettable_listener)
+
+        self.nettable.putNumber("xPID/P", self.x_pid.getP())
+        self.nettable.putNumber("xPID/I", self.x_pid.getI())
+        self.nettable.putNumber("xPID/D", self.x_pid.getD())
+
+        self.nettable.putNumber("yPID/P", self.y_pid.getP())
+        self.nettable.putNumber("yPID/I", self.y_pid.getI())
+        self.nettable.putNumber("yPID/D", self.y_pid.getD())
+
+        self.nettable.putNumber("tPID/P", self.t_pid.getP())
+        self.nettable.putNumber("tPID/I", self.t_pid.getI())
+        self.nettable.putNumber("tPID/D", self.t_pid.getD())
+
         self.field = Field2d()
         # these should be changed when actually using the field
-        self.field.setRobotPose(Pose2d(10, 10, 0))
+        self.field.setRobotPose(Pose2d(0, 0, 0))
 
         """kinematics"""
         # module locations
@@ -320,15 +378,24 @@ class Drivetrain(Subsystem):
             self,
         ).withName("Drive Joystick")
 
-    def drive_position(self, position: Translation2d) -> WrapperCommand:
+    def drive_position(
+        self, position: Translation2d, heading: Rotation2d
+    ) -> WrapperCommand:
         return self.drive_joystick(
             lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
-            lambda: self.y_pid.calculate(self.get_pose().Y(), position.X()),
-            lambda: self.t_pid.calculate(
-                self.get_angle().degrees(), position.angle().degrees()
-            ),
+            lambda: self.y_pid.calculate(self.get_pose().Y(), position.Y()),
+            lambda: self.t_pid.calculate(self.get_angle().degrees(), heading.degrees()),
             lambda: True,
         ).withName("Drive Position")
+
+    def drive_forward(self, dist: feet) -> WrapperCommand:
+        position = self.get_pose()
+        self.nettable.putNumber("Commanded/xPos (ft)", position.x_feet + dist)
+        self.nettable.putNumber("Commanded/yPos (ft)", position.y_feet)
+        return self.drive_position(
+            Translation2d(feetToMeters(position.x_feet + dist), position.y),
+            self.get_angle(),
+        ).withName(f"Drive Forward {dist} ft")
 
     def defense_mode(self) -> StartEndCommand:
         start_speed = self.max_velocity_mps

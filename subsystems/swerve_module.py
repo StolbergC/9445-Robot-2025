@@ -47,7 +47,7 @@ class SwerveModule(Subsystem):
         )
 
         self.cancoder.optimize_bus_utilization()
-        self.cancoder.get_absolute_position().set_update_frequency(200)
+        self.cancoder.get_absolute_position().set_update_frequency(100)
 
         time.sleep(0.1)
 
@@ -123,6 +123,8 @@ class SwerveModule(Subsystem):
             self.cancoder.get_absolute_position().value_as_double,
         )
 
+        self.nettable.putNumber("State/drive position", self.get_distance())
+
     def get_vel(self) -> float:
         """
         return the velocity in meters per second
@@ -142,7 +144,9 @@ class SwerveModule(Subsystem):
 
     def get_distance(self) -> float:
         """return the distance driven by the swerve module since powered on"""
-        return self.drive_encoder.getPosition()
+        return (
+            self.drive_encoder.getPosition() * 2 * math.pi * inchesToMeters(2)
+        )  # * 8.14
 
     def get_angle(self) -> Rotation2d:
         """return the angle of the swerve module as a Rotation2d
@@ -159,6 +163,11 @@ class SwerveModule(Subsystem):
     def get_position(self) -> SwerveModulePosition:
         """get the distance driven and angle of the module"""
         return SwerveModulePosition(self.get_distance(), self.get_angle())
+
+    def set_max_vel(self, max_vel: float) -> None:
+        self.drive_pid.setConstraints(
+            TrapezoidProfile.Constraints(max_vel, max_vel * 5)
+        )
 
     def set_drive_idle(self, coast: bool) -> None:
         self.drive_motor_config.setIdleMode(
