@@ -12,7 +12,12 @@ from commands2 import Subsystem
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData
 
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
-from wpimath.units import inchesToMeters, meters_per_second, meters_per_second_squared
+from wpimath.units import (
+    inchesToMeters,
+    meters_per_second,
+    meters_per_second_squared,
+    feetToMeters,
+)
 from wpimath.geometry import Rotation2d
 from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
@@ -144,9 +149,7 @@ class SwerveModule(Subsystem):
 
     def get_distance(self) -> float:
         """return the distance driven by the swerve module since powered on"""
-        return (
-            self.drive_encoder.getPosition() * 2 * math.pi * inchesToMeters(2)
-        )  # * 8.14
+        return feetToMeters(self.drive_encoder.getPosition() / 8.14)
 
     def get_angle(self) -> Rotation2d:
         """return the angle of the swerve module as a Rotation2d

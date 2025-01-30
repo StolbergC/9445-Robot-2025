@@ -30,7 +30,7 @@ class NavX(GyroBase):
             )
 
     def get_angle(self):
-        return self.hardware.getRotation2d() + Rotation2d.fromDegrees(90)
+        return self.hardware.getRotation2d()
 
     def reset(self, new_angle: Rotation2d = Rotation2d.fromDegrees(0)) -> None:
         self.hardware.reset()

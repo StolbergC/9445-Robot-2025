@@ -1,8 +1,11 @@
+from math import pi
+
 from subsystems.swerve_module import SwerveModule
 from subsystems.navx_gryo import NavX
 from subsystems.sim_gyro import SimGyro
 
 from commands2 import (
+    SequentialCommandGroup,
     StartEndCommand,
     Subsystem,
     InstantCommand,
@@ -10,7 +13,7 @@ from commands2 import (
     WrapperCommand,
 )
 
-from wpilib import Field2d, RobotBase
+from wpilib import Field2d, RobotBase, reportWarning
 from wpimath.geometry import Translation2d, Pose2d, Rotation2d
 from wpimath.units import inchesToMeters, feetToMeters, metersToFeet, feet
 from wpimath.controller import ProfiledPIDController
@@ -56,7 +59,7 @@ class Drivetrain(Subsystem):
         )
 
         self.x_pid = ProfiledPIDController(
-            0.05,
+            1.5,
             0,
             0,
             TrapezoidProfile.Constraints(
@@ -65,7 +68,7 @@ class Drivetrain(Subsystem):
         )
 
         self.y_pid = ProfiledPIDController(
-            0.05,
+            1.5,
             0,
             0,
             TrapezoidProfile.Constraints(
@@ -74,14 +77,18 @@ class Drivetrain(Subsystem):
         )
 
         self.t_pid = ProfiledPIDController(
-            0.05,
+            1.5,
             0,
-            0,
+            0.1,
             TrapezoidProfile.Constraints(
                 self.max_angular_velocity.degrees(),
                 self.max_angular_velocity.degrees() * 5,
             ),
         )
+
+        self.t_pid.enableContinuousInput(-pi, pi)
+        self.t_pid.setIntegratorRange(0, 0.25)
+        self.t_pid.setIZone(pi / 2)
 
         if RobotBase.isReal():
             # self.gyro = NavX.fromMXP()
@@ -99,6 +106,7 @@ class Drivetrain(Subsystem):
         )
 
         def nettable_listener(_nt: NetworkTable, key: str, ev: Event):
+            self.nettable.putString("Trying To Update", key)
             if isinstance(v := ev.data, ValueEventData):
                 if key == "max_velocity_fps":
                     self.max_velocity_mps = feetToMeters(v.value.value())
@@ -148,6 +156,9 @@ class Drivetrain(Subsystem):
                             self.t_pid.setI(v.value.value())
                         elif const == "d":
                             self.t_pid.setD(v.value.value())
+
+                else:
+                    reportWarning(f"Got bad key {key}")
 
         self.nettable.addListener(
             "max_velocity_fps", EventFlags.kValueAll, nettable_listener
@@ -210,7 +221,7 @@ class Drivetrain(Subsystem):
             Pose2d.fromFeet(10, 10, Rotation2d.fromDegrees(0)),
         )
 
-        self.vision = Vision()
+        # self.vision = Vision()
 
     def periodic(self) -> None:
         position = self.odometry.update(
@@ -223,7 +234,7 @@ class Drivetrain(Subsystem):
             ),
         )
 
-        self.vision.update_position(self.odometry)
+        # self.vision.update_position(self.odometry)
 
         curr_speed = self.kinematics.toChassisSpeeds(
             (
@@ -233,6 +244,7 @@ class Drivetrain(Subsystem):
                 self.br.get_state(),
             )
         )
+
         self.nettable.putNumber("velocity/vx (fps)", curr_speed.vx_fps)
         self.nettable.putNumber("velocity/vy (fps)", curr_speed.vy_fps)
         self.nettable.putNumber("velocity/omega (degps)", curr_speed.omega_dps)
@@ -240,6 +252,8 @@ class Drivetrain(Subsystem):
         self.nettable.putNumber("state/x (ft)", position.x_feet)
         self.nettable.putNumber("state/y (ft)", position.x_feet)
         self.nettable.putNumber("state/theta (deg)", self.get_angle().degrees())
+
+        self.nettable.putNumber("tPID/error (deg)", self.t_pid.getPositionError())
         if c := self.getCurrentCommand():
             self.nettable.putString("Running Command", c.getName())
         else:
@@ -297,13 +311,13 @@ class Drivetrain(Subsystem):
     ) -> InstantCommand:
         return InstantCommand(lambda: self.gyro.reset(new_angle), self)
 
-    def reset_pose(self, pose: Pose2d) -> InstantCommand:
+    def reset_pose(self, pose: Pose2d) -> SequentialCommandGroup:
         return InstantCommand(
             lambda: self.odometry.resetPosition(
                 self.get_angle(), self.get_module_positions(), pose
             ),
             self,
-        )
+        ).andThen(self.reset_gyro(pose.rotation()))
 
     def _set_drive_idle(self, coast: bool) -> None:
         self.fl.set_drive_idle(coast)
@@ -378,13 +392,13 @@ class Drivetrain(Subsystem):
             self,
         ).withName("Drive Joystick")
 
-    def drive_position(
-        self, position: Translation2d, heading: Rotation2d
-    ) -> WrapperCommand:
+    def drive_position(self, position: Pose2d) -> WrapperCommand:
         return self.drive_joystick(
             lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
             lambda: self.y_pid.calculate(self.get_pose().Y(), position.Y()),
-            lambda: self.t_pid.calculate(self.get_angle().degrees(), heading.degrees()),
+            lambda: self.t_pid.calculate(
+                self.get_angle().radians(), position.rotation().radians()
+            ),
             lambda: True,
         ).withName("Drive Position")
 
@@ -393,8 +407,7 @@ class Drivetrain(Subsystem):
         self.nettable.putNumber("Commanded/xPos (ft)", position.x_feet + dist)
         self.nettable.putNumber("Commanded/yPos (ft)", position.y_feet)
         return self.drive_position(
-            Translation2d(feetToMeters(position.x_feet + dist), position.y),
-            self.get_angle(),
+            Pose2d(feetToMeters(position.x_feet + dist), position.y, self.get_angle()),
         ).withName(f"Drive Forward {dist} ft")
 
     def defense_mode(self) -> StartEndCommand:
