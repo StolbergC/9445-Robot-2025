@@ -7,7 +7,16 @@
   "NetworkTables": {
     "transitory": {
       "000Drivetrain": {
-        "open": true
+        "config": {
+          "open": true
+        },
+        "open": true,
+        "state": {
+          "open": true
+        },
+        "xPID": {
+          "open": true
+        }
       },
       "000Wrist": {
         "PID": {

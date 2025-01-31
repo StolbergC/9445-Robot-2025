@@ -133,32 +133,29 @@ class Drivetrain(Subsystem):
                         )
                     )
                 elif key[1:].startswith("PID"):
-                    const = key.split("/")[0]
+                    const = key.split("/")[1]
                     pid = key[0]
                     if pid == "x":
-                        if const == "p":
+                        if const == "P":
                             self.x_pid.setP(v.value.value())
-                        elif const == "i":
+                        elif const == "I":
                             self.x_pid.setI(v.value.value())
-                        elif const == "d":
+                        elif const == "D":
                             self.x_pid.setD(v.value.value())
                     elif pid == "y":
-                        if const == "p":
+                        if const == "P":
                             self.y_pid.setP(v.value.value())
-                        elif const == "i":
+                        elif const == "I":
                             self.y_pid.setI(v.value.value())
-                        elif const == "d":
+                        elif const == "D":
                             self.y_pid.setD(v.value.value())
                     elif pid == "t":
-                        if const == "p":
+                        if const == "P":
                             self.t_pid.setP(v.value.value())
-                        elif const == "i":
+                        elif const == "I":
                             self.t_pid.setI(v.value.value())
-                        elif const == "d":
+                        elif const == "D":
                             self.t_pid.setD(v.value.value())
-
-                else:
-                    reportWarning(f"Got bad key {key}")
 
         self.nettable.addListener(
             "max_velocity_fps", EventFlags.kValueAll, nettable_listener
@@ -400,15 +397,9 @@ class Drivetrain(Subsystem):
                 self.get_angle().radians(), position.rotation().radians()
             ),
             lambda: True,
-        ).withName("Drive Position")
-
-    def drive_forward(self, dist: feet) -> WrapperCommand:
-        position = self.get_pose()
-        self.nettable.putNumber("Commanded/xPos (ft)", position.x_feet + dist)
-        self.nettable.putNumber("Commanded/yPos (ft)", position.y_feet)
-        return self.drive_position(
-            Pose2d(feetToMeters(position.x_feet + dist), position.y, self.get_angle()),
-        ).withName(f"Drive Forward {dist} ft")
+        ).withName(
+            f"Drive Position ({position.x_feet} ft, {position.y_feet} ft, {position.rotation().degrees()} deg)"
+        )
 
     def defense_mode(self) -> StartEndCommand:
         start_speed = self.max_velocity_mps
