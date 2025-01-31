@@ -98,17 +98,10 @@ class Drivetrain(Subsystem):
 
         """nettables"""
         self.nettable = NetworkTableInstance.getDefault().getTable("000Drivetrain")
-        self.nettable.putNumber(
-            "config/max_velocity_fps", metersToFeet(self.max_velocity_mps)
-        )
-        self.nettable.putNumber(
-            "config/max_angular_velocity_degps", self.max_angular_velocity.degrees()
-        )
 
         def nettable_listener(_nt: NetworkTable, key: str, ev: Event):
-            self.nettable.putString("Trying To Update", key)
             if isinstance(v := ev.data, ValueEventData):
-                if key == "max_velocity_fps":
+                if key == "config/max_velocity_fps":
                     self.max_velocity_mps = feetToMeters(v.value.value())
                     self.x_pid.setConstraints(
                         TrapezoidProfile.Constraints(
@@ -124,7 +117,7 @@ class Drivetrain(Subsystem):
                     self.fr.set_max_vel(self.max_velocity_mps)
                     self.bl.set_max_vel(self.max_velocity_mps)
                     self.br.set_max_vel(self.max_velocity_mps)
-                elif key == "max_angular_velocity_degps":
+                elif key == "config/max_angular_velocity_degps":
                     self.max_angular_velocity = Rotation2d.fromDegrees(v.value.value())
                     self.t_pid.setConstraints(
                         TrapezoidProfile.Constraints(
@@ -157,12 +150,18 @@ class Drivetrain(Subsystem):
                         elif const == "D":
                             self.t_pid.setD(v.value.value())
 
+        self.nettable.putNumber(
+            "config/max_velocity_fps", metersToFeet(self.max_velocity_mps)
+        )
+        self.nettable.putNumber(
+            "config/max_angular_velocity_degps", self.max_angular_velocity.degrees()
+        )
         self.nettable.addListener(
-            "max_velocity_fps", EventFlags.kValueAll, nettable_listener
+            "config/max_velocity_fps", EventFlags.kValueAll, nettable_listener
         )
 
         self.nettable.addListener(
-            "max_angular_velocity_degps", EventFlags.kValueAll, nettable_listener
+            "config/max_angular_velocity_degps", EventFlags.kValueAll, nettable_listener
         )
 
         self.nettable.addListener("xPID/P", EventFlags.kValueAll, nettable_listener)
@@ -255,6 +254,27 @@ class Drivetrain(Subsystem):
             self.nettable.putString("Running Command", c.getName())
         else:
             self.nettable.putString("Running Command", "None")
+
+    def simulationPeriodic(self) -> None:
+        curr_vel = self.kinematics.toChassisSpeeds(
+            (
+                self.fl.get_state(),
+                self.fr.get_state(),
+                self.bl.get_state(),
+                self.br.get_state(),
+            )
+        )
+
+        curr_pose = self.get_pose()
+        self.odometry.resetPose(
+            Pose2d(
+                curr_pose.x + curr_vel.vx / 50,
+                curr_pose.y + curr_vel.vy / 50,
+                curr_pose.rotation() + Rotation2d(curr_vel.omega) / 50,
+            )
+        )
+
+        return super().simulationPeriodic()
 
     """getters"""
 

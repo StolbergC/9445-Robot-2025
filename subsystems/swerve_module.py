@@ -11,6 +11,7 @@ from commands2 import Subsystem
 
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData
 
+from wpilib import RobotBase
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
 from wpimath.units import (
     inchesToMeters,
@@ -42,6 +43,8 @@ class SwerveModule(Subsystem):
         max_velocity: meters_per_second,
         max_accel: meters_per_second_squared,
     ):
+        self.is_real = RobotBase.isReal()
+
         # cancoder
         self.cancoder = CANcoder(cancoder_id)
         self.cancoder.configurator.apply(
@@ -119,6 +122,8 @@ class SwerveModule(Subsystem):
         self.nettable.putNumber("turnI", self.turn_pid.getI())
         self.nettable.putNumber("turnD", self.turn_pid.getD())
 
+        self.commanded_state = SwerveModuleState(0, Rotation2d(0))
+
     def periodic(self) -> None:
 
         self.nettable.putNumber("State/velocity (mps)", self.get_vel())
@@ -161,6 +166,8 @@ class SwerveModule(Subsystem):
 
     def get_state(self) -> SwerveModuleState:
         """return the velocity and angle of the swerve module"""
+        if self.is_real:
+            return self.commanded_state
         return SwerveModuleState(self.get_vel(), self.get_angle())
 
     def get_position(self) -> SwerveModulePosition:
@@ -192,6 +199,7 @@ class SwerveModule(Subsystem):
         """command the swerve module to an angle and speed"""
         # optimize the new state
         # this just mutates commanded_state in place
+        self.commanded_state = commanded_state
         commanded_state.optimize(self.get_angle())
 
         self.nettable.putNumber(
