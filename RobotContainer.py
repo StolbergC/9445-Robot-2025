@@ -3,6 +3,7 @@ from commands2.button import Trigger, CommandJoystick
 
 from wpilib import DriverStation
 from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.units import feetToMeters
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
@@ -86,7 +87,19 @@ class RobotContainer:
             self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         )
 
-        # self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_pose(Pose2d()))
+        self.driver_controller.button(button_y).whileTrue(
+            self.drivetrain.drive_points(
+                [
+                    Pose2d(0, 0, Rotation2d(0)),
+                    Pose2d(
+                        feetToMeters(10), feetToMeters(0), Rotation2d.fromDegrees(90)
+                    ),
+                    Pose2d(
+                        feetToMeters(5), feetToMeters(10), Rotation2d.fromDegrees(-90)
+                    ),
+                ]
+            )
+        )
 
     def unset_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(WaitCommand(0))

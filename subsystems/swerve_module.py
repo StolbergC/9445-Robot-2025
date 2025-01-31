@@ -166,7 +166,7 @@ class SwerveModule(Subsystem):
 
     def get_state(self) -> SwerveModuleState:
         """return the velocity and angle of the swerve module"""
-        if self.is_real:
+        if not self.is_real:
             return self.commanded_state
         return SwerveModuleState(self.get_vel(), self.get_angle())
 

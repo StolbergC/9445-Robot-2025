@@ -1,19 +1,22 @@
 from math import pi
+from re import I
 
 from subsystems.swerve_module import SwerveModule
 from subsystems.navx_gryo import NavX
 from subsystems.sim_gyro import SimGyro
 
 from commands2 import (
+    ParallelRaceGroup,
     SequentialCommandGroup,
     StartEndCommand,
     Subsystem,
     InstantCommand,
     RunCommand,
+    WaitCommand,
     WrapperCommand,
 )
 
-from wpilib import Field2d, RobotBase, reportWarning
+from wpilib import Field2d, RobotBase, DriverStation, SmartDashboard
 from wpimath.geometry import Translation2d, Pose2d, Rotation2d
 from wpimath.units import inchesToMeters, feetToMeters, metersToFeet, feet
 from wpimath.controller import ProfiledPIDController
@@ -33,12 +36,11 @@ from ntcore import NetworkTable, NetworkTableInstance, EventFlags, ValueEventDat
 
 import typing
 
-
 from subsystems.vision import Vision
 
 
 class Drivetrain(Subsystem):
-    def __init__(self):
+    def __init__(self, constant_of_acceleration: float = 10):
         """member instantiation"""
         self.max_velocity_mps = feetToMeters(10)
         self.max_angular_velocity = Rotation2d.fromDegrees(180)
@@ -63,7 +65,7 @@ class Drivetrain(Subsystem):
             0,
             0,
             TrapezoidProfile.Constraints(
-                self.max_velocity_mps, self.max_velocity_mps * 5
+                self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
         )
 
@@ -72,7 +74,7 @@ class Drivetrain(Subsystem):
             0,
             0,
             TrapezoidProfile.Constraints(
-                self.max_velocity_mps, self.max_velocity_mps * 5
+                self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
         )
 
@@ -82,7 +84,7 @@ class Drivetrain(Subsystem):
             0.1,
             TrapezoidProfile.Constraints(
                 self.max_angular_velocity.degrees(),
-                self.max_angular_velocity.degrees() * 5,
+                self.max_angular_velocity.degrees() * constant_of_acceleration,
             ),
         )
 
@@ -219,6 +221,8 @@ class Drivetrain(Subsystem):
 
         # self.vision = Vision()
 
+        self.is_real = RobotBase.isReal()
+
     def periodic(self) -> None:
         position = self.odometry.update(
             self.gyro.get_angle(),
@@ -255,6 +259,8 @@ class Drivetrain(Subsystem):
         else:
             self.nettable.putString("Running Command", "None")
 
+        SmartDashboard.putData(self.field)
+
     def simulationPeriodic(self) -> None:
         curr_vel = self.kinematics.toChassisSpeeds(
             (
@@ -274,6 +280,12 @@ class Drivetrain(Subsystem):
             )
         )
 
+        self.field.setRobotPose(self.get_pose())
+        self.nettable.putNumber(
+            "New X",
+            curr_pose.x + curr_vel.vx,
+        )
+        SmartDashboard.putData(self.field)
         return super().simulationPeriodic()
 
     """getters"""
@@ -289,6 +301,8 @@ class Drivetrain(Subsystem):
         return self.odometry.getEstimatedPosition()
 
     def get_angle(self) -> Rotation2d:
+        if not self.is_real:
+            return self.odometry.getEstimatedPosition().rotation()
         return self.gyro.get_angle()
 
     def get_module_positions(
@@ -388,6 +402,28 @@ class Drivetrain(Subsystem):
         get_theta: typing.Callable[[], float],
         use_field_oriented: typing.Callable[[], bool],
     ) -> WrapperCommand:
+        if not self.is_real:
+            return RunCommand(
+                lambda: self._run_chassis_speeds(
+                    ChassisSpeeds.fromFieldRelativeSpeeds(
+                        applyDeadband(get_x(), 0.1, 1.0) * self.max_velocity_mps,
+                        applyDeadband(get_y(), 0.1, 1.0) * self.max_velocity_mps,
+                        applyDeadband(get_theta(), 0.1, 1.0)
+                        * self.max_angular_velocity.radians(),
+                        -self.get_angle(),
+                    )
+                    if use_field_oriented()
+                    else ChassisSpeeds.fromFieldRelativeSpeeds(
+                        applyDeadband(get_x(), 0.1, 1.0) * self.max_velocity_mps,
+                        applyDeadband(get_y(), 0.1, 1.0) * self.max_velocity_mps,
+                        applyDeadband(get_theta(), 0.1, 1.0)
+                        * self.max_angular_velocity.radians(),
+                        self.get_angle(),
+                    )
+                ),
+                self,
+            ).withName("Drive Joystick")
+
         return RunCommand(
             lambda: self._run_chassis_speeds(
                 ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -409,16 +445,24 @@ class Drivetrain(Subsystem):
             self,
         ).withName("Drive Joystick")
 
-    def drive_position(self, position: Pose2d) -> WrapperCommand:
-        return self.drive_joystick(
-            lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
-            lambda: self.y_pid.calculate(self.get_pose().Y(), position.Y()),
-            lambda: self.t_pid.calculate(
-                self.get_angle().radians(), position.rotation().radians()
-            ),
-            lambda: True,
-        ).withName(
-            f"Drive Position ({position.x_feet} ft, {position.y_feet} ft, {position.rotation().degrees()} deg)"
+    def drive_position(self, position: Pose2d) -> ParallelRaceGroup | WrapperCommand:
+        return (
+            self.drive_joystick(
+                lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
+                lambda: self.y_pid.calculate(self.get_pose().Y(), position.Y()),
+                lambda: self.t_pid.calculate(
+                    self.get_angle().radians(), position.rotation().radians()
+                ),
+                lambda: True,
+            )
+            .withName(
+                f"Drive Position ({position.x_feet} ft, {position.y_feet} ft, {position.rotation().degrees()} deg)"
+            )
+            .onlyWhile(
+                lambda: (abs(self.x_pid.getPositionError()) > feetToMeters(0.5))
+                or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
+                or (abs(self.t_pid.getPositionError()) > pi / 16)
+            )
         )
 
     def defense_mode(self) -> StartEndCommand:
@@ -427,3 +471,6 @@ class Drivetrain(Subsystem):
             lambda: setattr(self, "max_velocity_mps", 500),
             lambda: setattr(self, "max_velocity_mps", start_speed),
         )
+
+    def drive_points(self, points: list[Pose2d]) -> SequentialCommandGroup:
+        return SequentialCommandGroup(*[self.drive_position(pose) for pose in points])

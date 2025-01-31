@@ -1,15 +1,27 @@
 {
   "NTProvider": {
     "types": {
-      "/FMSInfo": "FMSInfo"
+      "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Field": "Field2d"
+    },
+    "windows": {
+      "/SmartDashboard/Field": {
+        "bottom": 1638,
+        "builtin": "2025 Reefscape",
+        "height": 8.051901817321777,
+        "left": 534,
+        "right": 3466,
+        "top": 291,
+        "width": 17.54825210571289,
+        "window": {
+          "visible": true
+        }
+      }
     }
   },
   "NetworkTables": {
     "transitory": {
       "000Drivetrain": {
-        "config": {
-          "open": true
-        },
         "open": true,
         "state": {
           "open": true
@@ -25,6 +37,9 @@
         "State": {
           "open": true
         },
+        "open": true
+      },
+      "00Swerve": {
         "open": true
       },
       "Drivetrain": {
@@ -59,5 +74,8 @@
         "open": true
       }
     }
+  },
+  "NetworkTables Info": {
+    "visible": true
   }
 }

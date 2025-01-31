@@ -7,7 +7,7 @@
       "font": "Fira Code Retina",
       "fps": "120",
       "height": "991",
-      "maximized": "0",
+      "maximized": "1",
       "style": "0",
       "userScale": "2",
       "width": "1920",
@@ -28,10 +28,15 @@
       "Pos": "60,60",
       "Size": "169,167"
     },
+    "###/SmartDashboard/Field": {
+      "Collapsed": "0",
+      "Pos": "1,404",
+      "Size": "632,327"
+    },
     "###FMS": {
       "Collapsed": "0",
       "Pos": "5,540",
-      "Size": "208,214"
+      "Size": "340,158"
     },
     "###Joysticks": {
       "Collapsed": "0",
@@ -45,8 +50,8 @@
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
-      "Pos": "249,129",
-      "Size": "750,145"
+      "Pos": "249,128",
+      "Size": "750,146"
     },
     "###Other Devices": {
       "Collapsed": "0",
