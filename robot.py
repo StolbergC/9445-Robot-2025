@@ -1,7 +1,8 @@
 from commands2 import Command, CommandScheduler
 from wpilib import TimedRobot, Watchdog, run
 
-from RobotContainer import RobotContainer
+from RobotContainer import RobotContainer, button_lb
+from subsystems.climber import Climber
 
 
 class Robot(TimedRobot):
@@ -43,7 +44,9 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self):
-        pass
+        self.m_robotContainer.operator_controller.button(button_lb).whileTrue(
+            self.m_robotContainer.climber.reverse()
+        )
 
     def testPeriodic(self):
         pass

@@ -5,6 +5,7 @@ from wpilib import DriverStation
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
+from subsystems.climber import Climber
 
 button_a = 1
 button_b = 2
@@ -22,7 +23,7 @@ class RobotContainer:
     def __init__(self) -> None:
         self.drivetrain = Drivetrain()
         # self.wrist = Wrist()
-
+        # self.climber = Climber()
         self.driver_controller = CommandJoystick(0)
         self.operator_controller = self.driver_controller
         # self.operator_controller = Joystick(1)
@@ -76,7 +77,7 @@ class RobotContainer:
         self.driver_controller.button(button_a).whileTrue(
             self.drivetrain.drive_forward(1)
         )
-
+        self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
         # self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_pose(Pose2d()))
 
     def unset_teleop_bindings(self) -> None:
