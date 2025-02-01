@@ -478,9 +478,17 @@ class Drivetrain(Subsystem):
                 f"Drive Position ({position.x_feet} ft, {position.y_feet} ft, {position.rotation().degrees()} deg)"
             )
             .onlyWhile(
-                lambda: (abs(self.x_pid.getPositionError()) > feetToMeters(0.5))
-                or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
-                or (abs(self.t_pid.getPositionError()) > pi / 16)
+                lambda: (
+                    (abs(self.x_pid.getPositionError()) > feetToMeters(0.5))
+                    or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
+                    or (abs(self.t_pid.getPositionError()) > pi / 16)
+                    or abs((v := self.get_speeds()).vx) > feetToMeters(5)
+                    or abs(v.vy) > feetToMeters(5)
+                    or abs(v.omega_dps) > 15
+                    and self.x_pid.getSetpoint() == position.X()
+                    and self.y_pid.getSetpoint() == position.Y()
+                    and self.t_pid.getSetpoint() == position.rotation().radians()
+                )
             )
         )
 

@@ -47,9 +47,10 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self):
-        self.m_robotContainer.operator_controller.button(button_lb).whileTrue(
-            self.m_robotContainer.climber.reverse()
-        )
+        # self.m_robotContainer.operator_controller.button(button_lb).whileTrue(
+        # self.m_robotContainer.climber.reverse()
+        # )
+        ...
 
     def testPeriodic(self):
         pass

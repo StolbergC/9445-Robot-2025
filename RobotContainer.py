@@ -87,7 +87,7 @@ class RobotContainer:
         )
 
         # self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_pose(Pose2d()))
-        self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
+        # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
 
         self.driver_controller.button(button_b).whileTrue(
             self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
@@ -97,14 +97,16 @@ class RobotContainer:
             self.drivetrain.drive_position(
                 Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
             )
+            .andThen(WaitCommand(0.5))
             .andThen(
                 self.drivetrain.drive_position(
-                    Pose2d.fromFeet(5, 0, Rotation2d.fromDegrees(90))
+                    Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
                 )
             )
+            .andThen(WaitCommand(0.5))
             .andThen(
                 self.drivetrain.drive_position(
-                    Pose2d.fromFeet(5, 5, Rotation2d.fromDegrees(0))
+                    Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
                 )
             )
         )
