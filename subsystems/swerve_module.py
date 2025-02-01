@@ -124,6 +124,8 @@ class SwerveModule(Subsystem):
 
         self.commanded_state = SwerveModuleState(0, Rotation2d(0))
 
+        self.last_position: float = 0
+
     def periodic(self) -> None:
 
         self.nettable.putNumber("State/velocity (mps)", self.get_vel())
@@ -160,8 +162,9 @@ class SwerveModule(Subsystem):
         """return the angle of the swerve module as a Rotation2d
         This does not work
         """
+        p = self.cancoder.get_absolute_position()
         return Rotation2d.fromDegrees(
-            self.cancoder.get_absolute_position().value_as_double * 360
+            (p.value_as_double if p.is_all_good() else self.last_position) * 360
         )
 
     def get_state(self) -> SwerveModuleState:

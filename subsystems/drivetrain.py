@@ -1,5 +1,5 @@
 from math import pi
-from re import I
+import time
 
 from subsystems.swerve_module import SwerveModule
 from subsystems.navx_gryo import NavX
@@ -19,8 +19,13 @@ from commands2 import (
 from wpilib import Field2d, RobotBase, DriverStation, SmartDashboard
 from wpimath.geometry import Translation2d, Pose2d, Rotation2d
 from wpimath.units import inchesToMeters, feetToMeters, metersToFeet, feet
-from wpimath.controller import ProfiledPIDController
-from wpimath.trajectory import TrapezoidProfile
+from wpimath.controller import (
+    ProfiledPIDController,
+    HolonomicDriveController,
+    PIDController,
+    ProfiledPIDControllerRadians,
+)
+from wpimath.trajectory import TrapezoidProfile, Trajectory, TrapezoidProfileRadians
 from wpimath.kinematics import (
     SwerveDrive4Kinematics,
     SwerveModulePosition,
@@ -45,7 +50,7 @@ class Drivetrain(Subsystem):
         self.max_velocity_mps = feetToMeters(10)
         self.max_angular_velocity = Rotation2d.fromDegrees(180)
 
-        max_accel = self.max_velocity_mps * 4
+        max_accel = self.max_velocity_mps * 10
 
         self.fl = SwerveModule(
             "fl", 6, 8, 7, False, True, self.max_velocity_mps, max_accel
@@ -60,29 +65,32 @@ class Drivetrain(Subsystem):
             "br", 12, 14, 13, False, True, self.max_velocity_mps, max_accel
         )
 
-        self.x_pid = ProfiledPIDController(
-            1.5,
-            0,
-            0,
-            TrapezoidProfile.Constraints(
-                self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
-            ),
-        )
+        # self.x_pid = ProfiledPIDController(
+        #     1.5,
+        #     0,
+        #     0,
+        #     TrapezoidProfile.Constraints(
+        #         self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
+        #     ),
+        # )
 
-        self.y_pid = ProfiledPIDController(
-            1.5,
-            0,
-            0,
-            TrapezoidProfile.Constraints(
-                self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
-            ),
-        )
+        # self.y_pid = ProfiledPIDController(
+        #     1.5,
+        #     0,
+        #     0,
+        #     TrapezoidProfile.Constraints(
+        #         self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
+        #     ),
+        # )
 
-        self.t_pid = ProfiledPIDController(
+        self.x_pid = PIDController(1.5, 0, 0.1)
+        self.y_pid = PIDController(1.5, 0, 0.1)
+
+        self.t_pid = ProfiledPIDControllerRadians(
             1.5,
             0,
             0.1,
-            TrapezoidProfile.Constraints(
+            TrapezoidProfileRadians.Constraints(
                 self.max_angular_velocity.degrees(),
                 self.max_angular_velocity.degrees() * constant_of_acceleration,
             ),
@@ -91,6 +99,14 @@ class Drivetrain(Subsystem):
         self.t_pid.enableContinuousInput(-pi, pi)
         self.t_pid.setIntegratorRange(0, 0.25)
         self.t_pid.setIZone(pi / 2)
+
+        self.x_pid.setTolerance(0.25)
+        self.y_pid.setTolerance(0.25)
+        self.t_pid.setTolerance(pi / 8)
+
+        self.holonomic_controller = HolonomicDriveController(
+            self.x_pid, self.y_pid, self.t_pid
+        )
 
         if RobotBase.isReal():
             # self.gyro = NavX.fromMXP()
@@ -105,16 +121,16 @@ class Drivetrain(Subsystem):
             if isinstance(v := ev.data, ValueEventData):
                 if key == "config/max_velocity_fps":
                     self.max_velocity_mps = feetToMeters(v.value.value())
-                    self.x_pid.setConstraints(
-                        TrapezoidProfile.Constraints(
-                            self.max_velocity_mps, self.max_velocity_mps * 5
-                        )
-                    )
-                    self.y_pid.setConstraints(
-                        TrapezoidProfile.Constraints(
-                            self.max_velocity_mps, self.max_velocity_mps * 5
-                        )
-                    )
+                    # self.x_pid.setConstraints(
+                    #     TrapezoidProfile.Constraints(
+                    #         self.max_velocity_mps, self.max_velocity_mps * 5
+                    #     )
+                    # )
+                    # self.y_pid.setConstraints(
+                    #     TrapezoidProfile.Constraints(
+                    #         self.max_velocity_mps, self.max_velocity_mps * 5
+                    #     )
+                    # )
                     self.fl.set_max_vel(self.max_velocity_mps)
                     self.fr.set_max_vel(self.max_velocity_mps)
                     self.bl.set_max_vel(self.max_velocity_mps)
@@ -122,7 +138,7 @@ class Drivetrain(Subsystem):
                 elif key == "config/max_angular_velocity_degps":
                     self.max_angular_velocity = Rotation2d.fromDegrees(v.value.value())
                     self.t_pid.setConstraints(
-                        TrapezoidProfile.Constraints(
+                        TrapezoidProfileRadians.Constraints(
                             self.max_angular_velocity.degrees(),
                             self.max_angular_velocity.degrees() * 5,
                         )
@@ -216,12 +232,14 @@ class Drivetrain(Subsystem):
                 self.bl.get_position(),
                 self.br.get_position(),
             ),
-            Pose2d.fromFeet(10, 10, Rotation2d.fromDegrees(0)),
+            Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
         )
 
         # self.vision = Vision()
 
         self.is_real = RobotBase.isReal()
+
+        self.trajectory_time = time.perf_counter()
 
     def periodic(self) -> None:
         position = self.odometry.update(
@@ -259,6 +277,7 @@ class Drivetrain(Subsystem):
         else:
             self.nettable.putString("Running Command", "None")
 
+        self.field.setRobotPose(position)
         SmartDashboard.putData(self.field)
 
     def simulationPeriodic(self) -> None:
@@ -472,5 +491,47 @@ class Drivetrain(Subsystem):
             lambda: setattr(self, "max_velocity_mps", start_speed),
         )
 
-    def drive_points(self, points: list[Pose2d]) -> SequentialCommandGroup:
-        return SequentialCommandGroup(*[self.drive_position(pose) for pose in points])
+    def trajectory_update(self, trajectory: Trajectory) -> WrapperCommand:
+        def get_speeds() -> ChassisSpeeds:
+            self.nettable.putNumber("Trajectory/Start Time", self.trajectory_time)
+            p = trajectory.sample(time.perf_counter() - self.trajectory_time).pose
+            self.nettable.putNumber("Trajectory/Position x (ft)", p.x_feet)
+            self.nettable.putNumber("Trajectory/Position y (ft)", p.y_feet)
+            self.nettable.putNumber(
+                "Trajectory/Position rotation (deg)", p.rotation().degrees()
+            )
+            self.nettable.putNumber(
+                "Trajectory/Time", time.perf_counter() - self.trajectory_time
+            )
+
+            return self.holonomic_controller.calculate(
+                self.get_pose(),
+                trajectory.sample(time.perf_counter() - self.trajectory_time),
+                Rotation2d.fromDegrees(0),
+            )
+
+        return self.drive_joystick(
+            lambda: get_speeds().vx,
+            lambda: get_speeds().vy,
+            lambda: get_speeds().omega,
+            lambda: False,
+        ).withName("Trajectory Update")
+
+    def drive_trajectory(self, trajectory: Trajectory) -> WrapperCommand:
+        self.trajectory_time = time.perf_counter()
+        return (
+            InstantCommand(
+                lambda: setattr(self, "trajectory_time", time.perf_counter())
+            )
+            .andThen(self.trajectory_update(trajectory))
+            .onlyWhile(
+                lambda: abs(
+                    (p := self.get_pose()).X()
+                    - (pf := trajectory.sample(trajectory.totalTime()).pose).X()
+                )
+                >= 0.25
+                or abs(p.Y() - pf.Y()) >= 0.25
+                or abs(p.rotation().degrees() - pf.rotation().degrees()) >= 0.25
+            )
+            .withName("Drive Trajectory")
+        )

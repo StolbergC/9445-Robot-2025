@@ -2,8 +2,9 @@ from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 from commands2.button import Trigger, CommandJoystick
 
 from wpilib import DriverStation
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
+from wpimath.trajectory import TrajectoryGenerator, TrajectoryConfig
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
@@ -88,18 +89,45 @@ class RobotContainer:
         )
 
         self.driver_controller.button(button_y).whileTrue(
-            self.drivetrain.drive_points(
-                [
-                    Pose2d(0, 0, Rotation2d(0)),
-                    Pose2d(
-                        feetToMeters(10), feetToMeters(0), Rotation2d.fromDegrees(90)
-                    ),
-                    Pose2d(
-                        feetToMeters(5), feetToMeters(10), Rotation2d.fromDegrees(-90)
-                    ),
-                ]
+            self.drivetrain.drive_position(
+                Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
+            )
+            .andThen(
+                self.drivetrain.drive_position(
+                    Pose2d.fromFeet(5, 0, Rotation2d.fromDegrees(90))
+                )
+            )
+            .andThen(
+                self.drivetrain.drive_position(
+                    Pose2d.fromFeet(5, 5, Rotation2d.fromDegrees(0))
+                )
             )
         )
+        # cfg = TrajectoryConfig(
+        #     self.drivetrain.max_velocity_mps,
+        #     self.drivetrain.max_velocity_mps * 10,
+        # )
+        # self.driver_controller.button(button_y).whileTrue(
+        #     self.drivetrain.drive_trajectory(
+        #         TrajectoryGenerator.generateTrajectory(
+        #             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
+        #             [
+        #                 Translation2d.fromFeet(5, 0),
+        #             ],  # , Translation2d.fromFeet(7, 3)],
+        #             Pose2d.fromFeet(5, 5, Rotation2d.fromDegrees(90)),
+        #             cfg,
+        #         )
+        #     ).andThen(
+        #         self.drivetrain.drive_trajectory(
+        #             TrajectoryGenerator.generateTrajectory(
+        #                 Pose2d.fromFeet(5, 5, Rotation2d.fromDegrees(90)),
+        #                 [Translation2d.fromFeet(0, 5)],
+        #                 Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
+        #                 cfg,
+        #             )
+        #         )
+        #     )
+        # )
 
     def unset_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(WaitCommand(0))
