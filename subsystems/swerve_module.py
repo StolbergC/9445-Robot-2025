@@ -11,8 +11,14 @@ from commands2 import Subsystem
 
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData
 
+from wpilib import RobotBase
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
-from wpimath.units import inchesToMeters, meters_per_second, meters_per_second_squared
+from wpimath.units import (
+    inchesToMeters,
+    meters_per_second,
+    meters_per_second_squared,
+    feetToMeters,
+)
 from wpimath.geometry import Rotation2d
 from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
@@ -37,6 +43,8 @@ class SwerveModule(Subsystem):
         max_velocity: meters_per_second,
         max_accel: meters_per_second_squared,
     ):
+        self.is_real = RobotBase.isReal()
+
         # cancoder
         self.cancoder = CANcoder(cancoder_id)
         self.cancoder.configurator.apply(
@@ -114,6 +122,10 @@ class SwerveModule(Subsystem):
         self.nettable.putNumber("turnI", self.turn_pid.getI())
         self.nettable.putNumber("turnD", self.turn_pid.getD())
 
+        self.commanded_state = SwerveModuleState(0, Rotation2d(0))
+
+        self.last_position: float = 0
+
     def periodic(self) -> None:
 
         self.nettable.putNumber("State/velocity (mps)", self.get_vel())
@@ -144,20 +156,21 @@ class SwerveModule(Subsystem):
 
     def get_distance(self) -> float:
         """return the distance driven by the swerve module since powered on"""
-        return (
-            self.drive_encoder.getPosition() * 2 * math.pi * inchesToMeters(2)
-        )  # * 8.14
+        return feetToMeters(self.drive_encoder.getPosition() / 8.14)
 
     def get_angle(self) -> Rotation2d:
         """return the angle of the swerve module as a Rotation2d
         This does not work
         """
+        p = self.cancoder.get_absolute_position()
         return Rotation2d.fromDegrees(
-            self.cancoder.get_absolute_position().value_as_double * 360
+            (p.value_as_double if p.is_all_good() else self.last_position) * 360
         )
 
     def get_state(self) -> SwerveModuleState:
         """return the velocity and angle of the swerve module"""
+        if not self.is_real:
+            return self.commanded_state
         return SwerveModuleState(self.get_vel(), self.get_angle())
 
     def get_position(self) -> SwerveModulePosition:
@@ -189,6 +202,7 @@ class SwerveModule(Subsystem):
         """command the swerve module to an angle and speed"""
         # optimize the new state
         # this just mutates commanded_state in place
+        self.commanded_state = commanded_state
         commanded_state.optimize(self.get_angle())
 
         self.nettable.putNumber(

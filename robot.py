@@ -6,13 +6,13 @@ from subsystems.climber import Climber
 
 
 class Robot(TimedRobot):
-    m_autonomousCommand: Command = None
-    m_robotContainer: RobotContainer = None
+    m_autonomousCommand: Command | None = None
+    m_robotContainer: RobotContainer | None = None
 
     # Initialize Robot
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
-        Watchdog(0.05, lambda: None).suppressTimeoutMessage(True)
+        Watchdog(0.05, lambda: None).suppressTimeoutMessage(False)
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
@@ -20,10 +20,12 @@ class Robot(TimedRobot):
 
     # Autonomous Robot Functions
     def autonomousInit(self):
-        self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
+        print("Start Auto")
+        if self.m_robotContainer is not None:
+            self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
 
-        if self.m_autonomousCommand is not None:
-            self.m_autonomousCommand.schedule()
+            if self.m_autonomousCommand is not None:
+                self.m_autonomousCommand.schedule()
 
     def autonomousPeriodic(self):
         pass
@@ -34,7 +36,8 @@ class Robot(TimedRobot):
 
     # Teleop Robot Functions
     def teleopInit(self):
-        self.m_robotContainer.set_teleop_bindings()
+        if self.m_robotContainer is not None:
+            self.m_robotContainer.set_teleop_bindings()
 
     def teleopPeriodic(self):
         pass
