@@ -68,7 +68,7 @@ class Drivetrain(Subsystem):
         self.x_pid = ProfiledPIDController(
             1.5,
             0,
-            0,
+            0.3,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
@@ -77,7 +77,7 @@ class Drivetrain(Subsystem):
         self.y_pid = ProfiledPIDController(
             1.5,
             0,
-            0,
+            0.5,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
@@ -361,7 +361,7 @@ class Drivetrain(Subsystem):
     def reset_pose(self, pose: Pose2d) -> SequentialCommandGroup:
         return InstantCommand(
             lambda: self.odometry.resetPosition(
-                self.get_angle(), self.get_module_positions(), pose
+                self.gyro.get_angle(), self.get_module_positions(), pose
             ),
             self,
         ).andThen(self.reset_gyro(pose.rotation()))
@@ -480,7 +480,7 @@ class Drivetrain(Subsystem):
                     or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
                     or (abs(self.t_pid.getPositionError()) > pi / 16)
                     or abs((v := self.get_speeds()).vx) > feetToMeters(5)
-                    or abs(v.vy) > feetToMeters(5)
+                    or abs(v.vy) > feetToMeters(1)
                     or abs(v.omega_dps) > 15
                     or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
                     or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
