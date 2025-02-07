@@ -2,6 +2,7 @@ from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 from commands2.button import Trigger, CommandJoystick
 
 from wpilib import DriverStation
+
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 from wpimath.trajectory import TrajectoryGenerator, TrajectoryConfig
@@ -9,6 +10,8 @@ from wpimath.trajectory import TrajectoryGenerator, TrajectoryConfig
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
+
+from utils.path_generation import generate_path
 
 button_a = 1
 button_b = 2
@@ -110,6 +113,15 @@ class RobotContainer:
                 )
             )
         )
+        # self.driver_controller.button(button_y).whileTrue(
+        #     generate_path(
+        #         self.drivetrain,
+        #         [
+        #             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
+        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90)),
+        #         ],
+        #     )
+        # )
         # cfg = TrajectoryConfig(
         #     self.drivetrain.max_velocity_mps,
         #     self.drivetrain.max_velocity_mps * 10,

@@ -75,9 +75,9 @@ class Drivetrain(Subsystem):
         )
 
         self.y_pid = ProfiledPIDController(
-            1.5,
+            1.0,
             0,
-            0.5,
+            0.3,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),

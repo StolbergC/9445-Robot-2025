@@ -1,5 +1,7 @@
 from webbrowser import get
+
 from rev import SparkMax, SparkMaxConfig, SparkBase
+
 from phoenix6.hardware import CANcoder
 from phoenix6.configs.config_groups import MagnetSensorConfigs
 from phoenix6.signals import SensorDirectionValue
@@ -7,6 +9,7 @@ from phoenix6.signals import SensorDirectionValue
 from commands2 import Subsystem, RunCommand, WrapperCommand
 
 from ntcore import NetworkTable, NetworkTableInstance, EventFlags, Event, ValueEventData
+
 from wpilib import DigitalInput
 
 
