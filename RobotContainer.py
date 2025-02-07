@@ -1,6 +1,7 @@
 from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 from commands2.button import Trigger, CommandJoystick
 
+from ntcore import EventFlags, NetworkTable, NetworkTableInstance
 from wpilib import DriverStation
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
@@ -10,7 +11,9 @@ from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
 
-from auto import blue_blue, positions, red_red
+from auto import blue_left_four_coral, blue_test, positions, red_test
+
+from util import elastic
 
 button_a = 1
 button_b = 2
@@ -47,6 +50,17 @@ class RobotContainer:
         Trigger(DriverStation.isEnabled).onFalse(
             self.drivetrain.set_drive_idle(True)
         ).onFalse(self.drivetrain.set_turn_idle(True))
+
+        reset_position = NetworkTableInstance.getDefault().getTable("ResetPosition")
+        reset_position.putBoolean("Button", False)
+
+        def do_reset():
+            self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0))).schedule()
+            reset_position.putBoolean("Button", False)
+
+        Trigger(lambda: reset_position.getBoolean("Button", False)).onTrue(
+            InstantCommand(do_reset)
+        )
 
     def set_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(
@@ -96,29 +110,15 @@ class RobotContainer:
         )
 
         self.driver_controller.button(button_y).whileTrue(
-            self.drivetrain.drive_position(
-                Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
-            )
-            .andThen(WaitCommand(0.5))
-            .andThen(
-                self.drivetrain.drive_position(
-                    Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(0))
-                )
-            )
-            .andThen(WaitCommand(0.5))
-            .andThen(
-                self.drivetrain.drive_position(
-                    Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
-                )
-            )
+            self.drivetrain.drive_position(positions.blue_reef_center)
         )
 
         self.driver_controller.button(button_rb).whileTrue(
-            red_red.get_auto(self.drivetrain)
+            red_test.get_auto(self.drivetrain)
         )
 
         self.driver_controller.button(button_lb).whileTrue(
-            blue_blue.get_auto(self.drivetrain)
+            blue_test.get_auto(self.drivetrain)
         )
         # cfg = TrajectoryConfig(
         #     self.drivetrain.max_velocity_mps,
@@ -151,4 +151,4 @@ class RobotContainer:
         # self.wrist.setDefaultCommand(WaitCommand(0))
 
     def get_auto_command(self) -> Command:
-        return blue_blue.get_auto(self.drivetrain)
+        return blue_left_four_coral.get_auto(self.drivetrain)

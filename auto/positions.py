@@ -13,7 +13,7 @@ CORAL_STATION_LEFT_ANGLE = Rotation2d.fromDegrees(135)
 CORAL_STATION_RIGHT_ANGLE = -Rotation2d.fromDegrees(135)
 
 blue_reef_center = Pose2d.fromFeet(
-    (144 + 93.5 / 2 + 14) / 12, FIELD_WIDTH_FT / 2, Rotation2d(0)
+    (144 + 93.5 / 2) / 12 - ROBOT_WIDTH_FT / 2, FIELD_WIDTH_FT / 2, Rotation2d(0)
 )
 
 blue_reef_without_offset = Pose2d.fromFeet(
@@ -24,33 +24,11 @@ blue_reef_without_offset = Pose2d.fromFeet(
 
 
 def rotate_about_reef(pose: Pose2d, angle: Rotation2d) -> Pose2d:
-    p = (
+    return (
         pose.relativeTo(blue_reef_center)
         .rotateBy(angle)
         .relativeTo(Pose2d(-blue_reef_center.X(), -blue_reef_center.Y(), Rotation2d(0)))
     )
-    # for x, cos is parallel to the edge of the reef and sin will be perpendicular
-    # for y, sin is parallel to the edge of the reef and cos will be perpendicular
-    if angle.radians() < 0:
-        return Pose2d.fromFeet(
-            p.x_feet
-            - REEF_CENTER_DISTANCE_FT * angle.cos()
-            + ROBOT_WIDTH_FT * angle.sin() / 2,
-            p.y_feet
-            + REEF_CENTER_DISTANCE_FT * angle.sin()
-            + ROBOT_WIDTH_FT * angle.cos() / 2,
-            p.rotation(),
-        )
-    else:
-        return Pose2d.fromFeet(
-            p.x_feet
-            + REEF_CENTER_DISTANCE_FT * angle.cos()
-            - ROBOT_WIDTH_FT * angle.sin() / 2,
-            p.y_feet
-            - REEF_CENTER_DISTANCE_FT * angle.sin()
-            + ROBOT_WIDTH_FT * angle.cos() / 2,
-            p.rotation(),
-        )
 
 
 def rotate_about_center(pose: Pose2d) -> Pose2d:
@@ -72,41 +50,41 @@ blue_start_line_center = Pose2d.fromFeet(
 )
 
 blue_reef_a = Pose2d.fromFeet(
-    144 / 12 - ROBOT_WIDTH_FT,
+    144 / 12 - ROBOT_WIDTH_FT / 2,
     FIELD_WIDTH_FT / 2 + REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d.fromDegrees(0),
 )
 
 blue_reef_b = Pose2d.fromFeet(
-    144 / 12 - ROBOT_WIDTH_FT,
+    144 / 12 - ROBOT_WIDTH_FT / 2,
     FIELD_WIDTH_FT / 2 - REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d.fromDegrees(0),
 )
 
 blue_reef_h = Pose2d.fromFeet(
-    (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT,
+    (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT / 2,
     FIELD_WIDTH_FT / 2 + REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d(180),
 )
 
 blue_reef_g = Pose2d.fromFeet(
-    (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT,
+    (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT / 2,
     FIELD_WIDTH_FT / 2 - REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d(180),
 )
 
 
-blue_reef_l = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(-30))
-blue_reef_k = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(-60))
+blue_reef_l = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-60))
+blue_reef_k = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-60))
 
-blue_reef_j = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(-90))
-blue_reef_i = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(-100))
+blue_reef_j = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-120))
+blue_reef_i = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-120))
 
-blue_reef_c = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(45))
-blue_reef_d = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(55))
+blue_reef_c = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(60))
+blue_reef_d = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(60))
 
-blue_reef_e = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(60))
-blue_reef_f = rotate_about_reef(blue_reef_without_offset, Rotation2d.fromDegrees(90))
+blue_reef_e = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(120))
+blue_reef_f = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(120))
 
 blue_coral_intake_left_left = Pose2d.fromFeet(
     CORAL_STATION_X_LENGTH_FT

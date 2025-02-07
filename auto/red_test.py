@@ -1,7 +1,6 @@
 from commands2 import SequentialCommandGroup, WaitCommand
 from subsystems.drivetrain import Drivetrain
 
-from wpimath.geometry import Pose2d, Rotation2d
 from auto import positions
 
 

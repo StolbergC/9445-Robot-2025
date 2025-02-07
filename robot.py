@@ -14,7 +14,7 @@ class Robot(TimedRobot):
     # Initialize Robot
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
-        Watchdog(0.05, lambda: None).suppressTimeoutMessage(False)
+        Watchdog(0.05, lambda: None).suppressTimeoutMessage(True)
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
@@ -28,6 +28,7 @@ class Robot(TimedRobot):
 
             if self.m_autonomousCommand is not None:
                 self.m_autonomousCommand.schedule()
+                print("Get the robot to go")
 
     def autonomousPeriodic(self):
         pass
@@ -35,6 +36,7 @@ class Robot(TimedRobot):
     def autonomousExit(self):
         if self.m_autonomousCommand:
             self.m_autonomousCommand.cancel()
+            print("Stopping auto command")
 
     # Teleop Robot Functions
     def teleopInit(self):

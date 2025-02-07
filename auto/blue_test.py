@@ -1,7 +1,6 @@
 from commands2 import SequentialCommandGroup, WaitCommand
 from subsystems.drivetrain import Drivetrain
 
-from wpimath.geometry import Pose2d, Rotation2d
 from auto import positions
 
 
@@ -50,3 +49,7 @@ def get_auto(drivetrain: Drivetrain) -> SequentialCommandGroup:
         .andThen(drivetrain.drive_position(positions.blue_processor))
         .andThen(WaitCommand(0.25))
     )
+
+
+def reset_pose(drivetrain: Drivetrain) -> None:
+    drivetrain.reset_pose(positions.blue_start_line_left)
