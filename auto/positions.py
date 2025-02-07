@@ -55,7 +55,7 @@ def rotate_about_reef(pose: Pose2d, angle: Rotation2d) -> Pose2d:
 
 def rotate_about_center(pose: Pose2d) -> Pose2d:
     return pose.rotateBy(Rotation2d.fromDegrees(180)).relativeTo(
-        Pose2d.fromFeet(-FIELD_LENGTH_FT / 2, -FIELD_WIDTH_FT / 2, Rotation2d(0))
+        Pose2d.fromFeet(-FIELD_LENGTH_FT, -FIELD_WIDTH_FT, Rotation2d(0))
     )
 
 
