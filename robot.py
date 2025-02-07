@@ -1,5 +1,5 @@
 from commands2 import Command, CommandScheduler
-from wpilib import TimedRobot, Watchdog, run
+from wpilib import SmartDashboard, TimedRobot, Watchdog, run
 
 from RobotContainer import RobotContainer, button_lb
 from subsystems.climber import Climber
@@ -33,8 +33,8 @@ class Robot(TimedRobot):
         pass
 
     def autonomousExit(self):
-        # self.m_autonomousCommand.cancel()
-        ...
+        if self.m_autonomousCommand:
+            self.m_autonomousCommand.cancel()
 
     # Teleop Robot Functions
     def teleopInit(self):

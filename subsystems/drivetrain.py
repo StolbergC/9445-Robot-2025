@@ -48,7 +48,7 @@ class Drivetrain(Subsystem):
     def __init__(self, constant_of_acceleration: float = 10):
         """member instantiation"""
         self.max_velocity_mps = feetToMeters(15)
-        self.max_angular_velocity = Rotation2d.fromDegrees(360)
+        self.max_angular_velocity = Rotation2d.fromDegrees(0)
 
         max_accel = self.max_velocity_mps * 10
 
@@ -465,8 +465,10 @@ class Drivetrain(Subsystem):
             self.drive_joystick(
                 lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
                 lambda: self.y_pid.calculate(self.get_pose().Y(), position.Y()),
-                lambda: self.t_pid.calculate(
-                    self.get_angle().radians(), position.rotation().radians()
+                lambda: (
+                    self.t_pid.calculate(
+                        self.get_angle().radians(), position.rotation().radians()
+                    )
                 ),
                 lambda: True,
             )
@@ -477,20 +479,16 @@ class Drivetrain(Subsystem):
                 lambda: (
                     abs(self.x_pid.getPositionError()) > feetToMeters(0.5)
                     or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
-                    or (abs(self.t_pid.getPositionError()) > pi / 16)
+                    or (
+                        (abs(self.t_pid.getPositionError()) > pi / 16)
+                        if self.is_real
+                        else False
+                    )
                     or abs((v := self.get_speeds()).vx) > feetToMeters(5)
                     or abs(v.vy) > feetToMeters(5)
-                    or abs(v.omega_dps) > 15
+                    or (abs(v.omega_dps) > 15 if self.is_real else False)
                     or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
                     or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
-                    or (
-                        abs(
-                            self.t_pid.getSetpoint().position
-                            - position.rotation().radians()
-                        )
-                        > 0.1
-                        or self.is_real
-                    )
                 )
             )
         )
