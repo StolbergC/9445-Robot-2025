@@ -1,8 +1,10 @@
 from commands2 import Command, CommandScheduler
-from wpilib import TimedRobot, Watchdog, run
+from wpilib import SmartDashboard, TimedRobot, Watchdog, run
 
 from RobotContainer import RobotContainer, button_lb
 from subsystems.climber import Climber
+
+from util import elastic
 
 
 class Robot(TimedRobot):
@@ -12,7 +14,7 @@ class Robot(TimedRobot):
     # Initialize Robot
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
-        Watchdog(0.05, lambda: None).suppressTimeoutMessage(False)
+        Watchdog(0.05, lambda: None).suppressTimeoutMessage(True)
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
@@ -20,22 +22,25 @@ class Robot(TimedRobot):
 
     # Autonomous Robot Functions
     def autonomousInit(self):
-        print("Start Auto")
+        elastic.select_tab("Autonomous")
         if self.m_robotContainer is not None:
             self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
 
             if self.m_autonomousCommand is not None:
                 self.m_autonomousCommand.schedule()
+                print("Get the robot to go")
 
     def autonomousPeriodic(self):
         pass
 
     def autonomousExit(self):
-        # self.m_autonomousCommand.cancel()
-        ...
+        if self.m_autonomousCommand:
+            self.m_autonomousCommand.cancel()
+            print("Stopping auto command")
 
     # Teleop Robot Functions
     def teleopInit(self):
+        elastic.select_tab("Teleoperated")
         if self.m_robotContainer is not None:
             self.m_robotContainer.set_teleop_bindings()
 
@@ -47,6 +52,7 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self):
+        elastic.select_tab("Test")
         # self.m_robotContainer.operator_controller.button(button_lb).whileTrue(
         # self.m_robotContainer.climber.reverse()
         # )

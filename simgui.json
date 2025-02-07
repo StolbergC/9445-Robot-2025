@@ -1,4 +1,11 @@
 {
+  "HALProvider": {
+    "Timing": {
+      "window": {
+        "visible": false
+      }
+    }
+  },
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
@@ -6,6 +13,10 @@
     },
     "windows": {
       "/SmartDashboard/Field": {
+        "Robot": {
+          "length": 0.7111999988555908,
+          "width": 0.7111999988555908
+        },
         "bottom": 1638,
         "builtin": "2025 Reefscape",
         "height": 8.051901817321777,
@@ -20,15 +31,12 @@
     }
   },
   "NetworkTables": {
+    "Retained Values": {
+      "open": false
+    },
     "transitory": {
       "000Drivetrain": {
-        "open": true,
-        "state": {
-          "open": true
-        },
-        "xPID": {
-          "open": true
-        }
+        "open": true
       },
       "000Wrist": {
         "PID": {
@@ -37,9 +45,6 @@
         "State": {
           "open": true
         },
-        "open": true
-      },
-      "00Swerve": {
         "open": true
       },
       "Drivetrain": {
@@ -74,5 +79,8 @@
         "open": true
       }
     }
+  },
+  "NetworkTables Info": {
+    "visible": true
   }
 }
