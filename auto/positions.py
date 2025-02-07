@@ -12,7 +12,7 @@ CORAL_STATION_Y_LENGTH_FT = 51 / 12
 CORAL_STATION_LEFT_ANGLE = Rotation2d.fromDegrees(135)
 CORAL_STATION_RIGHT_ANGLE = -Rotation2d.fromDegrees(135)
 
-reef_center = Pose2d.fromFeet(
+blue_reef_center = Pose2d.fromFeet(
     (144 + 93.5 / 2 + 14) / 12, FIELD_WIDTH_FT / 2, Rotation2d(0)
 )
 
@@ -25,9 +25,9 @@ blue_reef_without_offset = Pose2d.fromFeet(
 
 def rotate_about_reef(pose: Pose2d, angle: Rotation2d) -> Pose2d:
     p = (
-        pose.relativeTo(reef_center)
+        pose.relativeTo(blue_reef_center)
         .rotateBy(angle)
-        .relativeTo(Pose2d(-reef_center.X(), -reef_center.Y(), Rotation2d(0)))
+        .relativeTo(Pose2d(-blue_reef_center.X(), -blue_reef_center.Y(), Rotation2d(0)))
     )
     # for x, cos is parallel to the edge of the reef and sin will be perpendicular
     # for y, sin is parallel to the edge of the reef and cos will be perpendicular
@@ -156,7 +156,46 @@ blue_coral_intake_right_right = Pose2d.fromFeet(
     CORAL_STATION_LEFT_ANGLE,
 )
 
-blue_processor = Pose2d.fromFeet()
+blue_processor = Pose2d.fromFeet(
+    325.5 / 12 - ROBOT_WIDTH_FT - 61.76 / 12,
+    ROBOT_WIDTH_FT / 2,
+    Rotation2d.fromDegrees(90),
+)
 
+red_start_line_left = rotate_about_center(blue_start_line_left)
 
-red_
+red_start_line_right = rotate_about_center(blue_start_line_right)
+
+red_start_line_center = rotate_about_center(blue_start_line_center)
+
+red_reef_a = rotate_about_center(blue_reef_a)
+red_reef_b = rotate_about_center(blue_reef_b)
+
+red_reef_h = rotate_about_center(blue_reef_h)
+red_reef_g = rotate_about_center(blue_reef_g)
+
+red_reef_l = rotate_about_center(blue_reef_l)
+red_reef_k = rotate_about_center(blue_reef_k)
+
+red_reef_j = rotate_about_center(blue_reef_j)
+red_reef_i = rotate_about_center(blue_reef_i)
+
+red_reef_c = rotate_about_center(blue_reef_c)
+red_reef_d = rotate_about_center(blue_reef_d)
+
+red_reef_e = rotate_about_center(blue_reef_e)
+red_reef_f = rotate_about_center(blue_reef_f)
+
+red_coral_intake_left_left = rotate_about_center(blue_coral_intake_left_left)
+
+red_coral_intake_left_center = rotate_about_center(blue_coral_intake_left_center)
+
+red_coral_intake_left_right = rotate_about_center(blue_coral_intake_left_right)
+
+red_coral_intake_right_left = rotate_about_center(blue_coral_intake_right_left)
+
+red_coral_intake_right_center = rotate_about_center(blue_coral_intake_right_center)
+
+red_coral_intake_right_right = rotate_about_center(blue_coral_intake_right_right)
+
+red_processor = rotate_about_center(blue_processor)

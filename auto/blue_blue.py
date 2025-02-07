@@ -8,7 +8,7 @@ from auto import positions
 def get_auto(drivetrain: Drivetrain) -> SequentialCommandGroup:
     # start at starting line
     delay = 1
-    return drivetrain.drive_position(positions.blue_coral_intake_right_right)
+    return drivetrain.drive_position(positions.blue_processor)
     return (
         drivetrain.drive_position(positions.blue_start_line_left)
         .andThen(
