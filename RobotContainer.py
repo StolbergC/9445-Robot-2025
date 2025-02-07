@@ -10,6 +10,8 @@ from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
 
+from auto import blue_blue
+
 button_a = 1
 button_b = 2
 button_x = 3
@@ -100,7 +102,7 @@ class RobotContainer:
             .andThen(WaitCommand(0.5))
             .andThen(
                 self.drivetrain.drive_position(
-                    Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
+                    Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(0))
                 )
             )
             .andThen(WaitCommand(0.5))
@@ -109,6 +111,10 @@ class RobotContainer:
                     Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
                 )
             )
+        )
+
+        self.driver_controller.button(button_x).whileTrue(
+            blue_blue.get_auto(self.drivetrain)
         )
         # cfg = TrajectoryConfig(
         #     self.drivetrain.max_velocity_mps,

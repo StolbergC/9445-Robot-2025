@@ -47,8 +47,8 @@ from subsystems.vision import Vision
 class Drivetrain(Subsystem):
     def __init__(self, constant_of_acceleration: float = 10):
         """member instantiation"""
-        self.max_velocity_mps = feetToMeters(10)
-        self.max_angular_velocity = Rotation2d.fromDegrees(180)
+        self.max_velocity_mps = feetToMeters(15)
+        self.max_angular_velocity = Rotation2d.fromDegrees(360)
 
         max_accel = self.max_velocity_mps * 10
 
@@ -299,10 +299,6 @@ class Drivetrain(Subsystem):
         )
 
         self.field.setRobotPose(self.get_pose())
-        self.nettable.putNumber(
-            "New X",
-            curr_pose.x + curr_vel.vx,
-        )
         SmartDashboard.putData(self.field)
         return super().simulationPeriodic()
 
@@ -319,7 +315,10 @@ class Drivetrain(Subsystem):
         return self.odometry.getEstimatedPosition()
 
     def get_angle(self) -> Rotation2d:
-        return self.get_pose().rotation()
+        if RobotBase.isReal():
+            return self.get_pose().rotation()
+        else:
+            return self.gyro.get_angle()
 
     def get_module_positions(
         self,
@@ -484,11 +483,14 @@ class Drivetrain(Subsystem):
                     or abs(v.omega_dps) > 15
                     or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
                     or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
-                    or abs(
-                        self.t_pid.getSetpoint().position
-                        - position.rotation().radians()
+                    or (
+                        abs(
+                            self.t_pid.getSetpoint().position
+                            - position.rotation().radians()
+                        )
+                        > 0.1
+                        or self.is_real
                     )
-                    > 0.1
                 )
             )
         )

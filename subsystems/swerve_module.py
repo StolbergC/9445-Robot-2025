@@ -126,9 +126,10 @@ class SwerveModule(Subsystem):
 
         self.last_position: float = 0
 
-        if not RobotBase.isReal():
+        if not self.is_real:
             self.drive_pid.setPID(0, 0, 0)
             self.turn_pid.setPID(0, 0, 0)
+        self.nettable.putBoolean("IsReal", self.is_real)
 
     def periodic(self) -> None:
 

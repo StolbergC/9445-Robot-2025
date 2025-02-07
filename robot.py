@@ -4,6 +4,8 @@ from wpilib import TimedRobot, Watchdog, run
 from RobotContainer import RobotContainer, button_lb
 from subsystems.climber import Climber
 
+from util import elastic
+
 
 class Robot(TimedRobot):
     m_autonomousCommand: Command | None = None
@@ -20,7 +22,7 @@ class Robot(TimedRobot):
 
     # Autonomous Robot Functions
     def autonomousInit(self):
-        print("Start Auto")
+        elastic.select_tab("Autonomous")
         if self.m_robotContainer is not None:
             self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
 
@@ -36,6 +38,7 @@ class Robot(TimedRobot):
 
     # Teleop Robot Functions
     def teleopInit(self):
+        elastic.select_tab("Teleoperated")
         if self.m_robotContainer is not None:
             self.m_robotContainer.set_teleop_bindings()
 
@@ -47,6 +50,7 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self):
+        elastic.select_tab("Test")
         # self.m_robotContainer.operator_controller.button(button_lb).whileTrue(
         # self.m_robotContainer.climber.reverse()
         # )
