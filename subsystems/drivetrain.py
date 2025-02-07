@@ -48,7 +48,7 @@ class Drivetrain(Subsystem):
     def __init__(self, constant_of_acceleration: float = 10):
         """member instantiation"""
         self.max_velocity_mps = feetToMeters(15)
-        self.max_angular_velocity = Rotation2d.fromDegrees(0)
+        self.max_angular_velocity = Rotation2d.fromDegrees(360)
 
         max_accel = self.max_velocity_mps * 10
 
@@ -68,25 +68,25 @@ class Drivetrain(Subsystem):
         self.x_pid = ProfiledPIDController(
             1.5,
             0,
-            0.3,
+            0.4,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
         )
 
         self.y_pid = ProfiledPIDController(
-            1.0,
+            1.5,
             0,
-            0.3,
+            0.4,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
         )
 
         self.t_pid = ProfiledPIDControllerRadians(
-            1.5,
+            0.9,
             0,
-            0.1,
+            0.2,
             TrapezoidProfileRadians.Constraints(
                 self.max_angular_velocity.degrees(),
                 self.max_angular_velocity.degrees() * constant_of_acceleration,
@@ -485,13 +485,8 @@ class Drivetrain(Subsystem):
                         else False
                     )
                     or abs((v := self.get_speeds()).vx) > feetToMeters(5)
-<<<<<<< HEAD
-                    or abs(v.vy) > feetToMeters(1)
-                    or abs(v.omega_dps) > 15
-=======
                     or abs(v.vy) > feetToMeters(5)
                     or (abs(v.omega_dps) > 15 if self.is_real else False)
->>>>>>> c90222b9f62a0faa9a65d76dd50b7bf2fd023f45
                     or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
                     or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
                 )

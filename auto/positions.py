@@ -38,15 +38,17 @@ def rotate_about_center(pose: Pose2d) -> Pose2d:
 
 
 blue_start_line_left = Pose2d.fromFeet(
-    325.5 / 12 - ROBOT_WIDTH_FT, FIELD_WIDTH_FT - 31.178 / 12, Rotation2d.fromDegrees(0)
+    325.5 / 12 - ROBOT_WIDTH_FT,
+    FIELD_WIDTH_FT - 31.178 / 12,
+    Rotation2d.fromDegrees(180),
 )
 
 blue_start_line_right = Pose2d.fromFeet(
-    325.5 / 12 - ROBOT_WIDTH_FT, 31.178 / 12, Rotation2d.fromDegrees(0)
+    325.5 / 12 - ROBOT_WIDTH_FT, 31.178 / 12, Rotation2d.fromDegrees(180)
 )
 
 blue_start_line_center = Pose2d.fromFeet(
-    325.5 / 12 - ROBOT_WIDTH_FT, 0, Rotation2d.fromDegrees(0)
+    325.5 / 12 - ROBOT_WIDTH_FT, 0, Rotation2d.fromDegrees(180)
 )
 
 blue_reef_a = Pose2d.fromFeet(
@@ -77,8 +79,8 @@ blue_reef_g = Pose2d.fromFeet(
 blue_reef_l = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-60))
 blue_reef_k = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-60))
 
-blue_reef_j = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-120))
-blue_reef_i = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-120))
+blue_reef_i = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-120))
+blue_reef_j = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-120))
 
 blue_reef_c = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(60))
 blue_reef_d = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(60))
