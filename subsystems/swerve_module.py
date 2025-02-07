@@ -126,6 +126,10 @@ class SwerveModule(Subsystem):
 
         self.last_position: float = 0
 
+        if not RobotBase.isReal():
+            self.drive_pid.setPID(0, 0, 0)
+            self.turn_pid.setPID(0, 0, 0)
+
     def periodic(self) -> None:
 
         self.nettable.putNumber("State/velocity (mps)", self.get_vel())

@@ -495,7 +495,28 @@ class Drivetrain(Subsystem):
 
     def defense_mode(self) -> StartEndCommand:
         start_speed = self.max_velocity_mps
+        # assumes the same for x and y pids.
+        start_constraints = self.x_pid.getConstraints()
+
+        def set_high():
+            self.max_velocity_mps = 1000
+            self.x_pid.setConstraints(
+                TrapezoidProfile.Constraints(
+                    self.max_velocity_mps, self.max_velocity_mps * 10
+                )
+            )
+            self.y_pid.setConstraints(
+                TrapezoidProfile.Constraints(
+                    self.max_velocity_mps, self.max_velocity_mps * 10
+                )
+            )
+
+        def set_low():
+            self.max_velocity_mps = start_speed
+            self.x_pid.setConstraints(start_constraints)
+            self.y_pid.setConstraints(start_constraints)
+
         return StartEndCommand(
-            lambda: setattr(self, "max_velocity_mps", 500),
-            lambda: setattr(self, "max_velocity_mps", start_speed),
+            lambda: set_high(),
+            lambda: set_low(),
         )
