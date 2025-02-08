@@ -9,8 +9,9 @@ ROBOT_WIDTH_FT = (
 REEF_CENTER_DISTANCE_FT = 1 + 1 / 12
 CORAL_STATION_X_LENGTH_FT = 67.851 / 12
 CORAL_STATION_Y_LENGTH_FT = 51 / 12
-CORAL_STATION_LEFT_ANGLE = Rotation2d.fromDegrees(135)
-CORAL_STATION_RIGHT_ANGLE = -Rotation2d.fromDegrees(135)
+CORAL_STATION_LENGTH_FT = 77.750 / 12
+CORAL_STATION_LEFT_ANGLE = Rotation2d(64.528, 46.863) + Rotation2d.fromDegrees(90)
+CORAL_STATION_RIGHT_ANGLE = -CORAL_STATION_LEFT_ANGLE
 
 blue_reef_center = Pose2d.fromFeet(
     (144 + 93.5 / 2) / 12 - ROBOT_WIDTH_FT / 2, FIELD_WIDTH_FT / 2, Rotation2d(0)
@@ -89,21 +90,20 @@ blue_reef_e = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(120))
 blue_reef_f = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(120))
 
 blue_coral_intake_left_left = Pose2d.fromFeet(
-    CORAL_STATION_X_LENGTH_FT
-    - ROBOT_WIDTH_FT / 2
-    - ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.cos(),
+    -ROBOT_WIDTH_FT / 2
+    - CORAL_STATION_LENGTH_FT * CORAL_STATION_LEFT_ANGLE.cos()
+    + ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.sin(),
     FIELD_WIDTH_FT
     - ROBOT_WIDTH_FT / 2
-    - ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.sin(),
+    + ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.cos(),
     CORAL_STATION_LEFT_ANGLE,
 )
 
+# TODO: Make these match the left left, which has been tested
 blue_coral_intake_left_center = Pose2d.fromFeet(
-    CORAL_STATION_X_LENGTH_FT / 2
-    - ROBOT_WIDTH_FT / 2
-    - ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.cos(),
+    -ROBOT_WIDTH_FT / 2 + CORAL_STATION_LENGTH_FT / 2 * CORAL_STATION_LEFT_ANGLE.cos(),
     FIELD_WIDTH_FT
-    - ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.sin()
+    + ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.sin()
     - CORAL_STATION_Y_LENGTH_FT / 2,
     CORAL_STATION_LEFT_ANGLE,
 )
@@ -111,7 +111,7 @@ blue_coral_intake_left_center = Pose2d.fromFeet(
 blue_coral_intake_left_right = Pose2d.fromFeet(
     ROBOT_WIDTH_FT / 2,
     FIELD_WIDTH_FT
-    - ROBOT_WIDTH_FT * CORAL_STATION_LEFT_ANGLE.sin()
+    + CORAL_STATION_LENGTH_FT * CORAL_STATION_LEFT_ANGLE.sin()
     - CORAL_STATION_Y_LENGTH_FT / 2,
     CORAL_STATION_LEFT_ANGLE,
 )

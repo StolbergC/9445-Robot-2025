@@ -26,7 +26,7 @@ button_rpush = 10
 
 class RobotContainer:
     def __init__(self) -> None:
-        self.drivetrain = Drivetrain()
+        self.drivetrain = Drivetrain(7.5)
         # self.wrist = Wrist()
         # self.climber = Climber()
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
@@ -92,7 +92,8 @@ class RobotContainer:
         # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
 
         self.driver_controller.button(button_b).whileTrue(
-            self.drivetrain.reset_pose(positions.blue_start_line_left)
+            # self.drivetrain.reset_pose(positions.blue_start_line_left)
+            self.drivetrain.reset_pose(positions.blue_coral_intake_left_left)
         )
 
         # self.driver_controller.button(button_y).whileTrue(

@@ -50,7 +50,7 @@ class Drivetrain(Subsystem):
         self.max_velocity_mps = feetToMeters(15)
         self.max_angular_velocity = Rotation2d.fromDegrees(360)
 
-        max_accel = self.max_velocity_mps * 10
+        max_accel = self.max_velocity_mps * constant_of_acceleration
 
         self.fl = SwerveModule(
             "fl", 6, 8, 7, False, True, self.max_velocity_mps, max_accel
@@ -66,27 +66,27 @@ class Drivetrain(Subsystem):
         )
 
         self.x_pid = ProfiledPIDController(
-            1.5,
+            0.8,
             0,
-            0.4,
+            0.2,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
         )
 
         self.y_pid = ProfiledPIDController(
-            1.5,
+            0.8,
             0,
-            0.4,
+            0.2,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),
         )
 
         self.t_pid = ProfiledPIDControllerRadians(
-            0.9,
+            0.6,
             0,
-            0.2,
+            0.1,
             TrapezoidProfileRadians.Constraints(
                 self.max_angular_velocity.degrees(),
                 self.max_angular_velocity.degrees() * constant_of_acceleration,
