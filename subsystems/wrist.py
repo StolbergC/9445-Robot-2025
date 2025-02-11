@@ -1,7 +1,4 @@
 from rev import SparkMax, SparkMaxConfig, SparkBase
-from phoenix6.hardware import CANcoder
-from phoenix6.configs.config_groups import MagnetSensorConfigs
-from phoenix6.signals import SensorDirectionValue
 
 from commands2 import Subsystem, RunCommand, WrapperCommand
 
@@ -10,6 +7,8 @@ from ntcore import NetworkTable, NetworkTableInstance, EventFlags, Event, ValueE
 from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
+
+from wpilib import DutyCycleEncoder
 
 
 class Wrist(Subsystem):
@@ -28,15 +27,7 @@ class Wrist(Subsystem):
             SparkBase.PersistMode.kNoPersistParameters,
         )
 
-        self.cancoder = CANcoder(21)
-        self.cancoder.configurator.apply(
-            MagnetSensorConfigs()
-            .with_absolute_sensor_discontinuity_point(0.5)
-            .with_magnet_offset(0)  # change when finding the actual offset
-            .with_sensor_direction(
-                SensorDirectionValue.COUNTER_CLOCKWISE_POSITIVE
-            )  # the motor is opposite to the encoder
-        )
+        self.encoder = DutyCycleEncoder(2, 180, 90)
 
         self.pid = ProfiledPIDController(
             0.01, 0, 0, TrapezoidProfile.Constraints(90, 3600)
@@ -70,9 +61,7 @@ class Wrist(Subsystem):
         return super().periodic()
 
     def get_angle(self) -> Rotation2d:
-        return Rotation2d.fromDegrees(
-            self.cancoder.get_absolute_position().value_as_double * 360
-        )
+        return Rotation2d.fromDegrees(self.encoder.get())
 
     def set_state(self, angle: Rotation2d) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
