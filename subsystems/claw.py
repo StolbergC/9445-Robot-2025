@@ -14,9 +14,9 @@ from rev import SparkMax, SparkLowLevel, SparkMaxConfig
 
 class Claw(Subsystem):
     def __init__(self) -> None:
-        TEETH = 24
-        PITCH_DIAMETER_IN = 0.902 / 12
-        DIAMETERAL_PITCH = TEETH / PITCH_DIAMETER_IN
+        TEETH = 18
+        DIAMETERAL_PITCH = 20  # units??? maybe /= 12
+        PCD = TEETH / DIAMETERAL_PITCH
 
         super().__init__()
 
@@ -28,7 +28,7 @@ class Claw(Subsystem):
             20
         ).encoder.positionConversionFactor(
             pi
-            * DIAMETERAL_PITCH
+            * PCD
             * 1  # TODO: Insert Gear Ratio Here
             / self.motor.configAccessor.encoder.getCountsPerRevolution()
         )
