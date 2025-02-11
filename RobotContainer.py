@@ -1,7 +1,10 @@
+from encodings.punycode import T
 from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 from commands2.button import Trigger, CommandJoystick
 
 from wpilib import DriverStation
+
+from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 from wpimath.trajectory import TrajectoryGenerator, TrajectoryConfig
@@ -9,8 +12,9 @@ from wpimath.trajectory import TrajectoryGenerator, TrajectoryConfig
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
+from subsystems.claw import Claw
 
-from auto import blue_test, positions, red_test, blue_left_four_coral
+from utils.path_generation import generate_path
 
 button_a = 1
 button_b = 2
@@ -26,14 +30,20 @@ button_rpush = 10
 
 class RobotContainer:
     def __init__(self) -> None:
-        self.drivetrain = Drivetrain(7.5)
-        # self.wrist = Wrist()
+        self.drivetrain = Drivetrain()
+        self.wrist = Wrist()
         # self.climber = Climber()
+        # self.claw = Claw()
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
 
         self.driver_controller = CommandJoystick(0)
-        self.operator_controller = self.driver_controller
+        self.operator_controller = CommandJoystick(1)
         # self.operator_controller = Joystick(1)
+
+        self.driver_controller.setYChannel(0)
+        self.driver_controller.setXChannel(1)
+        self.driver_controller.setTwistChannel(4)
+        self.driver_controller.setThrottleChannel(3)
 
         self.driver_controller.setYChannel(0)
         self.driver_controller.setXChannel(1)
@@ -58,6 +68,27 @@ class RobotContainer:
                 lambda: self.driver_controller.getThrottle() > 0,
             )
         )
+
+        # self.claw.setDefaultCommand(
+        #     RunCommand(
+        #         lambda: self.claw.set_motor(
+        #             applyDeadband(self.operator_controller.getX(), 0.05)
+        #         ),
+        #         self.claw,
+        #     ).withName("Drive Claw Joystick")
+        # )
+
+        self.wrist.setDefaultCommand(
+            RunCommand(
+                lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
+                self.wrist,
+            )
+        )
+
+        # Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
+        # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
+        # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
+        # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
 
         self.driver_controller.button(button_lpush).or_(
             self.driver_controller.button(button_rpush)
@@ -92,39 +123,36 @@ class RobotContainer:
         # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
 
         self.driver_controller.button(button_b).whileTrue(
-            # self.drivetrain.reset_pose(positions.blue_start_line_left)
-            self.drivetrain.reset_pose(positions.blue_coral_intake_left_left)
+            self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
+        )
+
+        self.driver_controller.button(button_y).whileTrue(
+            self.drivetrain.drive_position(
+                Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
+            )
+            .andThen(WaitCommand(0.5))
+            .andThen(
+                self.drivetrain.drive_position(
+                    Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
+                )
+            )
+            .andThen(WaitCommand(0.5))
+            .andThen(
+                self.drivetrain.drive_position(
+                    Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
+                )
+            )
         )
 
         # self.driver_controller.button(button_y).whileTrue(
-        #     self.drivetrain.drive_position(
-        #         Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
-        #     )
-        #     .andThen(WaitCommand(0.5))
-        #     .andThen(
-        #         self.drivetrain.drive_position(
-        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(0))
-        #         )
-        #     )
-        #     .andThen(WaitCommand(0.5))
-        #     .andThen(
-        #         self.drivetrain.drive_position(
-        #             Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
-        #         )
+        #     generate_path(
+        #         self.drivetrain,
+        #         [
+        #             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
+        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90)),
+        #         ],
         #     )
         # )
-
-        self.driver_controller.button(button_x).whileTrue(
-            blue_left_four_coral.get_auto(self.drivetrain)
-        )
-
-        self.driver_controller.button(button_rb).whileTrue(
-            red_test.get_auto(self.drivetrain)
-        )
-
-        self.driver_controller.button(button_lb).whileTrue(
-            blue_test.get_auto(self.drivetrain)
-        )
         # cfg = TrajectoryConfig(
         #     self.drivetrain.max_velocity_mps,
         #     self.drivetrain.max_velocity_mps * 10,
@@ -156,4 +184,4 @@ class RobotContainer:
         # self.wrist.setDefaultCommand(WaitCommand(0))
 
     def get_auto_command(self) -> Command:
-        return blue_left_four_coral.get_auto(self.drivetrain)
+        return Command()

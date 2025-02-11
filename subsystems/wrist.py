@@ -53,7 +53,7 @@ class Wrist(Subsystem):
         self.nettable.putNumber("PID/d", self.pid.getD())
 
     def periodic(self) -> None:
-        self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
+        # self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:
