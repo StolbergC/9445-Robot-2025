@@ -9,7 +9,8 @@
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
-      "/SmartDashboard/Field": "Field2d"
+      "/SmartDashboard/Field": "Field2d",
+      "/SmartDashboard/SendableChooser[0]": "String Chooser"
     },
     "windows": {
       "/SmartDashboard/Field": {
@@ -41,8 +42,7 @@
         },
         "State": {
           "open": true
-        },
-        "open": true
+        }
       },
       "000Drivetrain": {
         "state": {

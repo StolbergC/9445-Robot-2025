@@ -1,4 +1,6 @@
 from commands2 import Command, InstantCommand, WaitCommand, WrapperCommand
+import commands2
+from wpilib import RobotBase
 from subsystems.drivetrain import Drivetrain
 
 from auto import positions
@@ -16,6 +18,8 @@ def get_auto(drivetrain: Drivetrain) -> WrapperCommand:
                 drivetrain.set_speed_command(
                     feetToMeters(25), Rotation2d.fromDegrees(480)
                 )
+                if RobotBase.isReal()
+                else commands2.cmd.none()
             )
         )
         .andThen(WaitCommand(0.1))
