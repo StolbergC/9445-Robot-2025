@@ -1,5 +1,6 @@
 from encodings.punycode import T
 from commands2 import Command, RunCommand, WaitCommand, InstantCommand
+import commands2
 from commands2.button import Trigger, CommandJoystick
 
 from wpilib import DriverStation, RobotBase
@@ -37,6 +38,7 @@ class RobotContainer:
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
 
         self.auto_chooser = SendableChooser()
+        self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         self.auto_chooser.addOption(
             "Blue -- Four Coral Left", blue_left_four_coral.get_auto(self.drivetrain)
         )
@@ -81,6 +83,10 @@ class RobotContainer:
                 lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
                 self.wrist,
             )
+        )
+
+        self.driver_controller.button(button_x).onTrue(
+            self.drivetrain.drive_position(positions.blue_coral_intake_right_left)
         )
 
         Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
