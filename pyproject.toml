@@ -6,7 +6,7 @@
 [tool.robotpy]
 
 # Version of robotpy this project depends on
-robotpy_version = "2025.2.1.0"
+robotpy_version = "2025.2.1.3"
 
 [tool.robotpy.pyfrc]
 isolated = true

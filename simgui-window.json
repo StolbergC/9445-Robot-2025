@@ -6,11 +6,11 @@
     "GLOBAL": {
       "font": "Fira Code Retina",
       "fps": "120",
-      "height": "2093",
+      "height": "1051",
       "maximized": "1",
       "style": "0",
       "userScale": "2",
-      "width": "3840",
+      "width": "1920",
       "xpos": "-898",
       "ypos": "-2093"
     }
@@ -40,12 +40,12 @@
     },
     "###Joysticks": {
       "Collapsed": "1",
-      "Pos": "-243,648",
-      "Size": "2236,544"
+      "Pos": "-106,648",
+      "Size": "976,82"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "2107,124",
+      "Pos": "2379,131",
       "Size": "1370,1642"
     },
     "###NetworkTables Info": {
@@ -61,7 +61,7 @@
     "###System Joysticks": {
       "Collapsed": "1",
       "Pos": "258,457",
-      "Size": "535,506"
+      "Size": "392,254"
     },
     "###Timing": {
       "Collapsed": "0",

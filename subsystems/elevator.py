@@ -129,9 +129,12 @@ class Elevator(Subsystem):
         # - sin b/c + and - 90_deg are swapped
         pointed_at = self.get_wrist_angle().sin() * self.wrist_length + position
         if self.bottom_height < pointed_at and pointed_at < self.top_height:
+            self.nettable.putBoolean("Safety/Adjusting Position", False)
             return position
         if pointed_at > self.top_height:
+            self.nettable.putBoolean("Safety/Adjusting Position", True)
             return self.top_height - self.get_wrist_angle().sin() * self.wrist_length
+        self.nettable.putBoolean("Safety/Adjusting Position", True)
         return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
     def command_position(self, position: feet) -> WrapperCommand:

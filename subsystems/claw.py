@@ -104,8 +104,13 @@ class Claw(Subsystem):
             and not self.inside_limit.get()
             or self.get_wrist_angle().radians() > self.safe_to_move.radians()
         ):
+            if self.get_wrist_angle().radians() > self.safe_to_move.radians():
+                self.nettable.putBoolean("Safety/Waiting on Wrist", True)
+            else:
+                self.nettable.putBoolean("Safety/Waiting on Wrist", False)
             self.nettable.putNumber("State/Out Speed (%)", 0)
             return 0
+        self.nettable.putBoolean("Safety/Waiting on Wrist", False)
         self.nettable.putNumber("State/Out Speed (%)", power)
         self.motor.set(power)
         return power

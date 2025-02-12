@@ -79,6 +79,7 @@ class Wrist(Subsystem):
             self.nettable.putBoolean("Safety/Waiting on Claw", True)
             return
         self.nettable.putBoolean("Safety/Waiting on Claw", False)
+        # TODO: there will be a safety here for elevator position. I do not yet know how the position of the wrist will relate to that of the carriage, so it will wait
         if angle.degrees() < -50:  # more ground pointing
             angle = Rotation2d.fromDegrees(-50)
         elif angle.degrees() > 90:  # more sky pointing
