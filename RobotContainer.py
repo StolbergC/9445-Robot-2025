@@ -36,11 +36,7 @@ class RobotContainer:
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
 
         self.driver_controller = CommandJoystick(0)
-        if RobotBase.isReal():
-            self.operator_controller = CommandJoystick(1)
-        else:
-            self.operator_controller = self.driver_controller
-        # self.operator_controller = Joystick(1)
+        self.operator_controller = CommandJoystick(1)
 
         self.driver_controller.setYChannel(0)
         self.driver_controller.setXChannel(1)

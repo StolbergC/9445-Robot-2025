@@ -35,7 +35,7 @@ class Claw(Subsystem):
         self.encoder.setPosition(0)
         # max of 1 ft/s and accelerate in 10s
         self.pid = ProfiledPIDController(
-            0.075, 0, 0, TrapezoidProfile.Constraints(1, 10)
+            0.075, 0, 0, TrapezoidProfile.Constraints(12, 120)
         )
 
         self.inside_limit = DigitalInput(2)

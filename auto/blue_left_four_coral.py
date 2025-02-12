@@ -1,18 +1,23 @@
-from commands2 import Command, WaitCommand, WrapperCommand
+from commands2 import Command, InstantCommand, WaitCommand, WrapperCommand
 from subsystems.drivetrain import Drivetrain
 
 from auto import positions
 
+from wpimath.geometry import Rotation2d
+from wpimath.units import feetToMeters
+
 
 def get_auto(drivetrain: Drivetrain) -> WrapperCommand:
-    # return (
-    #     drivetrain.reset_pose(positions.blue_start_line_left)
-    #     .andThen(WaitCommand(1.25))
-    #     .andThen(drivetrain.drive_position(positions.blue_processor))
-    #     .withName("Test")
-    # )
+    start_max_vel_mps = drivetrain.max_velocity_mps
+    start_max_angular_vel = drivetrain.max_angular_velocity
     return (
-        drivetrain.reset_pose(positions.blue_start_line_left)
+        (
+            drivetrain.reset_pose(positions.blue_start_line_left).alongWith(
+                drivetrain.set_speed_command(
+                    feetToMeters(25), Rotation2d.fromDegrees(480)
+                )
+            )
+        )
         .andThen(WaitCommand(0.1))
         .andThen(drivetrain.drive_position(positions.blue_reef_i))
         .andThen(WaitCommand(0.25))  # score
@@ -27,6 +32,7 @@ def get_auto(drivetrain: Drivetrain) -> WrapperCommand:
         .andThen(drivetrain.drive_position(positions.blue_coral_intake_left_left))
         .andThen(WaitCommand(0.25))  # intake
         .andThen(drivetrain.drive_position(positions.blue_reef_l))
+        .andThen(drivetrain.set_speed_command(start_max_vel_mps, start_max_angular_vel))
         .withName("Blue Left Four Coral")
         .withInterruptBehavior(
             Command.InterruptionBehavior.kCancelIncoming

@@ -47,6 +47,7 @@ from subsystems.vision import Vision
 class Drivetrain(Subsystem):
     def __init__(self, constant_of_acceleration: float = 10):
         """member instantiation"""
+        self.constant_of_acceleration = constant_of_acceleration
         self.max_velocity_mps = feetToMeters(15)
         if RobotBase.isReal():
             self.max_angular_velocity = Rotation2d.fromDegrees(360)
@@ -496,6 +497,36 @@ class Drivetrain(Subsystem):
             )
         )
 
+    def set_speed(self, drive_speed_mps: float, turn_speed: Rotation2d) -> None:
+        self.max_velocity_mps = drive_speed_mps
+        if RobotBase.isReal():
+            self.max_angular_velocity = turn_speed
+        else:
+            self.max_angular_velocity = Rotation2d(0)
+        self.x_pid.setConstraints(
+            TrapezoidProfile.Constraints(
+                self.max_velocity_mps,
+                self.max_velocity_mps * self.constant_of_acceleration,
+            )
+        )
+        self.y_pid.setConstraints(
+            TrapezoidProfile.Constraints(
+                self.max_velocity_mps,
+                self.max_velocity_mps * self.constant_of_acceleration,
+            )
+        )
+        self.t_pid.setConstraints(
+            TrapezoidProfileRadians.Constraints(
+                self.max_angular_velocity.radians(),
+                self.max_angular_velocity.radians() * self.constant_of_acceleration,
+            )
+        )
+
+    def set_speed_command(
+        self, max_speed_mps: float, max_angular_speed: Rotation2d
+    ) -> InstantCommand:
+        return InstantCommand(lambda: self.set_speed(max_speed_mps, max_angular_speed))
+
     def defense_mode(self) -> StartEndCommand:
         start_speed = self.max_velocity_mps
         # assumes the same for x and y pids.
@@ -505,12 +536,14 @@ class Drivetrain(Subsystem):
             self.max_velocity_mps = 1000
             self.x_pid.setConstraints(
                 TrapezoidProfile.Constraints(
-                    self.max_velocity_mps, self.max_velocity_mps * 10
+                    self.max_velocity_mps,
+                    self.max_velocity_mps * self.constant_of_acceleration,
                 )
             )
             self.y_pid.setConstraints(
                 TrapezoidProfile.Constraints(
-                    self.max_velocity_mps, self.max_velocity_mps * 10
+                    self.max_velocity_mps,
+                    self.max_velocity_mps * self.constant_of_acceleration,
                 )
             )
 
