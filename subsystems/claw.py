@@ -126,5 +126,8 @@ class Claw(Subsystem):
     def cage(self) -> WrapperCommand:
         return self.set_position(2).withName("Inside of Cage")
 
+    def reset_position(self) -> None:
+        self.encoder.setPosition(0)
+
     def reset(self) -> InstantCommand:
-        return InstantCommand(lambda: self.encoder.setPosition(0))
+        return InstantCommand(self.reset_position)

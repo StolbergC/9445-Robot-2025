@@ -32,8 +32,8 @@ class RobotContainer:
     def __init__(self) -> None:
         self.drivetrain = Drivetrain()
         self.wrist = Wrist()
-        # self.climber = Climber()
-        # self.claw = Claw()
+        self.climber = Climber()
+        self.claw = Claw()
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
 
         self.driver_controller = CommandJoystick(0)

@@ -27,7 +27,7 @@ class Wrist(Subsystem):
             SparkBase.PersistMode.kNoPersistParameters,
         )
 
-        self.encoder = DutyCycleEncoder(2, 180, 90)
+        self.encoder = DutyCycleEncoder(4, 180, 90)
 
         self.pid = ProfiledPIDController(
             0.01, 0, 0, TrapezoidProfile.Constraints(90, 3600)
