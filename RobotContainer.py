@@ -34,7 +34,9 @@ class RobotContainer:
         self.drivetrain = Drivetrain()
         self.wrist = Wrist()
         self.climber = Climber()
-        self.claw = Claw()
+        self.claw = Claw(
+            self.wrist.get_angle, Rotation2d.fromDegrees(60)
+        )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
 
         self.auto_chooser = SendableChooser()

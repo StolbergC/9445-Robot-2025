@@ -1,3 +1,4 @@
+from typing import Callable
 from rev import SparkBaseConfig, SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
 
 from wpilib import DigitalInput
@@ -12,16 +13,25 @@ from wpimath.units import (
     feet,
     inches,
 )
-
 from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
+from wpimath.geometry import Rotation2d
 
 from commands2 import RunCommand, Subsystem, WrapperCommand
 
 
 class Elevator(Subsystem):
-    def __init__(self):
+    def __init__(
+        self,
+        get_wrist_angle: Callable[[], Rotation2d],
+        safe_wrist_angle: Rotation2d,
+        wrist_length: feet = 1,
+    ):
         super().__init__()
+
+        self.get_wrist_angle = get_wrist_angle
+        self.safe_after_wrist_angle = safe_wrist_angle
+        self.wrist_length = wrist_length
 
         self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
         self.encoder = self.motor.getEncoder()
@@ -83,9 +93,11 @@ class Elevator(Subsystem):
         self.nettable.putNumber("PID/d", self.pid.getD())
 
         # TODO: Maybe?
-        self.bottom_height: inches = 9
-        # TODO: Maybe?
-        self.top_height: feet = self.bottom_height + inches(29)
+        self.bottom_height: feet = 9 / 12
+        # TODO: Maybe? The 6 inches are the overlap desired
+        self.top_height: feet = (
+            self.bottom_height * 12 + 2 * inches(29) - 2 * inches(6)
+        ) / 12
 
     def periodic(self) -> None:
         if self.bottom_limit.get():
@@ -99,14 +111,28 @@ class Elevator(Subsystem):
         return self.encoder.getPosition()
 
     def set_state(self, position: feet) -> None:
-        position_in = position * 12
-        if position_in < self.bottom_height:
-            position = self.bottom_height / 12
-        elif position_in > self.top_height:
-            position = self.bottom_height / 12
+        # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
+        position = self._make_position_safe(position)
+        if position < self.bottom_height:
+            position = self.bottom_height
+        elif position > self.top_height:
+            position = self.top_height
         speed = self.pid.calculate(self.get_position(), position)
         speed = 1 if speed > 1 else -1 if speed < -1 else speed
         self.motor.set(speed)
+
+    def _make_position_safe(self, position: feet) -> feet:
+        """
+        This assumes that the wrist needs to point at the angle it is currently at
+        and makes it so that the elevator will not go boom
+        """
+        # - sin b/c + and - 90_deg are swapped
+        pointed_at = self.get_wrist_angle().sin() * self.wrist_length + position
+        if self.bottom_height < pointed_at and pointed_at < self.top_height:
+            return position
+        if pointed_at > self.top_height:
+            return self.top_height - self.get_wrist_angle().sin() * self.wrist_length
+        return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
     def command_position(self, position: feet) -> WrapperCommand:
         return RunCommand(lambda: self.set_state(position), self).withName(

@@ -14,12 +14,16 @@ from rev import SparkMax, SparkLowLevel, SparkMaxConfig
 
 
 class Claw(Subsystem):
-    def __init__(self) -> None:
+    def __init__(
+        self, get_wrist_angle: Callable[[], Rotation2d], safe_to_move_after: Rotation2d
+    ) -> None:
         TEETH = 18
         DIAMETERAL_PITCH = 20  # units??? maybe /= 12
         PCD = TEETH / DIAMETERAL_PITCH
 
         super().__init__()
+        self.get_wrist_angle = get_wrist_angle
+        self.safe_to_move = safe_to_move_after
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Claw")
 
@@ -91,18 +95,20 @@ class Claw(Subsystem):
         """the distance in inches"""
         return self.encoder.getPosition()
 
-    def set_motor(self, power: float) -> None:
+    def set_motor(self, power: float) -> float:
         power = 1 if power > 1 else -1 if power < -1 else power
         if (
             power > 0
             and not self.outside_limit.get()
             or power < 0
             and not self.inside_limit.get()
+            or self.get_wrist_angle().radians() > self.safe_to_move.radians()
         ):
             self.nettable.putNumber("State/Out Speed (%)", 0)
-            return
+            return 0
         self.nettable.putNumber("State/Out Speed (%)", power)
         self.motor.set(power)
+        return power
 
     def set_motor_lambda(self, power: Callable[[], float]):
         self.set_motor(power())

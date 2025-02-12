@@ -1,3 +1,5 @@
+from math import pi
+from typing import Callable
 from rev import SparkMax, SparkMaxConfig, SparkBase
 
 from commands2 import Subsystem, RunCommand, WrapperCommand
@@ -12,6 +14,14 @@ from wpilib import DutyCycleEncoder
 
 
 class Wrist(Subsystem):
+    """
+    YOU MUST SET THE GET CLAW DISTANCE AND SAFE DISTANCE AFTER CONSTRUCTION.
+    THIS IS INTENDED TO ALLOW THE CLAW TO BE CONSTRUCTED AFTER AND THEN PASS THE VALUES IN
+    """
+
+    get_claw_distance: Callable[[], float]
+    safe_claw_distance: float
+
     def __init__(self):
         super().__init__()
         self.motor = SparkMax(20, SparkBase.MotorType.kBrushless)
@@ -30,7 +40,7 @@ class Wrist(Subsystem):
         self.encoder = DutyCycleEncoder(4, 180, 90)
 
         self.pid = ProfiledPIDController(
-            0.01, 0, 0, TrapezoidProfile.Constraints(90, 3600)
+            0.01, 0, 0, TrapezoidProfile.Constraints(pi / 2, 20 * pi)
         )
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
@@ -65,11 +75,15 @@ class Wrist(Subsystem):
 
     def set_state(self, angle: Rotation2d) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
-        if angle.degrees() < -90:
-            angle = Rotation2d.fromDegrees(-90)
-        elif angle.degrees() > 90:
+        if self.get_claw_distance() > self.safe_claw_distance:
+            self.nettable.putBoolean("Safety/Waiting on Claw", True)
+            return
+        self.nettable.putBoolean("Safety/Waiting on Claw", False)
+        if angle.degrees() < -50:  # more ground pointing
+            angle = Rotation2d.fromDegrees(-50)
+        elif angle.degrees() > 90:  # more sky pointing
             angle = Rotation2d.fromDegrees(90)
-        speed = self.pid.calculate(self.get_angle().degrees(), angle.degrees())
+        speed = self.pid.calculate(self.get_angle().radians(), angle.radians())
         speed = 1 if speed > 1 else -1 if speed < -1 else speed
         self.nettable.putNumber("State/Speed (%)", speed)
         self.motor.set(speed)
