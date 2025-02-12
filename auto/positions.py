@@ -77,8 +77,8 @@ blue_reef_g = Pose2d.fromFeet(
 )
 
 
-blue_reef_l = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-60))
-blue_reef_k = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-60))
+blue_reef_k = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-60))
+blue_reef_l = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-60))
 
 blue_reef_i = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-120))
 blue_reef_j = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-120))

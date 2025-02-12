@@ -48,7 +48,10 @@ class Drivetrain(Subsystem):
     def __init__(self, constant_of_acceleration: float = 10):
         """member instantiation"""
         self.max_velocity_mps = feetToMeters(15)
-        self.max_angular_velocity = Rotation2d.fromDegrees(360)
+        if RobotBase.isReal():
+            self.max_angular_velocity = Rotation2d.fromDegrees(360)
+        else:
+            self.max_angular_velocity = Rotation2d(0)
 
         max_accel = self.max_velocity_mps * constant_of_acceleration
 
@@ -267,7 +270,7 @@ class Drivetrain(Subsystem):
         self.nettable.putNumber("velocity/omega (degps)", curr_speed.omega_dps)
 
         self.nettable.putNumber("state/x (ft)", position.x_feet)
-        self.nettable.putNumber("state/y (ft)", position.x_feet)
+        self.nettable.putNumber("state/y (ft)", position.y_feet)
         self.nettable.putNumber("state/theta (deg)", self.get_angle().degrees())
 
         self.nettable.putNumber("tPID/error (deg)", self.t_pid.getPositionError())
@@ -357,13 +360,13 @@ class Drivetrain(Subsystem):
     ) -> InstantCommand:
         return InstantCommand(lambda: self.gyro.reset(new_angle), self)
 
-    def reset_pose(self, pose: Pose2d) -> SequentialCommandGroup:
+    def reset_pose(self, pose: Pose2d) -> InstantCommand:
         return InstantCommand(
             lambda: self.odometry.resetPosition(
                 self.gyro.get_angle(), self.get_module_positions(), pose
             ),
             self,
-        ).andThen(self.reset_gyro(pose.rotation()))
+        )
 
     def _set_drive_idle(self, coast: bool) -> None:
         self.fl.set_drive_idle(coast)

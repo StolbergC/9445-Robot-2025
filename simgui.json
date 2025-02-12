@@ -23,7 +23,10 @@
         "left": 534,
         "right": 3466,
         "top": 291,
-        "width": 17.54825210571289
+        "width": 17.54825210571289,
+        "window": {
+          "visible": true
+        }
       }
     }
   },
@@ -33,7 +36,10 @@
     },
     "transitory": {
       "000Drivetrain": {
-        "open": true
+        "open": true,
+        "state": {
+          "open": true
+        }
       },
       "000Wrist": {
         "PID": {

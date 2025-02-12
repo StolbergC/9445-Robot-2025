@@ -2,19 +2,18 @@ from encodings.punycode import T
 from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 from commands2.button import Trigger, CommandJoystick
 
-from wpilib import DriverStation
+from wpilib import DriverStation, RobotBase
 
 from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
-from wpimath.trajectory import TrajectoryGenerator, TrajectoryConfig
 
 from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
 from subsystems.claw import Claw
 
-from utils.path_generation import generate_path
+from auto import blue_left_four_coral, positions
 
 button_a = 1
 button_b = 2
@@ -37,7 +36,10 @@ class RobotContainer:
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
 
         self.driver_controller = CommandJoystick(0)
-        self.operator_controller = CommandJoystick(1)
+        if RobotBase.isReal():
+            self.operator_controller = CommandJoystick(1)
+        else:
+            self.operator_controller = self.driver_controller
         # self.operator_controller = Joystick(1)
 
         self.driver_controller.setYChannel(0)
@@ -68,16 +70,6 @@ class RobotContainer:
                 lambda: self.driver_controller.getThrottle() > 0,
             )
         )
-
-        # self.claw.setDefaultCommand(
-        #     RunCommand(
-        #         lambda: self.claw.set_motor(
-        #             applyDeadband(self.operator_controller.getX(), 0.05)
-        #         ),
-        #         self.claw,
-        #     ).withName("Drive Claw Joystick")
-        # )
-
         self.wrist.setDefaultCommand(
             RunCommand(
                 lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
@@ -85,46 +77,41 @@ class RobotContainer:
             )
         )
 
-        # Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
-        # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
-        # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
-        # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
+        Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
+        Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
+        Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
+        Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
 
         self.driver_controller.button(button_lpush).or_(
             self.driver_controller.button(button_rpush)
         ).whileTrue(self.drivetrain.defense_mode())
 
-        # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
+        self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
-        # self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
+        self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
 
-        # self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
+        self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
 
-        # lb_trigger = self.operator_controller.button(button_lb)
-        # rb_trigger = self.operator_controller.button(button_rb)
+        lb_trigger = self.operator_controller.button(button_lb)
+        rb_trigger = self.operator_controller.button(button_rb)
 
         # drive to the algae on the closest reef when lb and rb are pressed
-        # lb_trigger.and_(rb_trigger).whileTrue(WaitCommand(0))
+        lb_trigger.and_(rb_trigger).whileTrue(WaitCommand(0))
 
         # drive to the left peg on the closest part of the reef when only lb is pressed
-        # lb_trigger.and_(rb_trigger.not_()).whileTrue(WaitCommand(0))
+        lb_trigger.and_(rb_trigger.not_()).whileTrue(WaitCommand(0))
 
         # drive to the right peg on the closest part of the reef when only lb is pressed
-        # rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
+        rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
 
-        # self.driver_controller.button(button_a).whileTrue(
-        #     self.drivetrain.drive_forward(1)
-        # )
         self.driver_controller.button(button_a).whileTrue(
             self.drivetrain.drive_position(Pose2d(0, 0, Rotation2d(0)))
         )
 
-        # self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_pose(Pose2d()))
-        # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
-
-        self.driver_controller.button(button_b).whileTrue(
-            self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
+        self.driver_controller.button(button_b).onTrue(
+            self.drivetrain.reset_pose(Pose2d())
         )
+        self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
 
         self.driver_controller.button(button_y).whileTrue(
             self.drivetrain.drive_position(
@@ -144,44 +131,5 @@ class RobotContainer:
             )
         )
 
-        # self.driver_controller.button(button_y).whileTrue(
-        #     generate_path(
-        #         self.drivetrain,
-        #         [
-        #             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
-        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90)),
-        #         ],
-        #     )
-        # )
-        # cfg = TrajectoryConfig(
-        #     self.drivetrain.max_velocity_mps,
-        #     self.drivetrain.max_velocity_mps * 10,
-        # )
-        # self.driver_controller.button(button_y).whileTrue(
-        #     self.drivetrain.drive_trajectory(
-        #         TrajectoryGenerator.generateTrajectory(
-        #             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
-        #             [
-        #                 Translation2d.fromFeet(5, 0),
-        #             ],  # , Translation2d.fromFeet(7, 3)],
-        #             Pose2d.fromFeet(5, 5, Rotation2d.fromDegrees(90)),
-        #             cfg,
-        #         )
-        #     ).andThen(
-        #         self.drivetrain.drive_trajectory(
-        #             TrajectoryGenerator.generateTrajectory(
-        #                 Pose2d.fromFeet(5, 5, Rotation2d.fromDegrees(90)),
-        #                 [Translation2d.fromFeet(0, 5)],
-        #                 Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
-        #                 cfg,
-        #             )
-        #         )
-        #     )
-        # )
-
-    def unset_teleop_bindings(self) -> None:
-        self.drivetrain.setDefaultCommand(WaitCommand(0))
-        # self.wrist.setDefaultCommand(WaitCommand(0))
-
     def get_auto_command(self) -> Command:
-        return Command()
+        return blue_left_four_coral.get_auto(self.drivetrain)
