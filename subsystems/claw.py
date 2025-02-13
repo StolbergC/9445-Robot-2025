@@ -10,7 +10,7 @@ from wpimath.units import feet
 from wpilib import DigitalInput
 
 from commands2 import InstantCommand, RunCommand, Subsystem, WrapperCommand
-from rev import SparkMax, SparkLowLevel, SparkMaxConfig
+from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
 
 
 class Claw(Subsystem):
@@ -33,6 +33,11 @@ class Claw(Subsystem):
             20
         ).encoder.positionConversionFactor(
             pi * PCD / (9 * 4096)  # TODO: Insert Gear Ratio Here
+        )
+        self.motor.configure(
+            motor_config,
+            SparkBase.ResetMode.kResetSafeParameters,
+            SparkBase.PersistMode.kNoPersistParameters,
         )
 
         self.encoder = self.motor.getEncoder()

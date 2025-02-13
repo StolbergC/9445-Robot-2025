@@ -99,7 +99,6 @@ blue_coral_intake_left_left = Pose2d.fromFeet(
     CORAL_STATION_LEFT_ANGLE,
 )
 
-# TODO: Make these match the left left, which has been tested
 blue_coral_intake_left_center = Pose2d.fromFeet(
     -ROBOT_WIDTH_FT / 2
     - 4 / 3 * CORAL_STATION_LENGTH_FT * CORAL_STATION_LEFT_ANGLE.cos(),
