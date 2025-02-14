@@ -27,7 +27,7 @@ class Wrist(Subsystem):
         self.motor = SparkMax(20, SparkBase.MotorType.kBrushless)
         self.motor_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(20)
+            .smartCurrentLimit(30)
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 

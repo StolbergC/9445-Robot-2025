@@ -70,7 +70,7 @@ class SwerveModule(Subsystem):
         )
 
         self.drive_motor_config = SparkMaxConfig()
-        self.drive_motor_config.inverted(drive_inverted).smartCurrentLimit(30, 10)
+        self.drive_motor_config.inverted(drive_inverted).smartCurrentLimit(60)
 
         self.drive_encoder.setPosition(0)
 
@@ -93,7 +93,7 @@ class SwerveModule(Subsystem):
             0.01, 0, 0, TrapezoidProfile.Constraints(360, 3600)
         )
         self.turn_motor_config = SparkMaxConfig()
-        self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(20, 10)
+        self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(40)
 
         self.turn_pid.enableContinuousInput(-180, 180)
 

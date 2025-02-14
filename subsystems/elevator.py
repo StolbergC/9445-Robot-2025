@@ -36,7 +36,7 @@ class Elevator(Subsystem):
         self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
         self.encoder = self.motor.getEncoder()
 
-        self.motor_config = SparkMaxConfig().smartCurrentLimit(30).inverted(False)
+        self.motor_config = SparkMaxConfig().smartCurrentLimit(40).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
             1  # TODO: Find what the conversion factor needs to be
         )
