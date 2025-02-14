@@ -1,4 +1,3 @@
-from encodings.punycode import T
 from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 import commands2
 from commands2.button import Trigger, CommandJoystick
@@ -14,6 +13,7 @@ from subsystems.drivetrain import Drivetrain
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
 from subsystems.claw import Claw
+from subsystems.fingers import Fingers
 
 from auto import blue_left_four_coral, positions, blue_test
 
@@ -32,12 +32,14 @@ button_rpush = 10
 class RobotContainer:
     def __init__(self) -> None:
         self.drivetrain = Drivetrain()
-        self.wrist = Wrist()
-        self.climber = Climber()
-        self.claw = Claw(
-            self.wrist.get_angle, Rotation2d.fromDegrees(60)
-        )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
+        # self.wrist = Wrist()
+        # self.climber = Climber()
+        # self.claw = Claw(
+        # self.wrist.get_angle, Rotation2d.fromDegrees(60)
+        # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
+        self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
+        self.fingers = Fingers()
 
         self.auto_chooser = SendableChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
@@ -80,12 +82,26 @@ class RobotContainer:
                 lambda: self.driver_controller.getThrottle() > 0,
             )
         )
-        self.wrist.setDefaultCommand(
+        # self.wrist.setDefaultCommand(
+        #     RunCommand(
+        #         lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
+        #         self.wrist,
+        #     )
+        # )
+
+        self.claw.setDefaultCommand(
             RunCommand(
-                lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
-                self.wrist,
+                lambda: self.claw.set_motor(
+                    applyDeadband(self.operator_controller.getX(), 0.05)
+                ),
+                self.claw,
             )
         )
+
+        self.fingers.setDefaultCommand(self.fingers.stop())
+
+        self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
+        self.operator_controller.button(button_right).whileTrue(self.fingers.score())
 
         self.driver_controller.button(button_x).onTrue(
             self.drivetrain.drive_position(positions.blue_coral_intake_right_left)
@@ -100,11 +116,11 @@ class RobotContainer:
             self.driver_controller.button(button_rpush)
         ).whileTrue(self.drivetrain.defense_mode())
 
-        self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
+        # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
-        self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
+        # self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
 
-        self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
+        # self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
 
         lb_trigger = self.operator_controller.button(button_lb)
         rb_trigger = self.operator_controller.button(button_rb)
@@ -125,7 +141,7 @@ class RobotContainer:
         self.driver_controller.button(button_b).onTrue(
             self.drivetrain.reset_pose(Pose2d())
         )
-        self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
+        # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
 
         self.driver_controller.button(button_y).whileTrue(
             self.drivetrain.drive_position(

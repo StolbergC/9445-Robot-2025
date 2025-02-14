@@ -32,7 +32,7 @@ class Claw(Subsystem):
         motor_config.setIdleMode(SparkMaxConfig.IdleMode.kBrake).smartCurrentLimit(
             20
         ).encoder.positionConversionFactor(
-            pi * PCD / (9 * 4096)  # TODO: Insert Gear Ratio Here
+            pi * PCD / (9)  # TODO: Insert Gear Ratio Here
         )
         self.motor.configure(
             motor_config,
