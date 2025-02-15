@@ -37,9 +37,9 @@ class RobotContainer:
         # self.claw = Claw(
         # self.wrist.get_angle, Rotation2d.fromDegrees(60)
         # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
-        self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
+        # self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
-        self.fingers = Fingers()
+        # self.fingers = Fingers()
 
         self.auto_chooser = SendableChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
@@ -65,12 +65,12 @@ class RobotContainer:
         self.driver_controller.setThrottleChannel(3)
 
         # this sets the motors to idle on disable
-        Trigger(DriverStation.isEnabled).onTrue(
-            self.drivetrain.set_drive_idle(False)
-        ).onTrue(self.drivetrain.set_turn_idle(False))
-        Trigger(DriverStation.isEnabled).onFalse(
-            self.drivetrain.set_drive_idle(True)
-        ).onFalse(self.drivetrain.set_turn_idle(True))
+        # Trigger(DriverStation.isEnabled).onTrue(
+        #     self.drivetrain.set_drive_idle(False)
+        # ).onTrue(self.drivetrain.set_turn_idle(False))
+        # Trigger(DriverStation.isEnabled).onFalse(
+        #     self.drivetrain.set_drive_idle(True)
+        # ).onFalse(self.drivetrain.set_turn_idle(True))
 
     def set_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(
@@ -89,28 +89,28 @@ class RobotContainer:
         #     )
         # )
 
-        self.claw.setDefaultCommand(
-            RunCommand(
-                lambda: self.claw.set_motor(
-                    applyDeadband(self.operator_controller.getX(), 0.05)
-                ),
-                self.claw,
-            )
-        )
+        # self.claw.setDefaultCommand(
+        #     RunCommand(
+        #         lambda: self.claw.set_motor(
+        #             applyDeadband(self.operator_controller.getX(), 0.05)
+        #         ),
+        #         self.claw,
+        #     )
+        # )
 
-        self.fingers.setDefaultCommand(self.fingers.stop())
+        # self.fingers.setDefaultCommand(self.fingers.stop())
 
-        self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
-        self.operator_controller.button(button_right).whileTrue(self.fingers.score())
+        # self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
+        # self.operator_controller.button(button_right).whileTrue(self.fingers.score())
 
         self.driver_controller.button(button_x).onTrue(
             self.drivetrain.drive_position(positions.blue_coral_intake_right_left)
         )
 
-        Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
-        Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
-        Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
-        Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
+        # Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
+        # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
+        # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
+        # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
 
         self.driver_controller.button(button_lpush).or_(
             self.driver_controller.button(button_rpush)

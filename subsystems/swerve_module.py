@@ -21,6 +21,7 @@ from wpimath.units import (
 )
 from wpimath.geometry import Rotation2d
 from wpimath.controller import ProfiledPIDController
+from wpimath.filter import SlewRateLimiter
 from wpimath.trajectory import TrapezoidProfile
 
 module_offsets = {
@@ -84,6 +85,8 @@ class SwerveModule(Subsystem):
             SparkBase.PersistMode.kPersistParameters,
         )
 
+        self.brake_limiter = SlewRateLimiter(100)
+
         # turn
         self.turn_motor = SparkMax(turn_id, SparkLowLevel.MotorType.kBrushless)
         """
@@ -130,6 +133,9 @@ class SwerveModule(Subsystem):
             self.drive_pid.setPID(0, 0, 0)
             self.turn_pid.setPID(0, 0, 0)
         self.nettable.putBoolean("IsReal", self.is_real)
+
+        self.set_drive_idle(False)
+        self.set_turn_idle(False)
 
     def periodic(self) -> None:
 
@@ -190,7 +196,7 @@ class SwerveModule(Subsystem):
     def set_drive_idle(self, coast: bool) -> None:
         self.drive_motor_config.setIdleMode(
             SparkBaseConfig.IdleMode.kCoast
-            if not coast
+            if coast
             else SparkBaseConfig.IdleMode.kBrake
         )
         self._configure_drive()
@@ -240,8 +246,12 @@ class SwerveModule(Subsystem):
             self.get_vel(), commanded_state.speed * cos_optimizer
         )
         drive_speed = 1 if drive_speed > 1 else -1 if drive_speed < -1 else drive_speed
-        self.drive_motor.set(drive_speed)
-        self.nettable.putNumber("State/Out Drive Speed (%)", drive_speed)
+        if abs(commanded_state.speed_fps) < 0.25:
+            self.drive_motor.set(self.brake_limiter.calculate(0))
+            self.nettable.putNumber("State/Out Drive Speed (%)", 0)
+        else:
+            self.drive_motor.set(drive_speed)
+            self.nettable.putNumber("State/Out Drive Speed (%)", drive_speed)
 
     def _rotation2d_to_rotations(self, angle: Rotation2d) -> float:
         return angle.degrees() / 360
