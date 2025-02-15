@@ -17,7 +17,13 @@ from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
-from commands2 import RunCommand, Subsystem, WrapperCommand
+from commands2 import (
+    InstantCommand,
+    RunCommand,
+    SequentialCommandGroup,
+    Subsystem,
+    WrapperCommand,
+)
 
 
 class Elevator(Subsystem):
@@ -28,6 +34,8 @@ class Elevator(Subsystem):
         wrist_length: feet = 1,
     ):
         super().__init__()
+
+        self.has_homed = False
 
         self.get_wrist_angle = get_wrist_angle
         self.safe_after_wrist_angle = safe_wrist_angle
@@ -137,10 +145,27 @@ class Elevator(Subsystem):
         self.nettable.putBoolean("Safety/Adjusting Position", True)
         return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
-    def command_position(self, position: feet) -> WrapperCommand:
-        return RunCommand(lambda: self.set_state(position), self).withName(
-            f"Set Position to {position} ft"
+    def home(self) -> SequentialCommandGroup:
+        return (
+            RunCommand(lambda: self.motor.set(-0.25), self)
+            .onlyWhile(
+                lambda: self.bottom_limit.get()  # maybe will be not limit.get() based on wiring
+            )
+            .andThen(InstantCommand(lambda: self.motor.set(0), self))
         )
+
+    def command_position(self, position: feet) -> WrapperCommand:
+        if self.has_homed:
+            return RunCommand(lambda: self.set_state(position), self).withName(
+                f"Set Position to {position} ft"
+            )
+        else:
+            self.has_homed = True
+            return (
+                self.home()
+                .andThen(RunCommand(lambda: self.set_state(position)))
+                .withName("Home then Set Position to {position} ft")
+            )
 
     # TODO: None of these heights are correct. They depend on the angle and stuff
     def command_l1(self) -> WrapperCommand:
