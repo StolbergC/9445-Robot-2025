@@ -85,8 +85,6 @@ class SwerveModule(Subsystem):
             SparkBase.PersistMode.kPersistParameters,
         )
 
-        self.brake_limiter = SlewRateLimiter(100)
-
         # turn
         self.turn_motor = SparkMax(turn_id, SparkLowLevel.MotorType.kBrushless)
         """
@@ -99,6 +97,11 @@ class SwerveModule(Subsystem):
         self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(40)
 
         self.turn_pid.enableContinuousInput(-180, 180)
+
+        self.turn_encoder = self.turn_motor.getEncoder()
+        self.turn_encoder.setPosition(
+            self.cancoder.get_absolute_position().value_as_double
+        )
 
         self.turn_motor.configure(
             self.turn_motor_config,
@@ -128,6 +131,7 @@ class SwerveModule(Subsystem):
         self.commanded_state = SwerveModuleState(0, Rotation2d(0))
 
         self.last_position: float = 0
+        self.weird_accel = False
 
         if not self.is_real:
             self.drive_pid.setPID(0, 0, 0)
@@ -135,7 +139,7 @@ class SwerveModule(Subsystem):
         self.nettable.putBoolean("IsReal", self.is_real)
 
         self.set_drive_idle(False)
-        self.set_turn_idle(False)
+        self.set_turn_idle(True)
 
     def periodic(self) -> None:
 
@@ -147,6 +151,13 @@ class SwerveModule(Subsystem):
         )
 
         self.nettable.putNumber("State/drive position", self.get_distance())
+
+        self.nettable.putNumber(
+            "State/max velocity", self.drive_pid.getConstraints().maxVelocity
+        )
+        self.nettable.putNumber(
+            "State/neo rotations", (self.turn_encoder.getPosition() % 1) - 1
+        )
 
     def get_vel(self) -> float:
         """
@@ -175,7 +186,12 @@ class SwerveModule(Subsystem):
         """
         p = self.cancoder.get_absolute_position()
         return Rotation2d.fromDegrees(
-            (p.value_as_double if p.is_all_good() else self.last_position) * 360
+            (
+                p.value_as_double
+                if p.is_all_good()
+                else (self.turn_encoder.getPosition() % 1) - 1
+            )
+            * 360
         )
 
     def get_state(self) -> SwerveModuleState:
@@ -242,16 +258,45 @@ class SwerveModule(Subsystem):
             "Commanded/Optimized Speed", commanded_state.speed * cos_optimizer
         )
 
+        # if (
+        #     max(commanded_state.speed, self.get_vel())
+        #     - min(commanded_state.speed, self.get_vel())
+        #     > 1.35 * self.drive_pid.getConstraints().maxVelocity
+        #     and not self.weird_accel
+        # ):
+        #     self.drive_pid.setConstraints(
+        #         TrapezoidProfile.Constraints(
+        #             self.drive_pid.getConstraints().maxVelocity,
+        #             self.drive_pid.getConstraints().maxAcceleration * 3,
+        #         )
+        #     )
+        #     self.weird_accel = True
+        # elif (
+        #     max(commanded_state.speed, self.get_vel())
+        #     - min(commanded_state.speed, self.get_vel())
+        #     < 1.25 * self.drive_pid.getConstraints().maxVelocity
+        #     and self.weird_accel
+        # ):
+        #     self.weird_accel = False
+        #     self.drive_pid.setConstraints(
+        #         TrapezoidProfile.Constraints(
+        #             self.drive_pid.getConstraints().maxVelocity,
+        #             self.drive_pid.getConstraints().maxAcceleration / 3,
+        #         )
+        #     )
+
         drive_speed = self.drive_pid.calculate(
             self.get_vel(), commanded_state.speed * cos_optimizer
         )
         drive_speed = 1 if drive_speed > 1 else -1 if drive_speed < -1 else drive_speed
-        if abs(commanded_state.speed_fps) < 0.25:
-            self.drive_motor.set(self.brake_limiter.calculate(0))
-            self.nettable.putNumber("State/Out Drive Speed (%)", 0)
-        else:
-            self.drive_motor.set(drive_speed)
-            self.nettable.putNumber("State/Out Drive Speed (%)", drive_speed)
+        self.nettable.putNumber(
+            "State/change",
+            max(commanded_state.speed, self.get_vel())
+            - min(commanded_state.speed, self.get_vel()),
+        )
+
+        self.drive_motor.set(drive_speed)
+        self.nettable.putNumber("State/Out Drive Speed (%)", drive_speed)
 
     def _rotation2d_to_rotations(self, angle: Rotation2d) -> float:
         return angle.degrees() / 360

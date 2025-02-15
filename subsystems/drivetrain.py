@@ -215,10 +215,10 @@ class Drivetrain(Subsystem):
 
         """kinematics"""
         # module locations
-        fl_position = Translation2d(inchesToMeters(12), inchesToMeters(12))
-        fr_position = Translation2d(inchesToMeters(12), -inchesToMeters(12))
-        bl_position = Translation2d(-inchesToMeters(12), inchesToMeters(12))
-        br_position = Translation2d(-inchesToMeters(12), -inchesToMeters(12))
+        fl_position = Translation2d(inchesToMeters(11.25), inchesToMeters(11.25))
+        fr_position = Translation2d(inchesToMeters(11.25), -inchesToMeters(11.25))
+        bl_position = Translation2d(-inchesToMeters(11.25), inchesToMeters(11.25))
+        br_position = Translation2d(-inchesToMeters(11.25), -inchesToMeters(11.25))
 
         # kinematics - turns robot speeds into individual states for each module
         self.kinematics = SwerveDrive4Kinematics(
@@ -361,13 +361,13 @@ class Drivetrain(Subsystem):
     ) -> InstantCommand:
         return InstantCommand(lambda: self.gyro.reset(new_angle), self)
 
-    def reset_pose(self, pose: Pose2d) -> InstantCommand:
+    def reset_pose(self, pose: Pose2d) -> SequentialCommandGroup:
         return InstantCommand(
             lambda: self.odometry.resetPosition(
                 self.gyro.get_angle(), self.get_module_positions(), pose
             ),
             self,
-        )
+        ).andThen(self.reset_gyro(pose.rotation()))
 
     def _set_drive_idle(self, coast: bool) -> None:
         self.fl.set_drive_idle(coast)
@@ -405,7 +405,7 @@ class Drivetrain(Subsystem):
             SwerveModuleState, SwerveModuleState, SwerveModuleState, SwerveModuleState
         ],
     ) -> None:
-        states = self.kinematics.desaturateWheelSpeeds(states, self.max_velocity_mps)
+        # states = self.kinematics.desaturateWheelSpeeds(states, self.max_velocity_mps)
         self.fl.set_state(states[0])
         self.fr.set_state(states[1])
         self.bl.set_state(states[2])
@@ -450,15 +450,14 @@ class Drivetrain(Subsystem):
                     applyDeadband(get_y(), 0.1, 1.0) * self.max_velocity_mps,
                     applyDeadband(get_theta(), 0.1, 1.0)
                     * self.max_angular_velocity.radians(),
-                    self.get_angle(),
+                    self.gyro.get_angle(),
                 )
                 if use_field_oriented()
-                else ChassisSpeeds.fromFieldRelativeSpeeds(
+                else ChassisSpeeds(
                     applyDeadband(get_x(), 0.1, 1.0) * self.max_velocity_mps,
                     applyDeadband(get_y(), 0.1, 1.0) * self.max_velocity_mps,
                     applyDeadband(get_theta(), 0.1, 1.0)
                     * self.max_angular_velocity.radians(),
-                    self.get_angle(),
                 )
             ),
             self,

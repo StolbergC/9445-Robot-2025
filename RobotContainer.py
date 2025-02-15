@@ -79,7 +79,7 @@ class RobotContainer:
                 lambda: -self.driver_controller.getY(),
                 lambda: -self.driver_controller.getTwist(),
                 # this assumes that -1 is resting and 1 is full
-                lambda: self.driver_controller.getThrottle() > 0,
+                lambda: self.driver_controller.getThrottle() < 0.5,
             )
         )
         # self.wrist.setDefaultCommand(
