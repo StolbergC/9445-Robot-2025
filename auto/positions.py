@@ -89,6 +89,17 @@ blue_reef_d = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(60))
 blue_reef_e = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(120))
 blue_reef_f = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(120))
 
+blue_algae_ab = Pose2d.fromFeet(
+    144 / 12 - ROBOT_WIDTH_FT / 2,
+    FIELD_WIDTH_FT / 2,
+    Rotation2d.fromDegrees(0),
+)
+
+blue_algae_kl = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(-60))
+blue_algae_ij = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(-120))
+blue_algae_cd = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(60))
+blue_algae_ef = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(120))
+
 blue_coral_intake_left_left = Pose2d.fromFeet(
     -ROBOT_WIDTH_FT / 2
     - CORAL_STATION_LENGTH_FT * CORAL_STATION_LEFT_ANGLE.cos()
@@ -178,3 +189,9 @@ red_coral_intake_right_center = rotate_about_center(blue_coral_intake_right_cent
 red_coral_intake_right_right = rotate_about_center(blue_coral_intake_right_right)
 
 red_processor = rotate_about_center(blue_processor)
+
+red_algae_ab = rotate_about_center(blue_algae_ab)
+red_algae_kl = rotate_about_center(blue_algae_kl)
+red_algae_ij = rotate_about_center(blue_algae_ij)
+red_algae_cd = rotate_about_center(blue_algae_cd)
+red_algae_ef = rotate_about_center(blue_algae_ef)
