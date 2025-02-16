@@ -2,6 +2,7 @@ from commands2 import Command, RunCommand, WaitCommand, InstantCommand
 import commands2
 from commands2.button import Trigger, CommandJoystick
 
+from ntcore import NetworkTableInstance
 from wpilib import DriverStation, RobotBase
 from wpilib import SmartDashboard, SendableChooser
 
@@ -31,7 +32,8 @@ button_rpush = 10
 
 class RobotContainer:
     def __init__(self) -> None:
-        self.drivetrain = Drivetrain()
+        self.alliance = DriverStation.Alliance.kBlue
+        self.drivetrain = Drivetrain(self.get_alliance)
         # self.wrist = Wrist()
         # self.climber = Climber()
         # self.claw = Claw(
@@ -47,6 +49,16 @@ class RobotContainer:
             "Blue -- Four Coral Left", blue_left_four_coral.get_auto(self.drivetrain)
         )
         self.auto_chooser.addOption("Blue -- Test", blue_test.get_auto(self.drivetrain))
+
+        def pick_alliance(new_auto: Command):
+            if "RED" in new_auto.getName().upper():
+                self.alliance = DriverStation.Alliance.kRed
+            elif "BLUE" in new_auto.getName().upper():
+                self.alliance = DriverStation.Alliance.kBlue
+            else:
+                self.alliance = DriverStation.getAlliance()
+
+        self.auto_chooser.onChange(pick_alliance)
 
         # have to read from elastic
         SmartDashboard.putData(self.auto_chooser)
@@ -65,12 +77,12 @@ class RobotContainer:
         self.driver_controller.setThrottleChannel(3)
 
         # this sets the motors to idle on disable
-        # Trigger(DriverStation.isEnabled).onTrue(
-        #     self.drivetrain.set_drive_idle(False)
-        # ).onTrue(self.drivetrain.set_turn_idle(False))
-        # Trigger(DriverStation.isEnabled).onFalse(
-        #     self.drivetrain.set_drive_idle(True)
-        # ).onFalse(self.drivetrain.set_turn_idle(True))
+        Trigger(DriverStation.isEnabled).onTrue(
+            self.drivetrain.set_drive_idle(False)
+        ).onTrue(self.drivetrain.set_turn_idle(False))
+        Trigger(DriverStation.isEnabled).onFalse(
+            self.drivetrain.set_drive_idle(True)
+        ).onFalse(self.drivetrain.set_turn_idle(True))
 
     def set_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(
@@ -82,6 +94,20 @@ class RobotContainer:
                 lambda: self.driver_controller.getThrottle() < 0.5,
             )
         )
+
+        # b seems like the button Shane wants, others TBD
+        self.driver_controller.button(button_b).whileTrue(
+            self.drivetrain.drive_near_coral_station()
+        )
+
+        self.driver_controller.button(button_y).whileTrue(
+            self.drivetrain.drive_closest_reef()
+        )
+
+        self.driver_controller.button(button_a).whileTrue(
+            self.drivetrain.drive_closest_algae()
+        )
+
         # self.wrist.setDefaultCommand(
         #     RunCommand(
         #         lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
@@ -134,32 +160,35 @@ class RobotContainer:
         # drive to the right peg on the closest part of the reef when only lb is pressed
         rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
 
-        self.driver_controller.button(button_a).whileTrue(
-            self.drivetrain.drive_position(Pose2d(0, 0, Rotation2d(0)))
-        )
+        # self.driver_controller.button(button_a).whileTrue(
+        #     self.drivetrain.drive_position(Pose2d(0, 0, Rotation2d(0)))
+        # )
 
-        self.driver_controller.button(button_b).onTrue(
-            self.drivetrain.reset_pose(Pose2d())
-        )
+        # self.driver_controller.button(button_b).onTrue(
+        #     self.drivetrain.reset_pose(Pose2d())
+        # )
         # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
 
-        self.driver_controller.button(button_y).whileTrue(
-            self.drivetrain.drive_position(
-                Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
-            )
-            .andThen(WaitCommand(0.5))
-            .andThen(
-                self.drivetrain.drive_position(
-                    Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
-                )
-            )
-            .andThen(WaitCommand(0.5))
-            .andThen(
-                self.drivetrain.drive_position(
-                    Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
-                )
-            )
-        )
+        # self.driver_controller.button(button_y).whileTrue(
+        #     self.drivetrain.drive_position(
+        #         Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
+        #     )
+        #     .andThen(WaitCommand(0.5))
+        #     .andThen(
+        #         self.drivetrain.drive_position(
+        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
+        #         )
+        #     )
+        #     .andThen(WaitCommand(0.5))
+        #     .andThen(
+        #         self.drivetrain.drive_position(
+        #             Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
+        #         )
+        #     )
+        # )
+
+    def get_alliance(self) -> DriverStation.Alliance:
+        return self.alliance
 
     def get_auto_command(self) -> Command:
         return self.auto_chooser.getSelected()

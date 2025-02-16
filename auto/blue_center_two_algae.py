@@ -25,12 +25,18 @@ def get_auto(drivetrain: Drivetrain) -> WrapperCommand:
         .andThen(WaitCommand(0.1))
         .andThen(drivetrain.drive_position(positions.blue_reef_h))
         .andThen(WaitCommand(0.25))  # score
-        .andThen(drivetrain.drive_position(positions.blue_algae_hg))
+        .andThen(drivetrain.drive_position(positions.blue_algae_gh))
         .andThen(WaitCommand(0.25))  # grab algae
         .andThen(drivetrain.drive_position(positions.blue_processor))
         .andThen(WaitCommand(0.25))  # score
         .andThen(drivetrain.drive_position(positions.blue_algae_ef))
         .andThen(WaitCommand(0.25))  # grab algae
         .andThen(drivetrain.drive_position(positions.blue_processor))
+        .andThen(
+            drivetrain.set_speed_command(start_max_vel_mps, start_max_angular_vel)
+            if RobotBase.isReal()
+            else commands2.cmd.none()
+        )
         .withName("Blue Center Two Algae")
+        .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
     )

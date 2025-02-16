@@ -1,6 +1,6 @@
 __pycache__/
 *.pyc
 
-sim_gui*
+simgui*
 networktables.json
 CanCoder*.dat

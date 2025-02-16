@@ -57,6 +57,7 @@
         }
       },
       "000Drivetrain": {
+        "open": true,
         "state": {
           "open": true
         }
@@ -80,6 +81,15 @@
           "open": true
         }
       },
+      "SmartDashboard": {
+        "SendableChooser[0]": {
+          "open": true,
+          "string[]##v_/SmartDashboard/SendableChooser[0]/options": {
+            "open": true
+          }
+        },
+        "open": true
+      },
       "swerve": {
         "fl": {
           "Commanded": {
@@ -101,5 +111,8 @@
         "open": true
       }
     }
+  },
+  "NetworkTables Info": {
+    "visible": true
   }
 }

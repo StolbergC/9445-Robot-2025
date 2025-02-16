@@ -1,9 +1,13 @@
 from math import pi
 import time
 
+import commands2
+
 from subsystems.swerve_module import SwerveModule
 from subsystems.navx_gryo import NavX
 from subsystems.sim_gyro import SimGyro
+
+from auto import positions
 
 from commands2 import (
     ParallelRaceGroup,
@@ -16,6 +20,7 @@ from commands2 import (
     WrapperCommand,
 )
 
+import wpilib
 from wpilib import Field2d, RobotBase, DriverStation, SmartDashboard
 from wpimath.geometry import Translation2d, Pose2d, Rotation2d
 from wpimath.units import inchesToMeters, feetToMeters, metersToFeet, feet
@@ -45,7 +50,14 @@ from subsystems.vision import Vision
 
 
 class Drivetrain(Subsystem):
-    def __init__(self, constant_of_acceleration: float = 10):
+    def __init__(
+        self,
+        get_alliance: typing.Callable[[], DriverStation.Alliance],
+        constant_of_acceleration: float = 10,
+    ):
+        self.get_alliance = get_alliance
+        self.alliance = get_alliance()
+
         """member instantiation"""
         self.constant_of_acceleration = constant_of_acceleration
         self.max_velocity_mps = feetToMeters(15)
@@ -242,9 +254,24 @@ class Drivetrain(Subsystem):
 
         self.is_real = RobotBase.isReal()
 
-        self.trajectory_time = time.perf_counter()
-
     def periodic(self) -> None:
+        if (a := self.get_alliance()) != self.alliance:
+            self.alliance = a
+            self.nettable.putString(
+                "Alliance",
+                (
+                    "Blue"
+                    if self.alliance == DriverStation.Alliance.kBlue
+                    else (
+                        "Red"
+                        if self.alliance == DriverStation.Alliance.kRed
+                        else "None"
+                    )
+                ),
+            )
+
+        # self.vision.update_position(self.odometry)
+
         position = self.odometry.update(
             self.gyro.get_angle(),
             (
@@ -254,8 +281,6 @@ class Drivetrain(Subsystem):
                 self.br.get_position(),
             ),
         )
-
-        # self.vision.update_position(self.odometry)
 
         curr_speed = self.kinematics.toChassisSpeeds(
             (
@@ -275,6 +300,7 @@ class Drivetrain(Subsystem):
         self.nettable.putNumber("state/theta (deg)", self.get_angle().degrees())
 
         self.nettable.putNumber("tPID/error (deg)", self.t_pid.getPositionError())
+
         if c := self.getCurrentCommand():
             self.nettable.putString("Running Command", c.getName())
         else:
@@ -405,7 +431,7 @@ class Drivetrain(Subsystem):
             SwerveModuleState, SwerveModuleState, SwerveModuleState, SwerveModuleState
         ],
     ) -> None:
-        # states = self.kinematics.desaturateWheelSpeeds(states, self.max_velocity_mps)
+        states = self.kinematics.desaturateWheelSpeeds(states, self.max_velocity_mps)
         self.fl.set_state(states[0])
         self.fr.set_state(states[1])
         self.bl.set_state(states[2])
@@ -463,21 +489,31 @@ class Drivetrain(Subsystem):
             self,
         ).withName("Drive Joystick")
 
-    def drive_position(self, position: Pose2d) -> ParallelRaceGroup | WrapperCommand:
+    def drive_position(
+        self,
+        position: Pose2d | typing.Callable[[], Pose2d],
+    ) -> ParallelRaceGroup | WrapperCommand:
         return (
             self.drive_joystick(
-                lambda: self.x_pid.calculate(self.get_pose().X(), position.X()),
-                lambda: self.y_pid.calculate(self.get_pose().Y(), position.Y()),
+                lambda: self.x_pid.calculate(
+                    self.get_pose().X(),
+                    (position if not callable(position) else position()).X(),
+                ),
+                lambda: self.y_pid.calculate(
+                    self.get_pose().Y(),
+                    (position if not callable(position) else position()).Y(),
+                ),
                 lambda: (
                     self.t_pid.calculate(
-                        self.get_angle().radians(), position.rotation().radians()
+                        self.get_angle().radians(),
+                        (position if not callable(position) else position())
+                        .rotation()
+                        .radians(),
                     )
                 ),
                 lambda: True,
             )
-            .withName(
-                f"Drive Position ({position.x_feet} ft, {position.y_feet} ft, {position.rotation().degrees()} deg)"
-            )
+            .withName(f"Drive Position")
             .onlyWhile(
                 lambda: (
                     abs(self.x_pid.getPositionError()) > feetToMeters(0.5)
@@ -490,10 +526,111 @@ class Drivetrain(Subsystem):
                     or abs((v := self.get_speeds()).vx) > feetToMeters(5)
                     or abs(v.vy) > feetToMeters(5)
                     or (abs(v.omega_dps) > 15 if self.is_real else False)
-                    or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
-                    or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
+                    or abs(
+                        self.x_pid.getSetpoint().position
+                        - (position if not callable(position) else position()).X()
+                    )
+                    > 0.1
+                    or abs(
+                        self.y_pid.getSetpoint().position
+                        - (position if not callable(position) else position()).Y()
+                    )
+                    > 0.1
                 )
             )
+        )
+
+    def get_closest(self, location_type: str) -> Pose2d:
+        if location_type == "reef":
+            if self.alliance == DriverStation.Alliance.kBlue:
+                drive_positions = [
+                    positions.blue_reef_a,
+                    positions.blue_reef_b,
+                    positions.blue_reef_c,
+                    positions.blue_reef_d,
+                    positions.blue_reef_e,
+                    positions.blue_reef_f,
+                    positions.blue_reef_g,
+                    positions.blue_reef_h,
+                    positions.blue_reef_i,
+                    positions.blue_reef_j,
+                    positions.blue_reef_k,
+                    positions.blue_reef_l,
+                ]
+            else:
+                drive_positions = [
+                    positions.red_reef_a,
+                    positions.red_reef_b,
+                    positions.red_reef_c,
+                    positions.red_reef_d,
+                    positions.red_reef_e,
+                    positions.red_reef_f,
+                    positions.red_reef_g,
+                    positions.red_reef_h,
+                    positions.red_reef_i,
+                    positions.red_reef_j,
+                    positions.red_reef_k,
+                    positions.red_reef_l,
+                ]
+
+        elif location_type == "algae":
+            if self.alliance == DriverStation.Alliance.kBlue:
+                drive_positions = [
+                    positions.blue_algae_ab,
+                    positions.blue_algae_cd,
+                    positions.blue_algae_ef,
+                    positions.blue_algae_gh,
+                    positions.blue_algae_ij,
+                    positions.blue_algae_kl,
+                ]
+            else:
+                drive_positions = [
+                    positions.red_algae_ab,
+                    positions.red_algae_cd,
+                    positions.red_algae_ef,
+                    positions.red_algae_gh,
+                    positions.red_algae_ij,
+                    positions.red_algae_kl,
+                ]
+
+        elif location_type == "intake":
+            if self.alliance == DriverStation.Alliance.kBlue:
+                drive_positions = [
+                    positions.blue_coral_intake_left_center,
+                    positions.blue_coral_intake_right_center,
+                ]
+            else:
+                drive_positions = [
+                    positions.red_coral_intake_left_center,
+                    positions.red_coral_intake_right_center,
+                ]
+        else:
+            wpilib.reportWarning(
+                f"The Drive Closest got a bad location type {location_type=}"
+            )
+            drive_positions = [self.get_pose()]
+        return self.get_pose().nearest(drive_positions)
+
+    def get_closest_algae(self) -> Pose2d:
+        return self.get_closest("algae")
+
+    def get_closest_reef(self) -> Pose2d:
+        return self.get_closest("reef")
+
+    def get_closest_intake(self) -> Pose2d:
+        return self.get_closest("intake")
+
+    def drive_closest_reef(self) -> WrapperCommand:
+        return self.drive_position(self.get_closest_reef).withName("Drive Closest Reef")
+
+    def drive_closest_algae(self) -> WrapperCommand:
+        return self.drive_position(self.get_closest_algae).withName(
+            "Drive closest algae"
+        )
+
+    def drive_near_coral_station(self) -> WrapperCommand:
+        return self.drive_position(self.get_closest_intake).withName(
+            "Drive Near Intake"
         )
 
     def set_speed(self, drive_speed_mps: float, turn_speed: Rotation2d) -> None:
