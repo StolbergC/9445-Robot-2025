@@ -1,5 +1,6 @@
 from math import pi
 from typing import Callable
+from time import time
 
 from ntcore import Event, EventFlags, NetworkTable, NetworkTableInstance, ValueEventData
 from wpimath.controller import ProfiledPIDController
@@ -31,8 +32,8 @@ class Claw(Subsystem):
         motor_config = SparkMaxConfig()
         motor_config.setIdleMode(SparkMaxConfig.IdleMode.kBrake).smartCurrentLimit(
             20
-        ).encoder.positionConversionFactor(
-            pi * PCD / (9)  # TODO: Insert Gear Ratio Here
+        ).encoder.positionConversionFactor(pi * PCD / 9).velocityConversionFactor(
+            pi * PCD / (9 * 60)
         )
         self.motor.configure(
             motor_config,
@@ -47,8 +48,8 @@ class Claw(Subsystem):
             0.075, 0, 0, TrapezoidProfile.Constraints(12, 120)
         )
 
-        self.inside_limit = DigitalInput(2)
-        self.outside_limit = DigitalInput(3)
+        self.stall_timer = time()
+        self.is_stalling = True
 
         def nettable_listener(_nt: NetworkTable, key: str, ev: Event):
             if isinstance(v := ev.data, ValueEventData):
@@ -75,20 +76,40 @@ class Claw(Subsystem):
             "Config/Velocity (ft/s)", self.pid.getConstraints().maxVelocity
         )
 
+    def at_center(self) -> bool:
+        return (
+            self.is_stalling
+            and time() - self.stall_timer > 0.125
+            and abs(self.encoder.getVelocity()) < 0.25
+            and self.motor.getAppliedOutput() > 0
+        )
+
+    def at_outside(self) -> bool:
+        return (
+            self.is_stalling
+            and time() - self.stall_timer > 0.125
+            and abs(self.encoder.getVelocity()) < 0.25
+            and self.motor.getAppliedOutput() < 0
+        )
+
     def periodic(self) -> None:
-        if not self.inside_limit.get():
+        if not self.is_stalling and self.motor.getOutputCurrent() > 20:
+            self.is_stalling = True
+            self.stall_timer = time()
+
+        if self.is_stalling and self.motor.getOutputCurrent() < 15:
+            self.is_stalling = False
+
+        if self.at_center():
             self.encoder.setPosition(0)
-        if not self.outside_limit.get():
-            self.encoder.setPosition(
-                2  # maybe will have to multiply by the position conversion factor
-            )  # this is the max distance between the fingers in feet
-        self.nettable.putBoolean(
-            "State/inside limit switch", not self.inside_limit.get()
-        )
-        self.nettable.putBoolean(
-            "State/outside limit switch", not self.outside_limit.get()
-        )
+        if self.at_outside():
+            self.encoder.setPosition(-8.75)
+        self.nettable.putBoolean("State/inside hard stop", self.at_center())
+        self.nettable.putBoolean("State/outside hard stop", self.at_outside())
         self.nettable.putNumber("State/Distance (in)", self.get_dist())
+        self.nettable.putNumber(
+            "State/Current draw (amps)", self.motor.getOutputCurrent()
+        )
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:
@@ -98,16 +119,14 @@ class Claw(Subsystem):
 
     def get_dist(self) -> float:
         """the distance in inches"""
-        return self.encoder.getPosition()
+        return -2 * self.encoder.getPosition()
 
     def set_motor(self, power: float) -> float:
-        power = 1 if power > 1 else -1 if power < -1 else power
+        power = 0.4 if power > 0.4 else -0.4 if power < -0.4 else power
         if (
-            power > 0
-            and not self.outside_limit.get()
-            or power < 0
-            and not self.inside_limit.get()
-            or self.get_wrist_angle().radians() > self.safe_to_move.radians()
+            (power > 0 and self.at_outside())
+            or (power < 0 and self.at_center())
+            # or self.get_wrist_angle().radians() < self.safe_to_move.radians()
         ):
             if self.get_wrist_angle().radians() > self.safe_to_move.radians():
                 self.nettable.putBoolean("Safety/Waiting on Wrist", True)
@@ -127,7 +146,7 @@ class Claw(Subsystem):
         """the distance is in inches"""
         return (
             RunCommand(
-                lambda: self.set_motor(self.pid.calculate(self.get_dist(), distance))
+                lambda: self.set_motor(-self.pid.calculate(self.get_dist(), distance))
             )
             .onlyWhile(lambda: abs(self.get_dist() - distance) > 0.5)
             .withName(f"Go to {distance} ft")

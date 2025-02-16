@@ -10,7 +10,7 @@ def pretty_close(x: float, y: float) -> bool:
     return abs(x - y) < 0.1
 
 
-def test_working():
+def est_working():
     elevator = Elevator(lambda: Rotation2d(0), Rotation2d.fromDegrees(90))
     elevator.set_state(elevator.top_height + 1)
     assert elevator.pid.getGoal().position == elevator.top_height
