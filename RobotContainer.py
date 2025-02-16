@@ -1,4 +1,4 @@
-from commands2 import Command, RunCommand, WaitCommand, InstantCommand
+from commands2 import Command, DeferredCommand, RunCommand, WaitCommand, InstantCommand
 import commands2
 from commands2.button import Trigger, CommandJoystick
 
@@ -104,8 +104,16 @@ class RobotContainer:
             self.drivetrain.drive_closest_reef()
         )
 
+        # self.driver_controller.button(button_a).whileTrue(
+        #     self.drivetrain.drive_closest_algae()
+        # )
+
         self.driver_controller.button(button_a).whileTrue(
-            self.drivetrain.drive_closest_algae()
+            DeferredCommand(
+                lambda: self.drivetrain.drive_position(
+                    self.drivetrain.get_closest("algae")
+                )
+            )
         )
 
         # self.wrist.setDefaultCommand(

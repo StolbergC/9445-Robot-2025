@@ -10,6 +10,7 @@ from subsystems.sim_gyro import SimGyro
 from auto import positions
 
 from commands2 import (
+    DeferredCommand,
     ParallelRaceGroup,
     SequentialCommandGroup,
     StartEndCommand,
@@ -491,24 +492,22 @@ class Drivetrain(Subsystem):
 
     def drive_position(
         self,
-        position: Pose2d | typing.Callable[[], Pose2d],
+        position: Pose2d,
     ) -> ParallelRaceGroup | WrapperCommand:
         return (
             self.drive_joystick(
                 lambda: self.x_pid.calculate(
                     self.get_pose().X(),
-                    (position if not callable(position) else position()).X(),
+                    position.X(),
                 ),
                 lambda: self.y_pid.calculate(
                     self.get_pose().Y(),
-                    (position if not callable(position) else position()).Y(),
+                    position.Y(),
                 ),
                 lambda: (
                     self.t_pid.calculate(
                         self.get_angle().radians(),
-                        (position if not callable(position) else position())
-                        .rotation()
-                        .radians(),
+                        position.rotation().radians(),
                     )
                 ),
                 lambda: True,
@@ -526,16 +525,8 @@ class Drivetrain(Subsystem):
                     or abs((v := self.get_speeds()).vx) > feetToMeters(5)
                     or abs(v.vy) > feetToMeters(5)
                     or (abs(v.omega_dps) > 15 if self.is_real else False)
-                    or abs(
-                        self.x_pid.getSetpoint().position
-                        - (position if not callable(position) else position()).X()
-                    )
-                    > 0.1
-                    or abs(
-                        self.y_pid.getSetpoint().position
-                        - (position if not callable(position) else position()).Y()
-                    )
-                    > 0.1
+                    or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
+                    or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
                 )
             )
         )
@@ -611,27 +602,20 @@ class Drivetrain(Subsystem):
             drive_positions = [self.get_pose()]
         return self.get_pose().nearest(drive_positions)
 
-    def get_closest_algae(self) -> Pose2d:
-        return self.get_closest("algae")
-
-    def get_closest_reef(self) -> Pose2d:
-        return self.get_closest("reef")
-
-    def get_closest_intake(self) -> Pose2d:
-        return self.get_closest("intake")
-
     def drive_closest_reef(self) -> WrapperCommand:
-        return self.drive_position(self.get_closest_reef).withName("Drive Closest Reef")
+        return DeferredCommand(
+            lambda: self.drive_position(self.get_closest("reef"))
+        ).withName("Drive Closest Reef")
 
     def drive_closest_algae(self) -> WrapperCommand:
-        return self.drive_position(self.get_closest_algae).withName(
-            "Drive closest algae"
-        )
+        return DeferredCommand(
+            lambda: self.drive_position(self.get_closest("algae"))
+        ).withName("Drive Closest Algae")
 
     def drive_near_coral_station(self) -> WrapperCommand:
-        return self.drive_position(self.get_closest_intake).withName(
-            "Drive Near Intake"
-        )
+        return DeferredCommand(
+            lambda: self.drive_position(self.get_closest("intake"))
+        ).withName("Drive Closest Intake")
 
     def set_speed(self, drive_speed_mps: float, turn_speed: Rotation2d) -> None:
         self.max_velocity_mps = drive_speed_mps
