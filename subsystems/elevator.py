@@ -120,6 +120,10 @@ class Elevator(Subsystem):
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
+        if self.get_wrist_angle().radians() > self.safe_after_wrist_angle.radians():
+            self.nettable.putBoolean("Safety/Waiting on Wrist", True)
+            return
+        self.nettable.putBoolean("Safety/Waiting on Wrist", False)
         position = self._make_position_safe(position)
         if position < self.bottom_height:
             position = self.bottom_height
@@ -176,3 +180,7 @@ class Elevator(Subsystem):
 
     def command_l3(self) -> WrapperCommand:
         return self.command_position(1).withName("L3")
+
+    def manual_control(self, power: float) -> None:
+        power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
+        self.motor.set(power)

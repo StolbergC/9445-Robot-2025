@@ -11,6 +11,7 @@ from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 
 from subsystems.drivetrain import Drivetrain
+from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
 from subsystems.claw import Claw
@@ -39,7 +40,8 @@ class RobotContainer:
         # self.claw = Claw(
         # self.wrist.get_angle, Rotation2d.fromDegrees(60)
         # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
-        self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
+        # self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
+        self.elevator = Elevator(lambda: Rotation2d(0), Rotation2d.fromDegrees(75))
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         # self.fingers = Fingers()
 
@@ -95,6 +97,15 @@ class RobotContainer:
             )
         )
 
+        self.elevator.setDefaultCommand(
+            RunCommand(
+                lambda: self.elevator.manual_control(
+                    self.operator_controller.getRawAxis(5)
+                ),
+                self.elevator,
+            )
+        )
+
         # b seems like the button Shane wants, others TBD
         self.driver_controller.button(button_b).whileTrue(
             self.drivetrain.drive_near_coral_station()
@@ -102,10 +113,6 @@ class RobotContainer:
 
         self.driver_controller.button(button_y).whileTrue(
             self.drivetrain.drive_closest_reef()
-        )
-
-        self.claw.setDefaultCommand(
-            RunCommand(lambda: self.claw.set_motor(0), self.claw)
         )
 
         # self.driver_controller.button(button_a).whileTrue(
@@ -141,20 +148,14 @@ class RobotContainer:
         # self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
         # self.operator_controller.button(button_right).whileTrue(self.fingers.score())
 
-        Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
-        Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
-        Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
-        Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
-
-        self.operator_controller.button(button_rb).whileTrue(
-            self.claw.algae()
-            .andThen(WaitCommand(0.25))
-            .andThen(self.claw.cage())
-            .andThen(WaitCommand(0.25))
-            .andThen(self.claw.coral())
-            .andThen(WaitCommand(0.25))
-            .repeatedly()
+        self.driver_controller.button(button_x).onTrue(
+            self.drivetrain.drive_position(positions.blue_coral_intake_right_left)
         )
+
+        # Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
+        # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
+        # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
+        # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
 
         self.driver_controller.button(button_lpush).or_(
             self.driver_controller.button(button_rpush)
@@ -165,6 +166,45 @@ class RobotContainer:
         # self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
 
         # self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
+
+        lb_trigger = self.operator_controller.button(button_lb)
+        rb_trigger = self.operator_controller.button(button_rb)
+
+        # drive to the algae on the closest reef when lb and rb are pressed
+        lb_trigger.and_(rb_trigger).whileTrue(WaitCommand(0))
+
+        # drive to the left peg on the closest part of the reef when only lb is pressed
+        lb_trigger.and_(rb_trigger.not_()).whileTrue(WaitCommand(0))
+
+        # drive to the right peg on the closest part of the reef when only lb is pressed
+        rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
+
+        # self.driver_controller.button(button_a).whileTrue(
+        #     self.drivetrain.drive_position(Pose2d(0, 0, Rotation2d(0)))
+        # )
+
+        # self.driver_controller.button(button_b).onTrue(
+        #     self.drivetrain.reset_pose(Pose2d())
+        # )
+        # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
+
+        # self.driver_controller.button(button_y).whileTrue(
+        #     self.drivetrain.drive_position(
+        #         Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
+        #     )
+        #     .andThen(WaitCommand(0.5))
+        #     .andThen(
+        #         self.drivetrain.drive_position(
+        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
+        #         )
+        #     )
+        #     .andThen(WaitCommand(0.5))
+        #     .andThen(
+        #         self.drivetrain.drive_position(
+        #             Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
+        #         )
+        #     )
+        # )
 
     def get_alliance(self) -> DriverStation.Alliance:
         return self.alliance
