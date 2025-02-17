@@ -51,6 +51,8 @@ class Claw(Subsystem):
         self.stall_timer = time()
         self.is_stalling = True
 
+        self.has_homed = False
+
         def nettable_listener(_nt: NetworkTable, key: str, ev: Event):
             if isinstance(v := ev.data, ValueEventData):
                 if key == "PID/p":
@@ -102,8 +104,10 @@ class Claw(Subsystem):
 
         if self.at_center():
             self.encoder.setPosition(0)
+            self.has_homed = True
         if self.at_outside():
             self.encoder.setPosition(-8.75)
+            self.has_homed = True
         self.nettable.putBoolean("State/inside hard stop", self.at_center())
         self.nettable.putBoolean("State/outside hard stop", self.at_outside())
         self.nettable.putNumber("State/Distance (in)", self.get_dist())
@@ -126,7 +130,7 @@ class Claw(Subsystem):
         if (
             (power > 0 and self.at_outside())
             or (power < 0 and self.at_center())
-            # or self.get_wrist_angle().radians() < self.safe_to_move.radians()
+            or self.get_wrist_angle().radians() > self.safe_to_move.radians()
         ):
             if self.get_wrist_angle().radians() > self.safe_to_move.radians():
                 self.nettable.putBoolean("Safety/Waiting on Wrist", True)

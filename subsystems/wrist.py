@@ -75,15 +75,18 @@ class Wrist(Subsystem):
 
     def set_state(self, angle: Rotation2d) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
-        if self.get_claw_distance() > self.safe_claw_distance:
+        if (
+            abs(self.get_claw_distance() - self.safe_claw_distance)
+            > 1  # TODO: This might be stupid. The claw has to be in the center of its range
+            and angle.degrees() >= 75  # this means that we are going up
+        ):
             self.nettable.putBoolean("Safety/Waiting on Claw", True)
             return
         self.nettable.putBoolean("Safety/Waiting on Claw", False)
-        # TODO: there will be a safety here for elevator position. I do not yet know how the position of the wrist will relate to that of the carriage, so it will wait
         if angle.degrees() < -50:  # more ground pointing
             angle = Rotation2d.fromDegrees(-50)
-        elif angle.degrees() > 90:  # more sky pointing
-            angle = Rotation2d.fromDegrees(90)
+        elif angle.degrees() > 75:  # more sky pointing
+            angle = Rotation2d.fromDegrees(75)
         speed = self.pid.calculate(self.get_angle().radians(), angle.radians())
         speed = 1 if speed > 1 else -1 if speed < -1 else speed
         self.nettable.putNumber("State/Speed (%)", speed)
@@ -106,5 +109,6 @@ class Wrist(Subsystem):
     def angle_full_up(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(90)).withName("Max Angle")
 
-    def angle_full_down(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(90)).withName("Min Angle")
+    def manual_control(self, power: Callable[[], float]) -> RunCommand:
+        """This should only be used in test mode for the pit to reset the robot"""
+        return RunCommand(lambda: self.motor.set(power()), self)
