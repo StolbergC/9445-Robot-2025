@@ -41,7 +41,7 @@ class RobotContainer:
         # self.wrist.get_angle, Rotation2d.fromDegrees(60)
         # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
         # self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
-        self.elevator = Elevator(lambda: Rotation2d(0), Rotation2d.fromDegrees(75))
+        self.elevator = Elevator(lambda: Rotation2d(0))
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         # self.fingers = Fingers()
 
@@ -115,16 +115,8 @@ class RobotContainer:
             self.drivetrain.drive_closest_reef()
         )
 
-        # self.driver_controller.button(button_a).whileTrue(
-        #     self.drivetrain.drive_closest_algae()
-        # )
-
         self.driver_controller.button(button_a).whileTrue(
-            DeferredCommand(
-                lambda: self.drivetrain.drive_position(
-                    self.drivetrain.get_closest("algae")
-                )
-            )
+            self.drivetrain.drive_closest_algae()
         )
 
         # self.wrist.setDefaultCommand(
