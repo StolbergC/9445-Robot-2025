@@ -103,7 +103,7 @@ class RobotContainer:
         self.elevator.setDefaultCommand(
             RunCommand(
                 lambda: self.elevator.manual_control(
-                    self.operator_controller.getRawAxis(5)
+                    applyDeadband(self.operator_controller.getRawAxis(5), 0.05)
                 ),
                 self.elevator,
             )

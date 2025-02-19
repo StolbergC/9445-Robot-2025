@@ -28,6 +28,11 @@
       "Pos": "60,60",
       "Size": "169,167"
     },
+    "###/SmartDashboard/ElevatorMech": {
+      "Collapsed": "0",
+      "Pos": "2794,190",
+      "Size": "673,1651"
+    },
     "###/SmartDashboard/Field": {
       "Collapsed": "0",
       "Pos": "-2,407",
@@ -40,7 +45,7 @@
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "1991,1204",
+      "Pos": "306,410",
       "Size": "2236,544"
     },
     "###NetworkTables": {

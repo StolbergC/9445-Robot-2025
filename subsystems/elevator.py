@@ -1,7 +1,19 @@
 from typing import Callable
-from rev import SparkBaseConfig, SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
+from math import pi
 
-from wpilib import DigitalInput
+from rev import (
+    SparkBaseConfig,
+    SparkMax,
+    SparkLowLevel,
+    SparkMaxConfig,
+    SparkBase,
+    SparkMaxSim,
+)
+
+from wpilib import DigitalInput, RobotBase, RobotController, Mechanism2d, SmartDashboard
+from wpilib.simulation import ElevatorSim, RoboRioSim, BatterySim
+from wpimath.system.plant import DCMotor
+
 
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData, NetworkTable
 
@@ -44,9 +56,9 @@ class Elevator(Subsystem):
         self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
         self.encoder = self.motor.getEncoder()
 
-        self.motor_config = SparkMaxConfig().smartCurrentLimit(40).inverted(False)
+        self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
-            1  # TODO: Find what the conversion factor needs to be
+            pi * 1.12 / 15  # TODO: Find what the conversion factor needs to be
         )
 
         # TODO: check that this is the correct disabling and then set it for the other neo motors
@@ -107,14 +119,64 @@ class Elevator(Subsystem):
             self.bottom_height * 12 + 2 * inches(29) - 2 * inches(6)
         ) / 12
 
+        if not RobotBase.isReal():
+            self.gearbox = DCMotor.NEO(1)
+            self.motor_sim = SparkMaxSim(self.motor, self.gearbox)
+            self.elevator_sim = ElevatorSim(
+                self.gearbox,
+                15,
+                6.80,
+                inchesToMeters(1.12 / 2),
+                inchesToMeters(9),
+                inchesToMeters(60),
+                True,
+                inchesToMeters(9),
+            )
+        self.mech = Mechanism2d(0.5, 2.5)
+        self.root = self.mech.getRoot("elevator", 0.25, 0.25)
+        self.mech_base = self.root.appendLigament("ElevatorBase", 0.25, 90)
+        self.mech_elevator = self.mech_base.appendLigament(
+            "Elevator Immutable", 0.25, 0
+        )
+        self.mech_elevator_mutable = self.mech_base.appendLigament(
+            "Elevator Mutable", 0, 0
+        )
+        SmartDashboard.putData("ElevatorMech", self.mech)
+
     def periodic(self) -> None:
-        if self.bottom_limit.get():
+        if not self.bottom_limit.get():
             self.encoder.setPosition(0)
             self.has_homed = True
 
-        self.nettable.putNumber("State/position (ft)", self.get_position())
+        self.nettable.putNumber("State/position (in)", self.get_position())
         self.nettable.putNumber("At Bottom ?", self.bottom_limit.get())
+        self.nettable.putNumber(
+            "State/Current Draw (amp)", self.motor.getOutputCurrent()
+        )
         return super().periodic()
+
+    def simulationPeriodic(self) -> None:
+        self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
+        self.elevator_sim.setInput(
+            [self.motor.getAppliedOutput() * RoboRioSim.getVInVoltage()]
+        )
+        self.elevator_sim.update(0.02)
+        self.nettable.putNumber(
+            "Sim/Position (in)", self.elevator_sim.getPositionInches()
+        )
+        self.nettable.putNumber("Sim/output (%)", self.elevator_sim.getOutput()[0])
+        self.nettable.putNumber(
+            "Sim/Velocity (fps)", self.elevator_sim.getVelocityFps()
+        )
+        # self.encoder.setPosition(self.elevator_sim.getPositionInches())
+        self.motor_sim.iterate(
+            self.elevator_sim.getVelocity(), RoboRioSim.getVInVoltage(), 0.2
+        )
+        RoboRioSim.setVInVoltage(
+            BatterySim.calculate([self.elevator_sim.getCurrentDraw()])
+        )
+        self.mech_elevator_mutable.setLength(self.elevator_sim.getPosition())
+        return super().simulationPeriodic()
 
     def get_position(self) -> feet:
         return self.encoder.getPosition()
@@ -160,6 +222,11 @@ class Elevator(Subsystem):
             .onlyWhile(
                 lambda: self.bottom_limit.get()  # maybe will be not limit.get() based on wiring
             )
+            .andThen(
+                RunCommand(lambda: self.motor.set(0.1)).until(
+                    lambda: self.motor.getOutputCurrent() > 10
+                )
+            )
             .andThen(InstantCommand(lambda: self.motor.set(0), self))
             .andThen(InstantCommand(set_homed))
         )
@@ -193,3 +260,6 @@ class Elevator(Subsystem):
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
         self.motor.set(power)
+
+    def reset(self) -> InstantCommand:
+        return InstantCommand(lambda: self.encoder.setPosition(0))
