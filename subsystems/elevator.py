@@ -30,7 +30,6 @@ class Elevator(Subsystem):
     def __init__(
         self,
         get_wrist_angle: Callable[[], Rotation2d],
-        safe_wrist_angle: Rotation2d,
         wrist_length: feet = 1,
     ):
         super().__init__()
@@ -38,7 +37,6 @@ class Elevator(Subsystem):
         self.has_homed = False
 
         self.get_wrist_angle = get_wrist_angle
-        self.safe_after_wrist_angle = safe_wrist_angle
         self.wrist_length = wrist_length
 
         self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
@@ -120,7 +118,7 @@ class Elevator(Subsystem):
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
-        if self.get_wrist_angle().radians() > self.safe_after_wrist_angle.radians():
+        if abs(self.get_wrist_angle().degrees()) > 10:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
             return
         self.nettable.putBoolean("Safety/Waiting on Wrist", False)

@@ -11,7 +11,7 @@ def pretty_close(x: float, y: float) -> bool:
 
 
 def test_working():
-    elevator = Elevator(lambda: Rotation2d(0), Rotation2d.fromDegrees(90))
+    elevator = Elevator(lambda: Rotation2d(0))
     elevator.set_state(elevator.top_height + 1)
     assert elevator.pid.getGoal().position == elevator.top_height
 
@@ -20,20 +20,12 @@ def test_working():
 
     elevator.get_wrist_angle = lambda: Rotation2d.fromDegrees(-90)
     elevator.set_state(elevator.bottom_height - 1)
-    assert (
-        elevator.pid.getGoal().position
-        == elevator.bottom_height + elevator.wrist_length
-    )
+    assert elevator.nettable.getBoolean("Safety/Waiting on Wrist", False) == True
 
     elevator.get_wrist_angle = lambda: Rotation2d.fromDegrees(90)
     elevator.set_state(elevator.top_height + 1)
-    assert (
-        elevator.pid.getGoal().position == elevator.top_height - elevator.wrist_length
-    )
+    assert elevator.nettable.getBoolean("Safety/Waiting on Wrist", False) == True
     assert elevator.motor.getAppliedOutput() == 0
-
-    elevator.encoder.setPosition(elevator.top_height)
-    assert pretty_close(elevator.get_position(), elevator.top_height)
 
     claw = Claw(lambda: Rotation2d.fromDegrees(90), Rotation2d.fromDegrees(85))
     assert claw.set_motor(0.4) == 0

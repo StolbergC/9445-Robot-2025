@@ -1,6 +1,6 @@
 from math import pi
 from typing import Callable
-from rev import SparkMax, SparkMaxConfig, SparkBase
+from rev import SparkMax, SparkMaxConfig, SparkBase, EncoderConfig
 
 from commands2 import Subsystem, RunCommand, WrapperCommand
 
@@ -25,19 +25,22 @@ class Wrist(Subsystem):
     def __init__(self):
         super().__init__()
         self.motor = SparkMax(20, SparkBase.MotorType.kBrushless)
+        self.encoder = self.motor.getAbsoluteEncoder()
         self.motor_config = (
             SparkMaxConfig()
             .smartCurrentLimit(30)
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
+        self.motor_config.absoluteEncoder.positionConversionFactor(360).zeroOffset(
+            90
+        ).endPulseUs(1024).startPulseUs(1).setSparkMaxDataPortConfig()
+
         self.motor.configure(
             self.motor_config,
             SparkBase.ResetMode.kResetSafeParameters,
             SparkBase.PersistMode.kNoPersistParameters,
         )
-
-        self.encoder = DutyCycleEncoder(4, 180, 90)
 
         self.pid = ProfiledPIDController(
             0.01, 0, 0, TrapezoidProfile.Constraints(pi / 2, 20 * pi)
@@ -71,7 +74,7 @@ class Wrist(Subsystem):
         return super().periodic()
 
     def get_angle(self) -> Rotation2d:
-        return Rotation2d.fromDegrees(self.encoder.get())
+        return Rotation2d.fromDegrees(self.encoder.getPosition())
 
     def set_state(self, angle: Rotation2d) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
