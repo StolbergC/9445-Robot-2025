@@ -25,6 +25,8 @@ from commands2 import (
     WrapperCommand,
 )
 
+heights = {1: 1, 2: 2, 3: 3}
+
 
 class Elevator(Subsystem):
     def __init__(
@@ -108,6 +110,7 @@ class Elevator(Subsystem):
     def periodic(self) -> None:
         if self.bottom_limit.get():
             self.encoder.setPosition(0)
+            self.has_homed = True
 
         self.nettable.putNumber("State/position (ft)", self.get_position())
         self.nettable.putNumber("At Bottom ?", self.bottom_limit.get())
@@ -122,6 +125,7 @@ class Elevator(Subsystem):
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
             return
         self.nettable.putBoolean("Safety/Waiting on Wrist", False)
+        self.nettable.putNumber("Commanded/position (in)", position)
         position = self._make_position_safe(position)
         if position < self.bottom_height:
             position = self.bottom_height
@@ -148,12 +152,16 @@ class Elevator(Subsystem):
         return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
     def home(self) -> SequentialCommandGroup:
+        def set_homed():
+            self.has_homed = True
+
         return (
             RunCommand(lambda: self.motor.set(-0.25), self)
             .onlyWhile(
                 lambda: self.bottom_limit.get()  # maybe will be not limit.get() based on wiring
             )
             .andThen(InstantCommand(lambda: self.motor.set(0), self))
+            .andThen(InstantCommand(set_homed))
         )
 
     def command_position(self, position: feet) -> WrapperCommand:
@@ -162,12 +170,15 @@ class Elevator(Subsystem):
                 f"Set Position to {position} ft"
             )
         else:
-            self.has_homed = True
             return (
                 self.home()
                 .andThen(RunCommand(lambda: self.set_state(position)))
+                .onlyWhile(lambda: abs(self.get_position() - position) > 2)
                 .withName("Home then Set Position to {position} ft")
             )
+
+    def follow_setpoint(self, level: Callable[[], int]) -> RunCommand:
+        return RunCommand(lambda: self.set_state(level()), self)
 
     # TODO: None of these heights are correct. They depend on the angle and stuff
     def command_l1(self) -> WrapperCommand:

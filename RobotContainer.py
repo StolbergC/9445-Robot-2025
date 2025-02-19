@@ -33,6 +33,7 @@ button_rpush = 10
 
 class RobotContainer:
     def __init__(self) -> None:
+        self.nettable = NetworkTableInstance.getDefault().getTable("0000DriverInfo")
         self.alliance = DriverStation.Alliance.kBlue
         self.drivetrain = Drivetrain(self.get_alliance)
         # self.wrist = Wrist()
@@ -51,6 +52,8 @@ class RobotContainer:
             "Blue -- Four Coral Left", blue_left_four_coral.get_auto(self.drivetrain)
         )
         self.auto_chooser.addOption("Blue -- Test", blue_test.get_auto(self.drivetrain))
+
+        self.level = 1
 
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
@@ -117,6 +120,24 @@ class RobotContainer:
 
         self.driver_controller.button(button_a).whileTrue(
             self.drivetrain.drive_closest_algae()
+        )
+
+        # self.elevator.setDefaultCommand(
+        #     self.elevator.follow_setpoint(lambda: self.level)
+        # )
+
+        def increase_elevator_setpoint() -> None:
+            self.level = (self.level % 3) + 1
+
+        def decrease_elevator_setpoint() -> None:
+            self.level = ((self.level + 1) % 3) + 1
+
+        self.operator_controller.povUp().onTrue(
+            InstantCommand(increase_elevator_setpoint)
+        )
+
+        self.operator_controller.povDown().onTrue(
+            InstantCommand(decrease_elevator_setpoint)
         )
 
         # self.wrist.setDefaultCommand(
@@ -197,6 +218,9 @@ class RobotContainer:
         #         )
         #     )
         # )
+
+    def periodic(self) -> None:
+        self.nettable.putNumber("Elevator Level", self.level)
 
     def get_alliance(self) -> DriverStation.Alliance:
         return self.alliance
