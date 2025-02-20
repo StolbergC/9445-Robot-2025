@@ -617,6 +617,48 @@ class Drivetrain(Subsystem):
             lambda: self.drive_position(self.get_closest("intake"))
         ).withName("Drive Closest Intake")
 
+    def get_closest_algae_level(self) -> int:
+        if self.alliance == DriverStation.Alliance.kBlue:
+            return (
+                2
+                if self.get_pose().nearest(
+                    [
+                        positions.blue_algae_ab,
+                        positions.blue_algae_cd,
+                        positions.blue_algae_ef,
+                        positions.blue_algae_gh,
+                        positions.blue_algae_ij,
+                        positions.blue_algae_kl,
+                    ]
+                )
+                in [
+                    positions.blue_algae_cd,
+                    positions.blue_algae_gh,
+                    positions.blue_algae_kl,
+                ]
+                else 3
+            )
+
+        return (
+            2
+            if self.get_pose().nearest(
+                [
+                    positions.red_algae_ab,
+                    positions.red_algae_cd,
+                    positions.red_algae_ef,
+                    positions.red_algae_gh,
+                    positions.red_algae_ij,
+                    positions.red_algae_kl,
+                ]
+            )
+            in [
+                positions.red_algae_cd,
+                positions.red_algae_gh,
+                positions.red_algae_kl,
+            ]
+            else 3
+        )
+
     def set_speed(self, drive_speed_mps: float, turn_speed: Rotation2d) -> None:
         self.max_velocity_mps = drive_speed_mps
         if RobotBase.isReal():

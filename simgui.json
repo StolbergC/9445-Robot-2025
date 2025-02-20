@@ -54,6 +54,9 @@
       "open": false
     },
     "transitory": {
+      "0000DriverInfo": {
+        "open": true
+      },
       "000Claw": {
         "PID": {
           "open": true
@@ -69,6 +72,9 @@
       },
       "000Elevator": {
         "Commanded": {
+          "open": true
+        },
+        "Feedforward": {
           "open": true
         },
         "Safety": {

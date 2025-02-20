@@ -19,13 +19,11 @@ from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData, Netw
 
 from wpimath.units import (
     inchesToMeters,
-    meters_per_second,
-    meters_per_second_squared,
     feetToMeters,
     feet,
     inches,
 )
-from wpimath.controller import ProfiledPIDController
+from wpimath.controller import ProfiledPIDController, ElevatorFeedforward
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
@@ -48,7 +46,13 @@ class Elevator(Subsystem):
     ):
         super().__init__()
 
-        self.has_homed = False
+        self.spool_diameter = 1.12  # inches
+        self.rope_diameter = 0.25  # inches
+
+        if RobotBase.isReal():
+            self.has_homed = False
+        else:
+            self.has_homed = True
 
         self.get_wrist_angle = get_wrist_angle
         self.wrist_length = wrist_length
@@ -58,7 +62,7 @@ class Elevator(Subsystem):
 
         self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
-            pi * 1.12 / 15  # TODO: Find what the conversion factor needs to be
+            15  # TODO: Find what the conversion factor needs to be
         )
 
         # TODO: check that this is the correct disabling and then set it for the other neo motors
@@ -92,6 +96,8 @@ class Elevator(Subsystem):
         self.pid = ProfiledPIDController(
             0.01, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         )
+        self.feedforward = ElevatorFeedforward(0, 2, 0, 0)
+        self.tuning_ff = False
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
 
@@ -103,14 +109,65 @@ class Elevator(Subsystem):
                     self.pid.setI(data.value.value())
                 elif key == "PID/d":
                     self.pid.setD(data.value.value())
+                elif key == "Feedforward/kS":
+                    self.feedforward = ElevatorFeedforward(
+                        data.value.value(),
+                        self.feedforward.getKg(),
+                        self.feedforward.getKv(),
+                        self.feedforward.getKa(),
+                    )
+                elif key == "Feedforward/kG":
+                    self.feedforward = ElevatorFeedforward(
+                        self.feedforward.getKs(),
+                        data.value.value(),
+                        self.feedforward.getKv(),
+                        self.feedforward.getKa(),
+                    )
+                elif key == "Feedforward/kV":
+                    self.feedforward = ElevatorFeedforward(
+                        self.feedforward.getKs(),
+                        self.feedforward.getKg(),
+                        data.value.value(),
+                        self.feedforward.getKa(),
+                    )
+                elif key == "Feedforward/kA":
+                    self.feedforward = ElevatorFeedforward(
+                        self.feedforward.getKs(),
+                        self.feedforward.getKg(),
+                        self.feedforward.getKv(),
+                        data.value.value(),
+                    )
+                elif key == "Feedforward/tuning":
+                    self.tuning_ff = data.value.value()
 
         self.nettable.addListener("PID/p", EventFlags.kValueAll, nettable_updater)
         self.nettable.addListener("PID/i", EventFlags.kValueAll, nettable_updater)
         self.nettable.addListener("PID/d", EventFlags.kValueAll, nettable_updater)
+        self.nettable.addListener(
+            "Feedforward/kS", EventFlags.kValueAll, nettable_updater
+        )
+        self.nettable.addListener(
+            "Feedforward/kG", EventFlags.kValueAll, nettable_updater
+        )
+        self.nettable.addListener(
+            "Feedforward/kV", EventFlags.kValueAll, nettable_updater
+        )
+        self.nettable.addListener(
+            "Feedforward/kA", EventFlags.kValueAll, nettable_updater
+        )
+
+        self.nettable.addListener(
+            "Feedforward/tuning", EventFlags.kValueAll, nettable_updater
+        )
 
         self.nettable.putNumber("PID/p", self.pid.getP())
         self.nettable.putNumber("PID/i", self.pid.getI())
         self.nettable.putNumber("PID/d", self.pid.getD())
+        self.nettable.putNumber("Feedforward/kS", self.feedforward.getKs())
+        self.nettable.putNumber("Feedforward/kG", self.feedforward.getKg())
+        self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
+        self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
+        self.nettable.putBoolean("Feedforward/tuning", self.tuning_ff)
 
         # TODO: Maybe?
         self.bottom_height: feet = 9 / 12
@@ -168,7 +225,6 @@ class Elevator(Subsystem):
         self.nettable.putNumber(
             "Sim/Velocity (fps)", self.elevator_sim.getVelocityFps()
         )
-        # self.encoder.setPosition(self.elevator_sim.getPositionInches())
         self.motor_sim.iterate(
             self.elevator_sim.getVelocity(), RoboRioSim.getVInVoltage(), 0.2
         )
@@ -179,7 +235,21 @@ class Elevator(Subsystem):
         return super().simulationPeriodic()
 
     def get_position(self) -> feet:
-        return self.encoder.getPosition()
+        return (
+            pi
+            * self.encoder.getPosition()
+            * (2 * self.rope_diameter + self.spool_diameter)
+        )
+
+    def get_velocity(self) -> float:
+        return (
+            pi
+            * self.encoder.getVelocity()
+            * (
+                2 * self.rope_diameter * self.encoder.getPosition()
+                + self.spool_diameter
+            )
+        )
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
@@ -193,9 +263,20 @@ class Elevator(Subsystem):
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
-        speed = self.pid.calculate(self.get_position(), position)
-        speed = 1 if speed > 1 else -1 if speed < -1 else speed
-        self.motor.set(speed)
+        if not self.tuning_ff:
+            volts = self.pid.calculate(
+                self.get_position(), position
+            ) + self.feedforward.calculate(
+                self.get_velocity(), self.pid.getGoal().velocity
+            )
+        else:
+            self.pid.setGoal(position)
+            volts = self.feedforward.calculate(
+                self.get_velocity(), self.pid.getGoal().velocity
+            )
+
+        self.nettable.putNumber("State/Out Power (V)", volts)
+        self.motor.setVoltage(volts)
 
     def _make_position_safe(self, position: feet) -> feet:
         """
@@ -249,13 +330,29 @@ class Elevator(Subsystem):
 
     # TODO: None of these heights are correct. They depend on the angle and stuff
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(1).withName("L1")
+        return self.command_position(24).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(1).withName("L2")
+        return self.command_position(
+            2 * 12 + 7 + 7 / 8 + Rotation2d.fromDegrees(35).sin() * 12
+        ).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(1).withName("L3")
+        return self.command_position(
+            3 * 12 + 11 + 5 / 8 + Rotation2d.fromDegrees(35).sin() * 12
+        ).withName("L3")
+
+    def command_intake(self) -> WrapperCommand:
+        return self.command_position(1).withName("Intake")
+
+    def algae_intake_low(self) -> WrapperCommand:
+        return self.command_position(1).withName("Algae Low")
+
+    def algae_intake_high(self) -> WrapperCommand:
+        return self.command_position(1).withName("Algae high")
+
+    def command_processor(self) -> WrapperCommand:
+        return self.command_position(1).withName("Processor")
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power

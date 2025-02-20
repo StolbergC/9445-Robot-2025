@@ -20,7 +20,7 @@ class Wrist(Subsystem):
     """
 
     get_claw_distance: Callable[[], float]
-    safe_claw_distance: float
+    safe_claw_distance: float = 1
 
     def __init__(self):
         super().__init__()
