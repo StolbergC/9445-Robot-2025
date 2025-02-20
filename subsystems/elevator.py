@@ -286,6 +286,10 @@ class Elevator(Subsystem):
             )
         else:
             self.pid.setGoal(position)
+            self.nettable.putNumber(
+                "Feedforward/GoalVelocity (only updated when tuning)",
+                self.pid.getGoal().velocity,
+            )
             volts = self.feedforward.calculate(
                 self.get_velocity(), self.pid.getGoal().velocity
             )
