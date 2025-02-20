@@ -140,29 +140,29 @@ class RobotContainer:
             )
         )
 
-        # self.elevator.setDefaultCommand(
-        #     RunCommand(
-        #         lambda: self.elevator.manual_control(
-        #             applyDeadband(self.operator_controller.getRawAxis(5), 0.05)
-        #         ),
-        #         self.elevator,
-        #     )
-        # )
-
         self.elevator.setDefaultCommand(
-            DeferredCommand(
-                lambda: (
-                    self.elevator.command_l1()
-                    if self.level == 1
-                    else (
-                        self.elevator.command_l2()
-                        if self.level == 2
-                        else self.elevator.command_l3()
-                    )
+            RunCommand(
+                lambda: self.elevator.manual_control(
+                    applyDeadband(self.operator_controller.getRawAxis(5), 0.05)
                 ),
                 self.elevator,
             )
         )
+
+        # self.elevator.setDefaultCommand(
+        #     DeferredCommand(
+        #         lambda: (
+        #             self.elevator.command_l1()
+        #             if self.level == 1
+        #             else (
+        #                 self.elevator.command_l2()
+        #                 if self.level == 2
+        #                 else self.elevator.command_l3()
+        #             )
+        #         ),
+        #         self.elevator,
+        #     )
+        # )
 
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).onTrue(
             self.get_reef_score_command()

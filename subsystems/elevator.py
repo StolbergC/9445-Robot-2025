@@ -1,5 +1,5 @@
 from typing import Callable
-from math import pi
+from math import floor, pi
 
 from rev import (
     SparkBaseConfig,
@@ -47,7 +47,12 @@ class Elevator(Subsystem):
         super().__init__()
 
         self.spool_diameter = 1.12  # inches
+        self.spool_depth = 0.5  # inches
         self.rope_diameter = 0.25  # inches
+
+        self.rope_area_constant = (pi * ((r := self.rope_diameter / 2) * r)) / (
+            self.rope_diameter * self.rope_diameter
+        )
 
         if RobotBase.isReal():
             self.has_homed = False
@@ -63,7 +68,7 @@ class Elevator(Subsystem):
         self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
             15  # TODO: Find what the conversion factor needs to be
-        )
+        ).velocityConversionFactor(15 / 60)
 
         # TODO: check that this is the correct disabling and then set it for the other neo motors
         self.motor_config.signals.absoluteEncoderPositionAlwaysOn(
@@ -170,11 +175,9 @@ class Elevator(Subsystem):
         self.nettable.putBoolean("Feedforward/tuning", self.tuning_ff)
 
         # TODO: Maybe?
-        self.bottom_height: feet = 9 / 12
+        self.bottom_height: feet = 9
         # TODO: Maybe? The 6 inches are the overlap desired
-        self.top_height: feet = (
-            self.bottom_height * 12 + 2 * inches(29) - 2 * inches(6)
-        ) / 12
+        self.top_height: feet = self.bottom_height + 2 * inches(29) - 2 * inches(6)
 
         if not RobotBase.isReal():
             self.gearbox = DCMotor.NEO(1)
@@ -183,11 +186,11 @@ class Elevator(Subsystem):
                 self.gearbox,
                 15,
                 6.80,
-                inchesToMeters(1.12 / 2),
-                inchesToMeters(9),
-                inchesToMeters(60),
+                inchesToMeters(self.spool_diameter / 2),
+                inchesToMeters(self.bottom_height),
+                inchesToMeters(self.top_height),
                 True,
-                inchesToMeters(9),
+                inchesToMeters(self.bottom_height),
             )
         self.mech = Mechanism2d(0.5, 2.5)
         self.root = self.mech.getRoot("elevator", 0.25, 0.25)
@@ -199,6 +202,8 @@ class Elevator(Subsystem):
             "Elevator Mutable", 0, 0
         )
         SmartDashboard.putData("ElevatorMech", self.mech)
+
+        self.nettable.putNumber("Test/rope area const", self.rope_area_constant)
 
     def periodic(self) -> None:
         if not self.bottom_limit.get():
@@ -235,21 +240,31 @@ class Elevator(Subsystem):
         return super().simulationPeriodic()
 
     def get_position(self) -> feet:
-        return (
-            pi
-            * self.encoder.getPosition()
-            * (2 * self.rope_diameter + self.spool_diameter)
+        # this is based loosely on integration with washers for volume
+        outer_diameter = (
+            self.spool_diameter + 2 * self.rope_diameter * self.encoder.getPosition()
         )
+        return self.bottom_height + (
+            (
+                (outer_diameter * outer_diameter)
+                - (self.spool_diameter * self.spool_diameter)
+            )
+            * self.spool_depth
+            * pi
+        ) / (self.rope_area_constant * self.rope_diameter)
 
     def get_velocity(self) -> float:
-        return (
-            pi
-            * self.encoder.getVelocity()
-            * (
-                2 * self.rope_diameter * self.encoder.getPosition()
-                + self.spool_diameter
-            )
+        outer_diameter = (
+            self.spool_diameter + 2 * self.rope_diameter * self.encoder.getVelocity()
         )
+        return self.bottom_height + (
+            (
+                (outer_diameter * outer_diameter)
+                - (self.spool_diameter * self.spool_diameter)
+            )
+            * self.spool_depth
+            * pi
+        ) / (self.rope_area_constant * self.rope_diameter)
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
