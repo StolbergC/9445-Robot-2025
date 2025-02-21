@@ -199,6 +199,8 @@ class RobotContainer:
             InstantCommand(decrease_elevator_setpoint)
         )
 
+        self.operator_controller.button(button_rb).onTrue(self.elevator.reset())
+
         # self.wrist.setDefaultCommand(
         #     RunCommand(
         #         lambda: self.wrist.motor.set(self.operator_controller.getTwist()),

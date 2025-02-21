@@ -47,8 +47,8 @@ class Elevator(Subsystem):
         super().__init__()
 
         self.spool_diameter = 1.12  # inches
-        self.spool_depth = 0.5  # inches
-        self.rope_diameter = 0.25  # inches
+        self.spool_depth = 0.57  # inches
+        self.rope_diameter = 0.12  # inches
 
         self.rope_area_constant = (pi * ((r := self.rope_diameter / 2) * r)) / (
             self.rope_diameter * self.rope_diameter
@@ -67,27 +67,8 @@ class Elevator(Subsystem):
 
         self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
-            15  # TODO: Find what the conversion factor needs to be
-        ).velocityConversionFactor(15 / 60)
-
-        # TODO: check that this is the correct disabling and then set it for the other neo motors
-        self.motor_config.signals.absoluteEncoderPositionAlwaysOn(
-            False
-        ).absoluteEncoderVelocityAlwaysOn(False).analogPositionAlwaysOn(
-            False
-        ).IAccumulationAlwaysOn(
-            False
-        ).analogVoltageAlwaysOn(
-            False
-        ).externalOrAltEncoderPositionAlwaysOn(
-            False
-        ).absoluteEncoderPositionAlwaysOn(
-            False
-        ).externalOrAltEncoderPositionAlwaysOn(
-            False
-        ).externalOrAltEncoderVelocityAlwaysOn(
-            False
-        )
+            1 / 15  # TODO: Find what the conversion factor needs to be
+        ).velocityConversionFactor(1 / (15 * 60))
 
         self.motor.configure(
             self.motor_config,
@@ -175,9 +156,9 @@ class Elevator(Subsystem):
         self.nettable.putBoolean("Feedforward/tuning", self.tuning_ff)
 
         # TODO: Maybe?
-        self.bottom_height: feet = 9
+        self.bottom_height: float = 9
         # TODO: Maybe? The 6 inches are the overlap desired
-        self.top_height: feet = self.bottom_height + 2 * inches(29) - 2 * inches(6)
+        self.top_height: float = self.bottom_height + 19.5 + 22.5
 
         if not RobotBase.isReal():
             self.gearbox = DCMotor.NEO(1)
@@ -207,7 +188,7 @@ class Elevator(Subsystem):
 
     def periodic(self) -> None:
         if not self.bottom_limit.get():
-            self.encoder.setPosition(0)
+            self.encoder.setPosition(self.bottom_height)
             self.has_homed = True
 
         self.nettable.putNumber("State/position (in)", self.get_position())
@@ -378,4 +359,4 @@ class Elevator(Subsystem):
         self.motor.set(power)
 
     def reset(self) -> InstantCommand:
-        return InstantCommand(lambda: self.encoder.setPosition(0))
+        return InstantCommand(lambda: self.encoder.setPosition(self.bottom_height))
