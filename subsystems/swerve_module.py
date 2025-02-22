@@ -67,7 +67,7 @@ class SwerveModule(Subsystem):
         self.drive_motor = SparkMax(drive_id, SparkLowLevel.MotorType.kBrushless)
         self.drive_encoder = self.drive_motor.getEncoder()
         self.drive_pid = ProfiledPIDController(
-            0.2, 0, 0, TrapezoidProfile.Constraints(max_velocity, max_accel)
+            0.35, 0, 0.0075, TrapezoidProfile.Constraints(max_velocity, max_accel * 2)
         )
 
         self.drive_motor_config = SparkMaxConfig()
@@ -91,7 +91,7 @@ class SwerveModule(Subsystem):
         the range of error for this controller is [-0.25, 0.25] 
         """
         self.turn_pid = ProfiledPIDController(
-            0.01, 0, 0, TrapezoidProfile.Constraints(360, 3600)
+            0.01, 0, 0, TrapezoidProfile.Constraints(720, 7200)
         )
         self.turn_motor_config = SparkMaxConfig()
         self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(40)

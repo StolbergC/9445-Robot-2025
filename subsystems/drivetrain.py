@@ -54,7 +54,7 @@ class Drivetrain(Subsystem):
     def __init__(
         self,
         get_alliance: typing.Callable[[], DriverStation.Alliance],
-        constant_of_acceleration: float = 10,
+        constant_of_acceleration: float = 15,
     ):
         self.get_alliance = get_alliance
         self.alliance = get_alliance()
@@ -86,9 +86,7 @@ class Drivetrain(Subsystem):
             0.8,
             0,
             0.2,
-            TrapezoidProfile.Constraints(
-                self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
-            ),
+            TrapezoidProfile.Constraints(self.max_velocity_mps, max_accel),
         )
 
         self.y_pid = ProfiledPIDController(
@@ -386,7 +384,7 @@ class Drivetrain(Subsystem):
     def reset_gyro(
         self, new_angle: Rotation2d = Rotation2d.fromDegrees(0)
     ) -> InstantCommand:
-        return InstantCommand(lambda: self.gyro.reset(new_angle), self)
+        return InstantCommand(lambda: self.gyro.reset(new_angle))
 
     def reset_pose(self, pose: Pose2d) -> SequentialCommandGroup:
         return InstantCommand(

@@ -2,6 +2,7 @@ from commands2 import Command, DeferredCommand, RunCommand, WaitCommand, Instant
 import commands2
 from commands2.button import Trigger, CommandJoystick
 
+from cscore import CameraServer
 from ntcore import NetworkTableInstance
 from wpilib import DriverStation, RobotBase
 from wpilib import SmartDashboard, SendableChooser
@@ -26,6 +27,8 @@ from commands.intake import intake_algae_low, intake_algae_high, intake_coral
 
 from auto import blue_left_four_coral, positions, blue_test
 
+import wpilib.cameraserver
+
 button_a = 1
 button_b = 2
 button_x = 3
@@ -37,22 +40,24 @@ button_right = 8
 button_lpush = 9
 button_rpush = 10
 
+trigger_lt = 2
+
 
 class RobotContainer:
     def __init__(self) -> None:
         self.nettable = NetworkTableInstance.getDefault().getTable("0000DriverInfo")
         self.alliance = DriverStation.Alliance.kBlue
         self.drivetrain = Drivetrain(self.get_alliance)
-        self.wrist = Wrist()
+        # self.wrist = Wrist()
         # self.climber = Climber()
-        self.claw = Claw(
-            self.wrist.get_angle, Rotation2d.fromDegrees(60)
-        )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
+        # self.claw = Claw(
+        #     self.wrist.get_angle, Rotation2d.fromDegrees(60)
+        # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
         # self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
-        self.elevator = Elevator(lambda: Rotation2d(0))
-        self.wrist.get_claw_distance = self.claw.get_dist
+        # self.elevator = Elevator(lambda: Rotation2d(0))
+        # self.wrist.get_claw_distance = self.claw.get_dist
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
-        self.fingers = Fingers()
+        # self.fingers = Fingers()
 
         self.auto_chooser = SendableChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
@@ -62,6 +67,8 @@ class RobotContainer:
         self.auto_chooser.addOption("Blue -- Test", blue_test.get_auto(self.drivetrain))
 
         self.level = 1
+
+        wpilib.cameraserver.CameraServer.launch()
 
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
@@ -97,37 +104,37 @@ class RobotContainer:
             self.drivetrain.set_drive_idle(True)
         ).onFalse(self.drivetrain.set_turn_idle(True))
 
-    def get_reef_score_command(self) -> DeferredCommand:
-        return DeferredCommand(
-            lambda: (
-                score_l1_on_true(self.elevator, self.wrist)
-                if self.level == 1
-                else (
-                    score_l2_on_true(self.elevator, self.wrist)
-                    if self.level == 2
-                    else score_l3_on_true(self.elevator, self.wrist)
-                )
-            ),
-            self.elevator,
-            self.wrist,
-            self.fingers,
-            self.claw,
-        )
+    # def get_reef_score_command(self) -> DeferredCommand:
+    #     return DeferredCommand(
+    #         lambda: (
+    #             score_l1_on_true(self.elevator, self.wrist)
+    #             if self.level == 1
+    #             else (
+    #                 score_l2_on_true(self.elevator, self.wrist)
+    #                 if self.level == 2
+    #                 else score_l3_on_true(self.elevator, self.wrist)
+    #             )
+    #         ),
+    #         self.elevator,
+    #         self.wrist,
+    #         self.fingers,
+    #         self.claw,
+    #     )
 
-    def get_algae_intake_command(self) -> DeferredCommand:
-        return DeferredCommand(
-            lambda: (
-                intake_algae_low(self.elevator, self.wrist, self.claw, self.fingers)
-                if self.level == 1 or self.level == 2
-                else intake_algae_high(
-                    self.elevator, self.wrist, self.claw, self.fingers
-                )
-            ),
-            self.elevator,
-            self.wrist,
-            self.fingers,
-            self.claw,
-        )
+    # def get_algae_intake_command(self) -> DeferredCommand:
+    #     return DeferredCommand(
+    #         lambda: (
+    #             intake_algae_low(self.elevator, self.wrist, self.claw, self.fingers)
+    #             if self.level == 1 or self.level == 2
+    #             else intake_algae_high(
+    #                 self.elevator, self.wrist, self.claw, self.fingers
+    #             )
+    #         ),
+    #         self.elevator,
+    #         self.wrist,
+    #         self.fingers,
+    #         self.claw,
+    #     )
 
     def set_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(
@@ -140,14 +147,16 @@ class RobotContainer:
             )
         )
 
-        self.elevator.setDefaultCommand(
-            RunCommand(
-                lambda: self.elevator.manual_control(
-                    applyDeadband(self.operator_controller.getRawAxis(5), 0.05)
-                ),
-                self.elevator,
-            )
-        )
+        self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
+
+        # self.elevator.setDefaultCommand(
+        #     RunCommand(
+        #         lambda: self.elevator.manual_control(
+        #             applyDeadband(self.operator_controller.getRawAxis(5), 0.05)
+        #         ),
+        #         self.elevator,
+        #     )
+        # )
 
         # self.elevator.setDefaultCommand(
         #     DeferredCommand(
@@ -164,24 +173,24 @@ class RobotContainer:
         #     )
         # )
 
-        Trigger(lambda: self.operator_controller.getThrottle() > 0.5).onTrue(
-            self.get_reef_score_command()
-        ).onFalse(score(self.claw, self.fingers))
+        # Trigger(lambda: self.operator_controller.getThrottle() > 0.5).onTrue(
+        #     self.get_reef_score_command()
+        # ).onFalse(score(self.claw, self.fingers))
 
         # b seems like the button Shane wants, others TBD
-        self.driver_controller.button(button_b).whileTrue(
-            self.drivetrain.drive_near_coral_station().alongWith()
-        )
+        # self.driver_controller.button(button_b).whileTrue(
+        #     self.drivetrain.drive_near_coral_station().alongWith()
+        # )
 
         self.driver_controller.button(button_y).whileTrue(
             self.drivetrain.drive_closest_reef().alongWith(
-                self.get_reef_score_command()
+                # self.get_reef_score_command()
             )
         )
 
         self.driver_controller.button(button_a).whileTrue(
             self.drivetrain.drive_closest_algae().alongWith(
-                self.get_algae_intake_command()
+                # self.get_algae_intake_command()
             )
         )
 
@@ -199,7 +208,7 @@ class RobotContainer:
             InstantCommand(decrease_elevator_setpoint)
         )
 
-        self.operator_controller.button(button_rb).onTrue(self.elevator.reset())
+        # self.operator_controller.button(button_rb).onTrue(self.elevator.reset())
 
         # self.wrist.setDefaultCommand(
         #     RunCommand(
@@ -222,18 +231,14 @@ class RobotContainer:
         # self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
         # self.operator_controller.button(button_right).whileTrue(self.fingers.score())
 
-        self.driver_controller.button(button_x).onTrue(
-            self.drivetrain.drive_position(positions.blue_coral_intake_right_left)
-        )
-
         # Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
         # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
         # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
         # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
 
-        self.driver_controller.button(button_lpush).or_(
-            self.driver_controller.button(button_rpush)
-        ).whileTrue(self.drivetrain.defense_mode())
+        Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).whileTrue(
+            self.drivetrain.defense_mode()
+        )
 
         # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
