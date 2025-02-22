@@ -220,17 +220,17 @@ class Elevator(Subsystem):
 
     def get_position(self) -> feet:
         # this is based loosely on integration with washers for volume
-        outer_diameter = (
+        outer_radius = (
             self.spool_diameter + 2 * self.rope_diameter * self.encoder.getPosition()
-        )
+        ) / 2
         return self.bottom_height + (
             (
-                (outer_diameter * outer_diameter)
-                - (self.spool_diameter * self.spool_diameter)
+                (outer_radius * outer_radius)
+                - ((spool_radius := self.spool_diameter / 2) * spool_radius)
             )
             * self.spool_depth
             * pi
-        ) / (pi * (self.rope_diameter * self.rope_diameter))
+        ) / (pi * (spool_radius * spool_radius))
 
     def get_velocity(self) -> float:
         outer_diameter = (
