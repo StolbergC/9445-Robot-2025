@@ -67,7 +67,7 @@ class Elevator(Subsystem):
 
         self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
-            1 / 15  # TODO: Find what the conversion factor needs to be
+            1 / (15 * 4096)  # TODO: Find what the conversion factor needs to be
         ).velocityConversionFactor(1 / (15 * 60))
 
         self.motor.configure(
@@ -155,9 +155,7 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
         self.nettable.putBoolean("Feedforward/tuning", self.tuning_ff)
 
-        # TODO: Maybe?
         self.bottom_height: float = 9
-        # TODO: Maybe? The 6 inches are the overlap desired
         self.top_height: float = self.bottom_height + 19.5 + 22.5
 
         if not RobotBase.isReal():
@@ -232,7 +230,7 @@ class Elevator(Subsystem):
             )
             * self.spool_depth
             * pi
-        ) / (self.rope_area_constant * self.rope_diameter)
+        ) / (self.rope_area_constant * pi * (self.rope_diameter * self.rope_diameter))
 
     def get_velocity(self) -> float:
         outer_diameter = (
