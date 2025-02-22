@@ -141,6 +141,9 @@ class SwerveModule(Subsystem):
         self.set_drive_idle(False)
         self.set_turn_idle(True)
 
+        self.mod_counter = 0
+        self.mod_value = 50
+
     def periodic(self) -> None:
 
         self.nettable.putNumber("State/velocity (mps)", self.get_vel())
@@ -158,6 +161,13 @@ class SwerveModule(Subsystem):
         self.nettable.putNumber(
             "State/neo rotations", (self.turn_encoder.getPosition() % 1) - 1
         )
+
+        self.mod_counter = (self.mod_counter + 1) % self.mod_value
+        if self.mod_counter == 0:
+            if (v := self.cancoder.get_absolute_position()).is_all_good():
+                self.turn_encoder.setPosition(v.value_as_double)
+            else:
+                self.mod_counter -= 1
 
     def get_vel(self) -> float:
         """

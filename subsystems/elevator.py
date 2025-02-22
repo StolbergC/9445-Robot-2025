@@ -67,7 +67,7 @@ class Elevator(Subsystem):
 
         self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
         self.motor_config.encoder.positionConversionFactor(
-            1 / (15 * 4096)  # TODO: Find what the conversion factor needs to be
+            1 / 15  # TODO: Find what the conversion factor needs to be
         ).velocityConversionFactor(1 / (15 * 60))
 
         self.motor.configure(
@@ -230,7 +230,7 @@ class Elevator(Subsystem):
             )
             * self.spool_depth
             * pi
-        ) / (self.rope_area_constant * pi * (self.rope_diameter * self.rope_diameter))
+        ) / (pi * (self.rope_diameter * self.rope_diameter))
 
     def get_velocity(self) -> float:
         outer_diameter = (
