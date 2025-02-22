@@ -686,33 +686,3 @@ class Drivetrain(Subsystem):
         self, max_speed_mps: float, max_angular_speed: Rotation2d
     ) -> InstantCommand:
         return InstantCommand(lambda: self.set_speed(max_speed_mps, max_angular_speed))
-
-    def defense_mode(self) -> StartEndCommand:
-        start_speed = self.max_velocity_mps
-        # assumes the same for x and y pids.
-        start_constraints = self.x_pid.getConstraints()
-
-        def set_high():
-            self.max_velocity_mps = 1000
-            self.x_pid.setConstraints(
-                TrapezoidProfile.Constraints(
-                    self.max_velocity_mps,
-                    self.max_velocity_mps * self.constant_of_acceleration,
-                )
-            )
-            self.y_pid.setConstraints(
-                TrapezoidProfile.Constraints(
-                    self.max_velocity_mps,
-                    self.max_velocity_mps * self.constant_of_acceleration,
-                )
-            )
-
-        def set_low():
-            self.max_velocity_mps = start_speed
-            self.x_pid.setConstraints(start_constraints)
-            self.y_pid.setConstraints(start_constraints)
-
-        return StartEndCommand(
-            lambda: set_high(),
-            lambda: set_low(),
-        )

@@ -67,6 +67,7 @@ class RobotContainer:
         self.auto_chooser.addOption("Blue -- Test", blue_test.get_auto(self.drivetrain))
 
         self.level = 1
+        self.field_oriented = True
 
         wpilib.cameraserver.CameraServer.launch()
 
@@ -143,11 +144,18 @@ class RobotContainer:
                 lambda: -self.driver_controller.getY(),
                 lambda: -self.driver_controller.getTwist(),
                 # this assumes that -1 is resting and 1 is full
-                lambda: self.driver_controller.getThrottle() < 0.5,
+                lambda: self.field_oriented,
             )
         )
 
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
+
+        def toggle_field_oriented():
+            self.field_oriented = not self.field_oriented
+
+        self.driver_controller.button(button_y).toggleOnTrue(
+            InstantCommand(toggle_field_oriented)
+        )
 
         # self.elevator.setDefaultCommand(
         #     RunCommand(
@@ -177,18 +185,17 @@ class RobotContainer:
         #     self.get_reef_score_command()
         # ).onFalse(score(self.claw, self.fingers))
 
-        # b seems like the button Shane wants, others TBD
-        # self.driver_controller.button(button_b).whileTrue(
-        #     self.drivetrain.drive_near_coral_station().alongWith()
-        # )
+        self.driver_controller.button(button_a).whileTrue(
+            self.drivetrain.drive_near_coral_station().alongWith()
+        )
 
-        self.driver_controller.button(button_y).whileTrue(
+        self.driver_controller.button(button_lb).whileTrue(
             self.drivetrain.drive_closest_reef().alongWith(
                 # self.get_reef_score_command()
             )
         )
 
-        self.driver_controller.button(button_a).whileTrue(
+        self.driver_controller.button(button_rb).whileTrue(
             self.drivetrain.drive_closest_algae().alongWith(
                 # self.get_algae_intake_command()
             )
@@ -235,10 +242,6 @@ class RobotContainer:
         # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
         # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
         # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
-
-        Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).whileTrue(
-            self.drivetrain.defense_mode()
-        )
 
         # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
