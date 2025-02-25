@@ -39,6 +39,8 @@ def get_auto(
             .alongWith(
                 wrist.angle_intake().andThen(claw.home_outside()).andThen(claw.coral())
             )
+            .andThen(wrist.angle_zero())
+            .andThen(elevator.home())
         )
         # score preload on l1
         .andThen(

@@ -1,15 +1,18 @@
-from commands2 import ParallelCommandGroup, SequentialCommandGroup
+from commands2 import (
+    Command,
+    ParallelCommandGroup,
+    SequentialCommandGroup,
+    WrapperCommand,
+)
 
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
 from subsystems.claw import Claw
 from subsystems.fingers import Fingers
 
-from commands.score import score_alage, score_coral
-
 
 def _upper_intake_coral(claw: Claw, fingers: Fingers) -> ParallelCommandGroup:
-    return claw.coral().alongWith(fingers.intake())
+    return claw.cage().alongWith(fingers.intake())
 
 
 def intake_coral(
@@ -18,21 +21,20 @@ def intake_coral(
     claw: Claw,
     fingers: Fingers,
     intake_timeout: float = 0,
-) -> SequentialCommandGroup:
+) -> SequentialCommandGroup | WrapperCommand:
     if intake_timeout > 0:
         return (
             wrist.angle_zero()
-            .andThen(elevator.command_intake())
-            .andThen(
-                (
-                    wrist.angle_intake().alongWith(_upper_intake_coral(claw, fingers))
-                ).withTimeout(intake_timeout)
-            )
+            .andThen(elevator.command_intake().alongWith(claw.cage()))
+            .andThen(wrist.angle_intake())
+            .andThen(fingers.intake().withTimeout(intake_timeout))
         )
     return (
         wrist.angle_zero()
-        .andThen(elevator.command_intake())
-        .andThen(wrist.angle_intake().alongWith(_upper_intake_coral(claw, fingers)))
+        .andThen(elevator.command_intake().alongWith(claw.cage()))
+        .andThen(wrist.angle_intake())
+        .andThen(fingers.intake())
+        .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
     )
 
 
@@ -45,9 +47,9 @@ def intake_algae(
     intake_timeout: float = 0,
 ) -> SequentialCommandGroup:
     if level == 2:
-        return intake_algae_low(elevator, wrist, claw, fingers)
+        return intake_algae_low(elevator, wrist, claw, fingers, intake_timeout)
     elif level == 3:
-        return intake_algae_high(elevator, wrist, claw, fingers)
+        return intake_algae_high(elevator, wrist, claw, fingers, intake_timeout)
     else:
         raise ValueError("The only levels for algae are 2 and 3")
 

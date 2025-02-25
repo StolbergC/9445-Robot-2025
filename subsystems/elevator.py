@@ -301,10 +301,13 @@ class Elevator(Subsystem):
             self.has_homed = True
 
         return (
-            RunCommand(lambda: self.motor.set(-0.25), self)
-            .onlyWhile(
-                lambda: self.bottom_limit.get()  # maybe will be not limit.get() based on wiring
+            RunCommand(
+                lambda: self.motor.set(
+                    -0.25 if abs(self.get_wrist_angle().degrees()) < 10 else 0
+                ),
+                self,
             )
+            .onlyWhile(lambda: not self.bottom_limit.get())
             .andThen(
                 RunCommand(lambda: self.motor.set(0.1)).until(
                     lambda: self.motor.getOutputCurrent() > 10
