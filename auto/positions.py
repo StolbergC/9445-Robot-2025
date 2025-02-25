@@ -58,36 +58,62 @@ blue_reef_a = Pose2d.fromFeet(
     Rotation2d.fromDegrees(0),
 )
 
+blue_reef_a_far = Pose2d.fromFeet(
+    blue_reef_a.x_feet - ROBOT_WIDTH_FT, blue_reef_a.x_feet, blue_reef_a.rotation()
+)
+
 blue_reef_b = Pose2d.fromFeet(
     144 / 12 - ROBOT_WIDTH_FT / 2,
     FIELD_WIDTH_FT / 2 - REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d.fromDegrees(0),
 )
 
-blue_reef_h = Pose2d.fromFeet(
-    (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT / 2,
-    FIELD_WIDTH_FT / 2 + REEF_CENTER_DISTANCE_FT / 2,
-    Rotation2d(180),
+blue_reef_b_far = Pose2d.fromFeet(
+    blue_reef_b.x_feet - ROBOT_WIDTH_FT, blue_reef_b.x_feet, blue_reef_b.rotation()
 )
 
-blue_reef_g = Pose2d.fromFeet(
-    (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT / 2,
-    FIELD_WIDTH_FT / 2 - REEF_CENTER_DISTANCE_FT / 2,
-    Rotation2d(180),
-)
+blue_reef_h = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(180))
+blue_reef_g = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(180))
+
+blue_reef_h_far = rotate_about_reef(blue_reef_a_far, Rotation2d.fromDegrees(180))
+blue_reef_g_far = rotate_about_reef(blue_reef_b_far, Rotation2d.fromDegrees(180))
+
+# blue_reef_h = Pose2d.fromFeet(
+#     (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT / 2,
+#     FIELD_WIDTH_FT / 2 + REEF_CENTER_DISTANCE_FT / 2,
+#     Rotation2d(180),
+# )
+
+# blue_reef_g = Pose2d.fromFeet(
+#     (144 + 93.5 - 28) / 12 + ROBOT_WIDTH_FT / 2,
+#     FIELD_WIDTH_FT / 2 - REEF_CENTER_DISTANCE_FT / 2,
+#     Rotation2d(180),
+# )
 
 
 blue_reef_k = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-60))
 blue_reef_l = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-60))
 
+blue_reef_k_far = rotate_about_reef(blue_reef_a_far, Rotation2d.fromDegrees(-60))
+blue_reef_l_far = rotate_about_reef(blue_reef_b_far, Rotation2d.fromDegrees(-60))
+
 blue_reef_i = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(-120))
 blue_reef_j = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(-120))
+
+blue_reef_i_far = rotate_about_reef(blue_reef_a_far, Rotation2d.fromDegrees(-120))
+blue_reef_j_far = rotate_about_reef(blue_reef_b_far, Rotation2d.fromDegrees(-120))
 
 blue_reef_c = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(60))
 blue_reef_d = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(60))
 
+blue_reef_c_far = rotate_about_reef(blue_reef_a_far, Rotation2d.fromDegrees(60))
+blue_reef_d_far = rotate_about_reef(blue_reef_b_far, Rotation2d.fromDegrees(60))
+
 blue_reef_e = rotate_about_reef(blue_reef_a, Rotation2d.fromDegrees(120))
 blue_reef_f = rotate_about_reef(blue_reef_b, Rotation2d.fromDegrees(120))
+
+blue_reef_e_far = rotate_about_reef(blue_reef_a_far, Rotation2d.fromDegrees(120))
+blue_reef_f_far = rotate_about_reef(blue_reef_b_far, Rotation2d.fromDegrees(120))
 
 blue_algae_ab = Pose2d.fromFeet(
     144 / 12 - ROBOT_WIDTH_FT / 2,
@@ -95,11 +121,23 @@ blue_algae_ab = Pose2d.fromFeet(
     Rotation2d.fromDegrees(0),
 )
 
+blue_algae_ab_far = Pose2d.fromFeet(
+    blue_algae_ab.x_feet - ROBOT_WIDTH_FT,
+    blue_algae_ab.y_feet,
+    blue_algae_ab.rotation(),
+)
+
 blue_algae_kl = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(-60))
 blue_algae_ij = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(-120))
 blue_algae_cd = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(60))
 blue_algae_ef = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(120))
 blue_algae_gh = rotate_about_reef(blue_algae_ab, Rotation2d.fromDegrees(180))
+
+blue_algae_kl_far = rotate_about_reef(blue_algae_ab_far, Rotation2d.fromDegrees(-60))
+blue_algae_ij_far = rotate_about_reef(blue_algae_ab_far, Rotation2d.fromDegrees(-120))
+blue_algae_cd_far = rotate_about_reef(blue_algae_ab_far, Rotation2d.fromDegrees(60))
+blue_algae_ef_far = rotate_about_reef(blue_algae_ab_far, Rotation2d.fromDegrees(120))
+blue_algae_gh_far = rotate_about_reef(blue_algae_ab_far, Rotation2d.fromDegrees(180))
 
 blue_coral_intake_left_left = Pose2d.fromFeet(
     -ROBOT_WIDTH_FT / 2
@@ -162,20 +200,38 @@ red_start_line_center = rotate_about_center(blue_start_line_center)
 red_reef_a = rotate_about_center(blue_reef_a)
 red_reef_b = rotate_about_center(blue_reef_b)
 
+red_reef_a_far = rotate_about_center(blue_reef_a_far)
+red_reef_b_far = rotate_about_center(blue_reef_b_far)
+
 red_reef_h = rotate_about_center(blue_reef_h)
 red_reef_g = rotate_about_center(blue_reef_g)
+
+red_reef_h_far = rotate_about_center(blue_reef_h_far)
+red_reef_g_far = rotate_about_center(blue_reef_g_far)
 
 red_reef_l = rotate_about_center(blue_reef_l)
 red_reef_k = rotate_about_center(blue_reef_k)
 
+red_reef_l_far = rotate_about_center(blue_reef_l_far)
+red_reef_k_far = rotate_about_center(blue_reef_k_far)
+
 red_reef_j = rotate_about_center(blue_reef_j)
 red_reef_i = rotate_about_center(blue_reef_i)
+
+red_reef_j_far = rotate_about_center(blue_reef_j_far)
+red_reef_i_far = rotate_about_center(blue_reef_i_far)
 
 red_reef_c = rotate_about_center(blue_reef_c)
 red_reef_d = rotate_about_center(blue_reef_d)
 
+red_reef_c_far = rotate_about_center(blue_reef_c_far)
+red_reef_d_far = rotate_about_center(blue_reef_d_far)
+
 red_reef_e = rotate_about_center(blue_reef_e)
 red_reef_f = rotate_about_center(blue_reef_f)
+
+red_reef_e_far = rotate_about_center(blue_reef_e_far)
+red_reef_f_far = rotate_about_center(blue_reef_f_far)
 
 red_coral_intake_left_left = rotate_about_center(blue_coral_intake_left_left)
 
@@ -197,3 +253,10 @@ red_algae_ij = rotate_about_center(blue_algae_ij)
 red_algae_cd = rotate_about_center(blue_algae_cd)
 red_algae_ef = rotate_about_center(blue_algae_ef)
 red_algae_gh = rotate_about_center(blue_algae_gh)
+
+red_algae_ab_far = rotate_about_center(blue_algae_ab_far)
+red_algae_kl_far = rotate_about_center(blue_algae_kl_far)
+red_algae_ij_far = rotate_about_center(blue_algae_ij_far)
+red_algae_cd_far = rotate_about_center(blue_algae_cd_far)
+red_algae_ef_far = rotate_about_center(blue_algae_ef_far)
+red_algae_gh_far = rotate_about_center(blue_algae_gh_far)

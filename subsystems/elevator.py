@@ -225,8 +225,7 @@ class Elevator(Subsystem):
             + 2
             * self.rope_diameter
             * 0.85
-            * self.encoder.getPosition()
-            * (self.spool_depth / self.rope_diameter)
+            * (self.encoder.getPosition() / (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
             (
@@ -275,7 +274,7 @@ class Elevator(Subsystem):
                 self.pid.getGoal().velocity,
             )
             volts = self.feedforward.calculate(
-                self.get_velocity(), self.pid.getGoal().velocity
+                self.get_velocity(), self.pid.getSetpoint().velocity
             )
 
         self.nettable.putNumber("State/Out Power (V)", volts)

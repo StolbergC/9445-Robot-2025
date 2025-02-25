@@ -2,6 +2,7 @@ from math import pi
 from typing import Callable
 from time import time
 
+import commands2
 from ntcore import Event, EventFlags, NetworkTable, NetworkTableInstance, ValueEventData
 from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
@@ -10,7 +11,13 @@ from wpimath.units import feet
 
 from wpilib import DigitalInput
 
-from commands2 import InstantCommand, RunCommand, Subsystem, WrapperCommand
+from commands2 import (
+    DeferredCommand,
+    InstantCommand,
+    RunCommand,
+    Subsystem,
+    WrapperCommand,
+)
 from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
 
 
@@ -126,7 +133,9 @@ class Claw(Subsystem):
         return -2 * self.encoder.getPosition()
 
     def set_motor(self, power: float) -> float:
-        power = 0.4 if power > 0.4 else -0.4 if power < -0.4 else power
+        power = (
+            0.4 if power > 0.4 else -0.4 if power < -0.4 else power
+        )  # TODO: Push this if possible b/c gears are now aluminum
         if (
             (power > 0 and self.at_outside())
             or (power < 0 and self.at_center())
@@ -149,8 +158,17 @@ class Claw(Subsystem):
     def set_position(self, distance: float) -> WrapperCommand:
         """the distance is in inches"""
         return (
-            RunCommand(
-                lambda: self.set_motor(-self.pid.calculate(self.get_dist(), distance))
+            DeferredCommand(
+                lambda: (
+                    self.home_outside() if not self.has_homed else commands2.cmd.none()
+                )
+            )
+            .andThen(
+                RunCommand(
+                    lambda: self.set_motor(
+                        -self.pid.calculate(self.get_dist(), distance)
+                    )
+                )
             )
             .onlyWhile(lambda: abs(self.get_dist() - distance) > 0.5)
             .withName(f"Go to {distance} ft")
@@ -170,3 +188,17 @@ class Claw(Subsystem):
 
     def reset(self) -> InstantCommand:
         return InstantCommand(self.reset_position)
+
+    def home_outside(self) -> WrapperCommand:
+        return (
+            RunCommand(lambda: self.set_motor(0.25))
+            .until(lambda: self.has_homed)
+            .withName("Homing Outside")
+        )
+
+    def home_inside(self) -> WrapperCommand:
+        return (
+            RunCommand(lambda: self.set_motor(-0.25))
+            .until(lambda: self.has_homed)
+            .withName("Homing Outside")
+        )

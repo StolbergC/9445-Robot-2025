@@ -216,7 +216,14 @@ class SwerveModule(Subsystem):
 
     def set_max_vel(self, max_vel: float) -> None:
         self.drive_pid.setConstraints(
-            TrapezoidProfile.Constraints(max_vel, max_vel * 5)
+            TrapezoidProfile.Constraints(
+                max_vel,
+                max_vel
+                * (
+                    (c := self.drive_pid.getConstraints()).maxVelocity
+                    / c.maxAcceleration
+                ),
+            )
         )
 
     def set_drive_idle(self, coast: bool) -> None:

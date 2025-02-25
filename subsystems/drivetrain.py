@@ -132,13 +132,15 @@ class Drivetrain(Subsystem):
 
                     self.x_pid.setConstraints(
                         TrapezoidProfile.Constraints(
-                            self.max_velocity_mps, self.max_velocity_mps * 5
+                            self.max_velocity_mps,
+                            self.max_velocity_mps * self.constant_of_acceleration,
                         )
                     )
 
                     self.y_pid.setConstraints(
                         TrapezoidProfile.Constraints(
-                            self.max_velocity_mps, self.max_velocity_mps * 5
+                            self.max_velocity_mps,
+                            self.max_velocity_mps * self.constant_of_acceleration,
                         )
                     )
 
@@ -151,7 +153,8 @@ class Drivetrain(Subsystem):
                     self.t_pid.setConstraints(
                         TrapezoidProfileRadians.Constraints(
                             self.max_angular_velocity.degrees(),
-                            self.max_angular_velocity.degrees() * 5,
+                            self.max_angular_velocity.degrees()
+                            * self.constant_of_acceleration,
                         )
                     )
 

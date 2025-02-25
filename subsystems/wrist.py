@@ -96,8 +96,10 @@ class Wrist(Subsystem):
         self.motor.set(speed)
 
     def run_angle(self, angle: Rotation2d) -> WrapperCommand:
-        return RunCommand(lambda: self.set_state(angle), self).withName(
-            f"Set Angle {angle.degrees()} (deg)"
+        return (
+            RunCommand(lambda: self.set_state(angle), self)
+            .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 5)
+            .withName(f"Set Angle {angle.degrees()} (deg)")
         )
 
     def angle_intake(self) -> WrapperCommand:

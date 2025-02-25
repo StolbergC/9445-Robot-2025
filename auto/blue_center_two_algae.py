@@ -1,31 +1,55 @@
 from commands2 import Command, InstantCommand, WaitCommand, WrapperCommand
 import commands2
 from wpilib import RobotBase
+
 from subsystems.drivetrain import Drivetrain
+from subsystems.claw import Claw
+from subsystems.elevator import Elevator
+from subsystems.wrist import Wrist
+from subsystems.fingers import Fingers
 
 from auto import positions
+
+from commands import score_l1, score, intake
 
 from wpimath.geometry import Rotation2d
 from wpimath.units import feetToMeters
 
 
-def get_auto(drivetrain: Drivetrain) -> WrapperCommand:
+def get_auto(
+    drivetrain: Drivetrain,
+    elevator: Elevator,
+    wrist: Wrist,
+    claw: Claw,
+    fingers: Fingers,
+) -> WrapperCommand:
     start_max_vel_mps = drivetrain.max_velocity_mps
     start_max_angular_vel = drivetrain.max_angular_velocity
     return (
+        # setup
         (
-            drivetrain.reset_pose(positions.blue_reef_center).alongWith(
+            drivetrain.reset_pose(positions.blue_reef_center)
+            .alongWith(
                 drivetrain.set_speed_command(
                     feetToMeters(25), Rotation2d.fromDegrees(480)
                 )
                 if RobotBase.isReal()
                 else commands2.cmd.none()
             )
+            .alongWith(wrist.angle_intake().andThen(claw.coral()))
         )
-        .andThen(WaitCommand(0.1))
+        .andThen(WaitCommand(0.1))  # maybe unneeded
         .andThen(drivetrain.drive_position(positions.blue_reef_h))
-        .andThen(WaitCommand(0.25))  # score
-        .andThen(drivetrain.drive_position(positions.blue_algae_gh))
+        # score preload on l1
+        .andThen(score_l1.score_l1_on_true(elevator, wrist))
+        .andThen(score.score_alage(fingers))
+        # grab gh algae
+        .andThen(drivetrain.drive_position(positions.blue_algae_gh_far))
+        .andThen(
+            intake.intake_algae_low(elevator, wrist, claw, fingers).alongWith(
+                drivetrain.drive_position(positions.blue_algae_gh)
+            )
+        )
         .andThen(WaitCommand(0.25))  # grab algae
         .andThen(drivetrain.drive_position(positions.blue_processor))
         .andThen(WaitCommand(0.25))  # score

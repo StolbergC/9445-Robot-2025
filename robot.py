@@ -14,7 +14,7 @@ class Robot(TimedRobot):
     # Initialize Robot
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
-        # Watchdog(0.05, lambda: None).disable()  # .suppressTimeoutMessage(True)
+        Watchdog(10, lambda: None).disable()
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()

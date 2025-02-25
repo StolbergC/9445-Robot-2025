@@ -1,5 +1,6 @@
 from rev import SparkMax, SparkMaxConfig, SparkBase
-from commands2 import RunCommand, Subsystem
+from commands2 import RunCommand, Subsystem, WrapperCommand
+from wpimath.units import amperes
 
 
 class Fingers(Subsystem):
@@ -26,11 +27,22 @@ class Fingers(Subsystem):
         self.left_motor.set(power)
         self.right_motor.set(-power)
 
+    def get_current(self) -> amperes:
+        return max(
+            self.left_motor.getOutputCurrent(), self.right_motor.getOutputCurrent()
+        )
+
     def stop(self) -> RunCommand:
         return RunCommand(lambda: self.set_motors(0), self)
 
-    def intake(self) -> RunCommand:
-        return RunCommand(lambda: self.set_motors(0.25), self)
+    def intake(self, is_coral: bool = True) -> WrapperCommand:
+        return (
+            RunCommand(lambda: self.set_motors(0.25), self)
+            .onlyWhile(
+                lambda: is_coral or self.get_current() > 25  # TODO: This is a guess
+            )
+            .withName(f"Intaking {'coral' if is_coral else 'algae'}")
+        )
 
     def score(self) -> RunCommand:
         return RunCommand(lambda: self.set_motors(-0.25), self)
