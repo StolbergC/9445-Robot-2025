@@ -6,7 +6,7 @@ from commands2 import Subsystem, RunCommand, WrapperCommand
 
 from ntcore import NetworkTable, NetworkTableInstance, EventFlags, Event, ValueEventData
 
-from wpimath.controller import ProfiledPIDController
+from wpimath.controller import ProfiledPIDController, ArmFeedforward
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
@@ -46,6 +46,9 @@ class Wrist(Subsystem):
             0.01, 0, 0, TrapezoidProfile.Constraints(pi / 2, 20 * pi)
         )
 
+        self.feedforward = ArmFeedforward(0, 1, 0, 0)
+        self.tuning_ff = False
+
         self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
 
         def nettable_updater(_nt: NetworkTable, key: str, ev: Event) -> None:
@@ -56,14 +59,60 @@ class Wrist(Subsystem):
                     self.pid.setI(data.value.value())
                 elif key == "PID/d":
                     self.pid.setD(data.value.value())
+                elif key == "Feedforward/kS":
+                    self.feedforward = ArmFeedforward(
+                        data.value.value(),
+                        self.feedforward.getKg(),
+                        self.feedforward.getKv(),
+                        self.feedforward.getKa(),
+                    )
+                elif key == "Feedforward/kG":
+                    self.feedforward = ArmFeedforward(
+                        self.feedforward.getKs(),
+                        data.value.value(),
+                        self.feedforward.getKv(),
+                        self.feedforward.getKa(),
+                    )
+                elif key == "Feedforward/kV":
+                    self.feedforward = ArmFeedforward(
+                        self.feedforward.getKs(),
+                        self.feedforward.getKg(),
+                        data.value.value(),
+                        self.feedforward.getKa(),
+                    )
+                elif key == "Feedforward/kA":
+                    self.feedforward = ArmFeedforward(
+                        self.feedforward.getKs(),
+                        self.feedforward.getKg(),
+                        self.feedforward.getKv(),
+                        data.value.value(),
+                    )
+                elif key == "Feedforward/tuning":
+                    self.tuning_ff = True
 
         self.nettable.addListener("PID/p", EventFlags.kValueAll, nettable_updater)
         self.nettable.addListener("PID/i", EventFlags.kValueAll, nettable_updater)
         self.nettable.addListener("PID/d", EventFlags.kValueAll, nettable_updater)
+        self.nettable.addListener(
+            "Feedforward/kS", EventFlags.kValueAll, nettable_updater
+        )
+        self.nettable.addListener(
+            "Feedforward/kG", EventFlags.kValueAll, nettable_updater
+        )
+        self.nettable.addListener(
+            "Feedforward/kV", EventFlags.kValueAll, nettable_updater
+        )
+        self.nettable.addListener(
+            "Feedforward/kA", EventFlags.kValueAll, nettable_updater
+        )
 
         self.nettable.putNumber("PID/p", self.pid.getP())
         self.nettable.putNumber("PID/i", self.pid.getI())
         self.nettable.putNumber("PID/d", self.pid.getD())
+        self.nettable.putNumber("Feedforward/kS", self.feedforward.getKs())
+        self.nettable.putNumber("Feedforward/kG", self.feedforward.getKg())
+        self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
+        self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
     def periodic(self) -> None:
         # self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
@@ -75,6 +124,10 @@ class Wrist(Subsystem):
 
     def get_angle(self) -> Rotation2d:
         return Rotation2d.fromDegrees(self.encoder.getPosition())
+
+    def get_velocity(self) -> Rotation2d:
+        """rotation2d/s"""
+        return Rotation2d.fromDegrees(self.encoder.getVelocity())
 
     def set_state(self, angle: Rotation2d) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
@@ -90,10 +143,19 @@ class Wrist(Subsystem):
             angle = Rotation2d.fromDegrees(-50)
         elif angle.degrees() > 75:  # more sky pointing
             angle = Rotation2d.fromDegrees(75)
-        speed = self.pid.calculate(self.get_angle().radians(), angle.radians())
-        speed = 1 if speed > 1 else -1 if speed < -1 else speed
-        self.nettable.putNumber("State/Speed (%)", speed)
-        self.motor.set(speed)
+        if not self.tuning_ff:
+            volts = self.pid.calculate(
+                self.get_angle().radians(), angle.radians()
+            ) + self.feedforward.calculate(
+                self.get_angle().radians(), self.get_velocity().radians()
+            )
+        else:
+            volts = self.feedforward.calculate(
+                self.get_angle().radians(), self.get_velocity().radians()
+            )
+
+        self.nettable.putNumber("State/Speed (V)", volts)
+        self.motor.setVoltage(volts)
 
     def run_angle(self, angle: Rotation2d) -> WrapperCommand:
         return (
