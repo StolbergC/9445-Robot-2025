@@ -10,7 +10,7 @@ from subsystems.fingers import Fingers
 
 from auto import positions
 
-from commands import score_l1, score, intake
+from commands import score_l1, score, intake, score_processor
 
 from wpimath.geometry import Rotation2d
 from wpimath.units import feetToMeters
@@ -36,13 +36,17 @@ def get_auto(
                 if RobotBase.isReal()
                 else commands2.cmd.none()
             )
-            .alongWith(wrist.angle_intake().andThen(claw.coral()))
+            .alongWith(
+                wrist.angle_intake().andThen(claw.home_outside()).andThen(claw.coral())
+            )
         )
-        .andThen(WaitCommand(0.1))  # maybe unneeded
-        .andThen(drivetrain.drive_position(positions.blue_reef_h))
         # score preload on l1
-        .andThen(score_l1.score_l1_on_true(elevator, wrist))
-        .andThen(score.score_alage(fingers))
+        .andThen(
+            drivetrain.drive_position(positions.blue_reef_h).alongWith(
+                score_l1.score_l1_on_true(elevator, wrist)
+            )
+        )
+        .andThen(score.score_coral(claw, fingers))
         # grab gh algae
         .andThen(drivetrain.drive_position(positions.blue_algae_gh_far))
         .andThen(
@@ -50,12 +54,26 @@ def get_auto(
                 drivetrain.drive_position(positions.blue_algae_gh)
             )
         )
-        .andThen(WaitCommand(0.25))  # grab algae
-        .andThen(drivetrain.drive_position(positions.blue_processor))
-        .andThen(WaitCommand(0.25))  # score
-        .andThen(drivetrain.drive_position(positions.blue_algae_ef))
-        .andThen(WaitCommand(0.25))  # grab algae
-        .andThen(drivetrain.drive_position(positions.blue_processor))
+        # score
+        .andThen(drivetrain.drive_position(positions.blue_algae_gh_far))
+        .andThen(
+            drivetrain.drive_position(positions.blue_processor).alongWith(
+                score_processor.score_processor_on_true(elevator, wrist)
+            )
+        )
+        .andThen(score.score_alage(fingers, 1))
+        .andThen(
+            drivetrain.drive_position(positions.blue_algae_ef).alongWith(
+                intake.intake_algae_high(elevator, wrist, claw, fingers)
+            )
+        )
+        .andThen(drivetrain.drive_position(positions.blue_algae_ef_far))
+        .andThen(
+            drivetrain.drive_position(positions.blue_processor).alongWith(
+                score_processor.score_processor_on_true(elevator, wrist)
+            )
+        )
+        .andThen(score.score_alage(fingers))
         .andThen(
             drivetrain.set_speed_command(start_max_vel_mps, start_max_angular_vel)
             if RobotBase.isReal()

@@ -5,7 +5,7 @@ from subsystems.wrist import Wrist
 from subsystems.claw import Claw
 from subsystems.fingers import Fingers
 
-from commands.score import score
+from commands.score import score_alage, score_coral
 
 
 def _upper_intake_coral(claw: Claw, fingers: Fingers) -> ParallelCommandGroup:
@@ -64,13 +64,15 @@ def intake_algae_low(
             wrist.angle_zero()
             .andThen(elevator.algae_intake_low())
             .andThen(
-                (claw.algae().alongWith(fingers.intake())).withTimeout(intake_timeout)
+                (claw.algae().alongWith(fingers.intake(False))).withTimeout(
+                    intake_timeout
+                )
             )
         )
     return (
         wrist.angle_zero()
         .andThen(elevator.algae_intake_low())
-        .andThen(claw.algae().alongWith(fingers.intake()))
+        .andThen(claw.algae().alongWith(fingers.intake(False)))
     )
 
 
@@ -86,11 +88,13 @@ def intake_algae_high(
             wrist.angle_zero()
             .andThen(elevator.algae_intake_high())
             .andThen(
-                (claw.algae().alongWith(fingers.intake())).withTimeout(intake_timeout)
+                (claw.algae().alongWith(fingers.intake(False))).withTimeout(
+                    intake_timeout
+                )
             )
         )
     return (
         wrist.angle_zero()
         .andThen(elevator.algae_intake_high())
-        .andThen(claw.algae().alongWith(fingers.intake()))
+        .andThen(claw.algae().alongWith(fingers.intake(False)))
     )
