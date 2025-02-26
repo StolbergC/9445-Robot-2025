@@ -19,7 +19,7 @@ from subsystems.climber import Climber
 from subsystems.claw import Claw
 from subsystems.fingers import Fingers
 
-from commands.score import score
+from commands.score import score_coral
 from commands.score_l1 import score_l1_on_true
 from commands.score_l2 import score_l2_on_true
 from commands.score_l3 import score_l3_on_true
@@ -54,22 +54,22 @@ class RobotContainer:
         #     self.wrist.get_angle, Rotation2d.fromDegrees(60)
         # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
         # self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
-        # self.elevator = Elevator(lambda: Rotation2d(0))
+        self.elevator = Elevator(lambda: Rotation2d(0))
         # self.wrist.get_claw_distance = self.claw.get_dist
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         # self.fingers = Fingers()
 
         self.auto_chooser = SendableChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
-        self.auto_chooser.addOption(
-            "Blue -- Four Coral Left", blue_left_four_coral.get_auto(self.drivetrain)
-        )
+        # self.auto_chooser.addOption(
+        #     "Blue -- Four Coral Left", blue_left_four_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
+        # )
         self.auto_chooser.addOption("Blue -- Test", blue_test.get_auto(self.drivetrain))
 
         self.level = 1
         self.field_oriented = True
 
-        wpilib.cameraserver.CameraServer.launch()
+        # wpilib.cameraserver.CameraServer.launch()
 
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
@@ -147,6 +147,14 @@ class RobotContainer:
                 lambda: self.field_oriented,
             )
         )
+
+        self.elevator.setDefaultCommand(
+            RunCommand(
+                lambda: self.elevator.motor.set(self.operator_controller.getX()),
+                self.elevator,
+            ),
+        )
+        self.operator_controller.button(button_rb).whileTrue(self.elevator.command_l1())
 
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
 
