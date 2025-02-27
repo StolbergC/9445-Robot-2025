@@ -82,8 +82,8 @@ class Elevator(Subsystem):
         self.pid = ProfiledPIDController(
             0.01, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         )
-        self.feedforward = ElevatorFeedforward(0, 2, 0, 0)
-        self.tuning_ff = False
+        self.feedforward = ElevatorFeedforward(0, 1, 0, 0)
+        self.tuning_ff = True
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
 
@@ -224,7 +224,7 @@ class Elevator(Subsystem):
             self.spool_diameter
             + 2
             * self.rope_diameter
-            * 0.85
+            * 0.95
             * (self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
@@ -237,17 +237,22 @@ class Elevator(Subsystem):
         ) / (pi * (spool_radius * spool_radius))
 
     def get_velocity(self) -> float:
-        outer_diameter = (
-            self.spool_diameter + 2 * self.rope_diameter * self.encoder.getVelocity()
-        )
+        # this is based loosely on integration with washers for volume
+        outer_radius = (
+            self.spool_diameter
+            + 2
+            * self.rope_diameter
+            * 0.85
+            * (self.encoder.getVelocity() * (self.spool_depth / self.rope_diameter))
+        ) / 2
         return self.bottom_height + (
             (
-                (outer_diameter * outer_diameter)
-                - (self.spool_diameter * self.spool_diameter)
+                (outer_radius * outer_radius)
+                - ((spool_radius := self.spool_diameter / 2) * spool_radius)
             )
             * self.spool_depth
             * pi
-        ) / (self.rope_area_constant * self.rope_diameter)
+        ) / (pi * (spool_radius * spool_radius))
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
@@ -264,7 +269,7 @@ class Elevator(Subsystem):
         if not self.tuning_ff:
             volts = self.pid.calculate(
                 self.get_position(), position
-            ) + self.feedforward.calculate(
+            ) - self.feedforward.calculate(
                 self.get_velocity(), self.pid.getGoal().velocity
             )
         else:
@@ -273,7 +278,7 @@ class Elevator(Subsystem):
                 "Feedforward/GoalVelocity (only updated when tuning)",
                 self.pid.getGoal().velocity,
             )
-            volts = self.feedforward.calculate(
+            volts = -self.feedforward.calculate(
                 self.get_velocity(), self.pid.getSetpoint().velocity
             )
 

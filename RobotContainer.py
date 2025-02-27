@@ -53,7 +53,7 @@ class RobotContainer:
         # self.claw = Claw(
         #     self.wrist.get_angle, Rotation2d.fromDegrees(60)
         # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
-        # self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
+        self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
         self.elevator = Elevator(lambda: Rotation2d(0))
         # self.wrist.get_claw_distance = self.claw.get_dist
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
@@ -154,7 +154,9 @@ class RobotContainer:
                 self.elevator,
             ),
         )
-        self.operator_controller.button(button_rb).whileTrue(self.elevator.command_l1())
+        self.operator_controller.button(button_lb).whileTrue(self.elevator.command_l1())
+
+        self.operator_controller.button(button_right).onTrue(self.elevator.reset())
 
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
 
@@ -246,10 +248,12 @@ class RobotContainer:
         # self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
         # self.operator_controller.button(button_right).whileTrue(self.fingers.score())
 
-        # Trigger(self.operator_controller.button(button_rb)).onTrue(self.claw.reset())
-        # Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
-        # Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
-        # Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
+        Trigger(self.operator_controller.button(button_rb)).onTrue(
+            self.claw.home_outside()
+        )
+        Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
+        Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
+        Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
 
         # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
 
