@@ -82,7 +82,7 @@ class Elevator(Subsystem):
         self.pid = ProfiledPIDController(
             0.01, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         )
-        self.feedforward = ElevatorFeedforward(0, 1, 0, 0)
+        self.feedforward = ElevatorFeedforward(0, 0.55, 0, 0)
         self.tuning_ff = True
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
