@@ -48,7 +48,7 @@ class RobotContainer:
         self.nettable = NetworkTableInstance.getDefault().getTable("0000DriverInfo")
         self.alliance = DriverStation.Alliance.kBlue
         self.drivetrain = Drivetrain(self.get_alliance)
-        # self.wrist = Wrist()
+        self.wrist = Wrist()
         # self.climber = Climber()
         # self.claw = Claw(
         #     self.wrist.get_angle, Rotation2d.fromDegrees(60)

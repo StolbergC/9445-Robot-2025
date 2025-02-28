@@ -29,11 +29,11 @@ class Wrist(Subsystem):
         self.motor_config = (
             SparkMaxConfig()
             .smartCurrentLimit(30)
-            .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
+            .setIdleMode(SparkMaxConfig.IdleMode.kCoast)
         )
 
-        self.motor_config.absoluteEncoder.positionConversionFactor(360).zeroOffset(
-            90
+        self.motor_config.absoluteEncoder.zeroOffset(0.281).positionConversionFactor(
+            360
         ).endPulseUs(1024).startPulseUs(1).setSparkMaxDataPortConfig()
 
         self.motor.configure(
@@ -115,7 +115,7 @@ class Wrist(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
     def periodic(self) -> None:
-        # self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
+        self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:

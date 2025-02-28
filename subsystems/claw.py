@@ -14,6 +14,7 @@ from wpilib import DigitalInput
 from commands2 import (
     DeferredCommand,
     InstantCommand,
+    InterruptionBehavior,
     RunCommand,
     Subsystem,
     WrapperCommand,
@@ -110,7 +111,7 @@ class Claw(Subsystem):
             self.is_stalling = False
 
         if self.at_center():
-            self.encoder.setPosition(0)
+            self.encoder.setPosition(-2.125 / 2)
             self.has_homed = True
         if self.at_outside():
             self.encoder.setPosition(-8.75)
@@ -121,6 +122,7 @@ class Claw(Subsystem):
         self.nettable.putNumber(
             "State/Current draw (amps)", self.motor.getOutputCurrent()
         )
+        self.nettable.putBoolean("State/has homed", self.has_homed)
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:
@@ -132,9 +134,11 @@ class Claw(Subsystem):
         """the distance in inches"""
         return -2 * self.encoder.getPosition()
 
-    def set_motor(self, power: float) -> float:
+    def set_motor(self, power: float, max_power: float = 0.75) -> float:
         power = (
-            0.4 if power > 0.4 else -0.4 if power < -0.4 else power
+            max_power
+            if power > max_power
+            else -max_power if power < -max_power else power
         )  # TODO: Push this if possible b/c gears are now aluminum
         if (
             (power > 0 and self.at_outside())
@@ -149,7 +153,7 @@ class Claw(Subsystem):
             return 0
         self.nettable.putBoolean("Safety/Waiting on Wrist", False)
         self.nettable.putNumber("State/Out Speed (%)", power)
-        self.motor.set(power)
+        self.motor.set(-power)
         return power
 
     def set_motor_lambda(self, power: Callable[[], float]):
@@ -166,22 +170,26 @@ class Claw(Subsystem):
             .andThen(
                 RunCommand(
                     lambda: self.set_motor(
-                        -self.pid.calculate(self.get_dist(), distance)
+                        self.pid.calculate(self.get_dist(), distance)
                     )
                 )
             )
             .onlyWhile(lambda: abs(self.get_dist() - distance) > 0.5)
             .withName(f"Go to {distance} ft")
+            .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )
 
+    def stop(self) -> InstantCommand:
+        return InstantCommand(lambda: self.motor.set(0))
+
     def algae(self) -> WrapperCommand:
-        return self.set_position(16).withName("Grab Algae")
+        return self.set_position(16).andThen(self.stop()).withName("Grab Algae")
 
     def coral(self) -> WrapperCommand:
-        return self.set_position(0).withName("Grab Coral")
+        return self.set_position(2.25).andThen(self.stop()).withName("Grab Coral")
 
     def cage(self) -> WrapperCommand:
-        return self.set_position(2).withName("Inside of Cage")
+        return self.set_position(11).andThen(self.stop()).withName("Inside of Cage")
 
     def reset_position(self) -> None:
         self.encoder.setPosition(0)
@@ -193,12 +201,16 @@ class Claw(Subsystem):
         return (
             RunCommand(lambda: self.set_motor(0.25))
             .until(lambda: self.has_homed)
+            .andThen(self.stop())
             .withName("Homing Outside")
+            .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )
 
     def home_inside(self) -> WrapperCommand:
         return (
             RunCommand(lambda: self.set_motor(-0.25))
             .until(lambda: self.has_homed)
+            .andThen(self.stop())
             .withName("Homing Outside")
+            .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )

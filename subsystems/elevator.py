@@ -65,7 +65,7 @@ class Elevator(Subsystem):
         self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
         self.encoder = self.motor.getEncoder()
 
-        self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(False)
+        self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(True)
         self.motor_config.encoder.positionConversionFactor(
             1 / 15  # TODO: Find what the conversion factor needs to be
         ).velocityConversionFactor(1 / (15 * 60))
@@ -190,6 +190,9 @@ class Elevator(Subsystem):
             self.has_homed = True
 
         self.nettable.putNumber("State/position (in)", self.get_position())
+        self.nettable.putNumber(
+            "State/raw_position (rotations)", self.encoder.getPosition()
+        )
         self.nettable.putNumber("At Bottom ?", self.bottom_limit.get())
         self.nettable.putNumber(
             "State/Current Draw (amp)", self.motor.getOutputCurrent()
@@ -224,7 +227,7 @@ class Elevator(Subsystem):
             self.spool_diameter
             + 2
             * self.rope_diameter
-            * 0.95
+            * 0.5875
             * (self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
@@ -242,7 +245,7 @@ class Elevator(Subsystem):
             self.spool_diameter
             + 2
             * self.rope_diameter
-            * 0.85
+            * 0.5875
             * (self.encoder.getVelocity() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
@@ -276,14 +279,14 @@ class Elevator(Subsystem):
             self.pid.setGoal(position)
             self.nettable.putNumber(
                 "Feedforward/GoalVelocity (only updated when tuning)",
-                self.pid.getGoal().velocity,
+                self.pid.getSetpoint().velocity,
             )
             volts = -self.feedforward.calculate(
                 self.get_velocity(), self.pid.getSetpoint().velocity
             )
 
         self.nettable.putNumber("State/Out Power (V)", volts)
-        self.motor.setVoltage(volts)
+        self.motor.setVoltage(-volts)
 
     def _make_position_safe(self, position: feet) -> feet:
         """
@@ -366,7 +369,7 @@ class Elevator(Subsystem):
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
-        self.motor.set(power)
+        self.motor.set(-power)
 
     def reset(self) -> InstantCommand:
-        return InstantCommand(lambda: self.encoder.setPosition(self.bottom_height))
+        return InstantCommand(lambda: self.encoder.setPosition(0))
