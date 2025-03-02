@@ -28,7 +28,7 @@ def get_auto(
     return (
         # setup
         (
-            drivetrain.reset_pose(positions.blue_start_line_center)
+            drivetrain.reset_pose(positions.red_start_line_center)
             .alongWith(
                 drivetrain.set_speed_command(
                     feetToMeters(25), Rotation2d.fromDegrees(480)
@@ -44,35 +44,35 @@ def get_auto(
         )
         # score preload on l1
         .andThen(
-            drivetrain.drive_position(positions.blue_reef_h).alongWith(
+            drivetrain.drive_position(positions.red_reef_h).alongWith(
                 score_l1.score_l1_on_true(elevator, wrist)
             )
         )
         .andThen(score.score_coral(claw, fingers))
         # grab gh algae
-        .andThen(drivetrain.drive_position(positions.blue_algae_gh_far))
+        .andThen(drivetrain.drive_position(positions.red_algae_gh_far))
         .andThen(
             intake.intake_algae_low(elevator, wrist, claw, fingers, 1).alongWith(
-                drivetrain.drive_position(positions.blue_algae_gh)
+                drivetrain.drive_position(positions.red_algae_gh)
             )
         )
         # score
-        .andThen(drivetrain.drive_position(positions.blue_algae_gh_far))
+        .andThen(drivetrain.drive_position(positions.red_algae_gh_far))
         .andThen(
-            drivetrain.drive_position(positions.blue_processor).alongWith(
+            drivetrain.drive_position(positions.red_processor).alongWith(
                 score_processor.score_processor_on_true(elevator, wrist)
             )
         )
         .andThen(score.score_alage(fingers, 1))
         .andThen(
-            drivetrain.drive_position(positions.blue_algae_ef).alongWith(
+            drivetrain.drive_position(positions.red_algae_ef).alongWith(
                 intake.intake_algae_high(elevator, wrist, claw, fingers, 1)
             )
         )
         .andThen(intake.intake_algae_high(elevator, wrist, claw, fingers, 2))
-        .andThen(drivetrain.drive_position(positions.blue_algae_ef_far))
+        .andThen(drivetrain.drive_position(positions.red_algae_ef_far))
         .andThen(
-            drivetrain.drive_position(positions.blue_processor).alongWith(
+            drivetrain.drive_position(positions.red_processor).alongWith(
                 score_processor.score_processor_on_true(elevator, wrist)
             )
         )
@@ -82,6 +82,6 @@ def get_auto(
             if RobotBase.isReal()
             else commands2.cmd.none()
         )
-        .withName("Blue Center Two Algae")
+        .withName("Red Center Two Algae")
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
     )

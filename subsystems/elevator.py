@@ -46,8 +46,8 @@ class Elevator(Subsystem):
     ):
         super().__init__()
 
-        self.spool_diameter = 1.12  # inches
-        self.spool_depth = 0.57  # inches
+        self.spool_diameter = 0.95  # inches
+        self.spool_depth = 0.61  # inches
         self.rope_diameter = 0.12  # inches
 
         self.rope_area_constant = (pi * ((r := self.rope_diameter / 2) * r)) / (
@@ -65,7 +65,12 @@ class Elevator(Subsystem):
         self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
         self.encoder = self.motor.getEncoder()
 
-        self.motor_config = SparkMaxConfig().smartCurrentLimit(80).inverted(True)
+        self.motor_config = (
+            SparkMaxConfig()
+            .smartCurrentLimit(80)
+            .inverted(True)
+            .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
+        )
         self.motor_config.encoder.positionConversionFactor(
             1 / 15  # TODO: Find what the conversion factor needs to be
         ).velocityConversionFactor(1 / (15 * 60))
@@ -155,7 +160,7 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
         self.nettable.putBoolean("Feedforward/tuning", self.tuning_ff)
 
-        self.bottom_height: float = 9
+        self.bottom_height: float = 9.75
         self.top_height: float = self.bottom_height + 19.5 + 22.5
 
         if not RobotBase.isReal():
@@ -193,9 +198,13 @@ class Elevator(Subsystem):
         self.nettable.putNumber(
             "State/raw_position (rotations)", self.encoder.getPosition()
         )
+        self.nettable.putNumber("State/velocity (in per s)", self.get_velocity())
         self.nettable.putNumber("At Bottom ?", self.bottom_limit.get())
         self.nettable.putNumber(
             "State/Current Draw (amp)", self.motor.getOutputCurrent()
+        )
+        self.nettable.putNumber(
+            "Commanded/Velocity Setpoint (in per s)", self.pid.getSetpoint().velocity
         )
         return super().periodic()
 
@@ -227,8 +236,8 @@ class Elevator(Subsystem):
             self.spool_diameter
             + 2
             * self.rope_diameter
-            * 0.5875
-            * (self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
+            * 0.3192
+            * (-self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
             (
@@ -245,7 +254,7 @@ class Elevator(Subsystem):
             self.spool_diameter
             + 2
             * self.rope_diameter
-            * 0.5875
+            * 0.2479
             * (self.encoder.getVelocity() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
@@ -269,22 +278,11 @@ class Elevator(Subsystem):
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
-        if not self.tuning_ff:
-            volts = self.pid.calculate(
-                self.get_position(), position
-            ) - self.feedforward.calculate(
-                self.get_velocity(), self.pid.getGoal().velocity
-            )
-        else:
-            self.pid.setGoal(position)
-            self.nettable.putNumber(
-                "Feedforward/GoalVelocity (only updated when tuning)",
-                self.pid.getSetpoint().velocity,
-            )
-            volts = -self.feedforward.calculate(
-                self.get_velocity(), self.pid.getSetpoint().velocity
-            )
-
+        volts = self.pid.calculate(
+            self.get_position(), position
+        ) + self.feedforward.calculate(  # the feedforward is negative
+            self.get_velocity(), self.pid.getSetpoint().velocity
+        )
         self.nettable.putNumber("State/Out Power (V)", volts)
         self.motor.setVoltage(-volts)
 
@@ -369,7 +367,7 @@ class Elevator(Subsystem):
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
-        self.motor.set(-power)
+        self.motor.set(power)
 
     def reset(self) -> InstantCommand:
         return InstantCommand(lambda: self.encoder.setPosition(0))

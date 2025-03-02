@@ -2,7 +2,13 @@ from math import pi
 from typing import Callable
 from rev import SparkMax, SparkMaxConfig, SparkBase, EncoderConfig
 
-from commands2 import Subsystem, RunCommand, WrapperCommand
+from commands2 import (
+    InstantCommand,
+    RepeatCommand,
+    Subsystem,
+    RunCommand,
+    WrapperCommand,
+)
 
 from ntcore import NetworkTable, NetworkTableInstance, EventFlags, Event, ValueEventData
 
@@ -29,12 +35,12 @@ class Wrist(Subsystem):
         self.motor_config = (
             SparkMaxConfig()
             .smartCurrentLimit(30)
-            .setIdleMode(SparkMaxConfig.IdleMode.kCoast)
+            .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
-        self.motor_config.absoluteEncoder.zeroOffset(0.281).positionConversionFactor(
-            360
-        ).endPulseUs(1024).startPulseUs(1).setSparkMaxDataPortConfig()
+        self.motor_config.absoluteEncoder.zeroOffset(0.281).zeroCentered(
+            True
+        ).positionConversionFactor(360).velocityConversionFactor(360)
 
         self.motor.configure(
             self.motor_config,
@@ -43,11 +49,10 @@ class Wrist(Subsystem):
         )
 
         self.pid = ProfiledPIDController(
-            0.01, 0, 0, TrapezoidProfile.Constraints(pi / 2, 20 * pi)
+            30, 0, 0, TrapezoidProfile.Constraints(pi, 100 * pi)
         )
 
-        self.feedforward = ArmFeedforward(0, 1, 0, 0)
-        self.tuning_ff = False
+        self.feedforward = ArmFeedforward(0, 0.25, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
 
@@ -87,8 +92,6 @@ class Wrist(Subsystem):
                         self.feedforward.getKv(),
                         data.value.value(),
                     )
-                elif key == "Feedforward/tuning":
-                    self.tuning_ff = True
 
         self.nettable.addListener("PID/p", EventFlags.kValueAll, nettable_updater)
         self.nettable.addListener("PID/i", EventFlags.kValueAll, nettable_updater)
@@ -115,12 +118,28 @@ class Wrist(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
     def periodic(self) -> None:
+        self.pid.calculate(self.get_angle().radians())
         self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
+        self.nettable.putNumber(
+            "State/velocity (rad p s)", self.get_velocity().radians()
+        )
+        self.nettable.putNumber(
+            "Commanded/speed (rad p s)", self.pid.getSetpoint().velocity
+        )
+        self.nettable.putNumber(
+            "Commanded/speed goal (rad p s)", self.pid.getGoal().velocity
+        )
+        self.nettable.putNumber(
+            "Commanded/angle pid (rads)", self.pid.getSetpoint().position
+        )
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:
             self.nettable.putString("Running Command", "None")
         return super().periodic()
+
+    def stop(self) -> InstantCommand:
+        return InstantCommand(lambda: self.motor.set(0))
 
     def get_angle(self) -> Rotation2d:
         return Rotation2d.fromDegrees(self.encoder.getPosition())
@@ -141,26 +160,25 @@ class Wrist(Subsystem):
         self.nettable.putBoolean("Safety/Waiting on Claw", False)
         if angle.degrees() < -50:  # more ground pointing
             angle = Rotation2d.fromDegrees(-50)
-        elif angle.degrees() > 75:  # more sky pointing
-            angle = Rotation2d.fromDegrees(75)
-        if not self.tuning_ff:
-            volts = self.pid.calculate(
-                self.get_angle().radians(), angle.radians()
-            ) + self.feedforward.calculate(
-                self.get_angle().radians(), self.get_velocity().radians()
-            )
-        else:
-            volts = self.feedforward.calculate(
-                self.get_angle().radians(), self.get_velocity().radians()
-            )
+        elif angle.degrees() > 90:  # more sky pointing
+            angle = Rotation2d.fromDegrees(90)
+        self.pid.setGoal(angle.radians())
+        volts = self.pid.calculate(
+            self.get_angle().radians(), angle.radians()
+        ) + self.feedforward.calculate(
+            self.get_angle().radians(),
+            self.get_velocity().radians(),
+            self.pid.getSetpoint().velocity,
+        )
 
         self.nettable.putNumber("State/Speed (V)", volts)
         self.motor.setVoltage(volts)
 
     def run_angle(self, angle: Rotation2d) -> WrapperCommand:
         return (
-            RunCommand(lambda: self.set_state(angle), self)
-            .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 5)
+            RepeatCommand(InstantCommand(lambda: self.set_state(angle), self))
+            .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 1)
+            .andThen(self.stop())
             .withName(f"Set Angle {angle.degrees()} (deg)")
         )
 
@@ -168,10 +186,10 @@ class Wrist(Subsystem):
         return self.run_angle(Rotation2d.fromDegrees(55)).withName("Intake")
 
     def angle_score(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(-35)).withName("Score")
+        return self.run_angle(Rotation2d.fromDegrees(-22.5)).withName("Score")
 
     def angle_zero(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(0)).withName("Horizontal")
+        return self.run_angle(Rotation2d.fromDegrees(10)).withName("Horizontal")
 
     def angle_full_up(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(90)).withName("Max Angle")

@@ -1,13 +1,18 @@
-from rev import SparkMax, SparkMaxConfig, SparkBase
-from commands2 import RunCommand, Subsystem, WrapperCommand
+from ntcore import NetworkTableInstance
+from rev import SparkBaseConfig, SparkMax, SparkMaxConfig, SparkBase
+from commands2 import InstantCommand, RunCommand, Subsystem, WrapperCommand
 from wpimath.units import amperes
 
 
 class Fingers(Subsystem):
-    def __init__(self, amp_limit: int = 60):
-        self.left_motor = SparkMax(30, SparkMax.MotorType.kBrushless)
-        self.right_motor = SparkMax(31, SparkMax.MotorType.kBrushless)
-        motor_config = SparkMaxConfig().smartCurrentLimit(amp_limit)
+    def __init__(self, amp_limit: int = 30):
+        self.left_motor = SparkMax(31, SparkMax.MotorType.kBrushless)
+        self.right_motor = SparkMax(30, SparkMax.MotorType.kBrushless)
+        motor_config = (
+            SparkMaxConfig()
+            .smartCurrentLimit(amp_limit)
+            .setIdleMode(SparkBaseConfig.IdleMode.kCoast)
+        )
         self.left_motor.configure(
             motor_config,
             SparkBase.ResetMode.kResetSafeParameters,
@@ -22,9 +27,15 @@ class Fingers(Subsystem):
             SparkBase.PersistMode.kNoPersistParameters,
         )
 
+        self.nettable = NetworkTableInstance.getDefault().getTable("000Fingers")
+
+    def periodic(self) -> None:
+        self.nettable.putNumber("Amps", self.get_current())
+        return super().periodic()
+
     def set_motors(self, power: float) -> None:
         power = 1 if power > 1 else -1 if power < -1 else power
-        self.left_motor.set(power)
+        self.left_motor.set(power * 1.25)
         self.right_motor.set(-power)
 
     def get_current(self) -> amperes:
@@ -44,5 +55,5 @@ class Fingers(Subsystem):
             .withName(f"Intaking {'coral' if is_coral else 'algae'}")
         )
 
-    def score(self) -> RunCommand:
-        return RunCommand(lambda: self.set_motors(-0.25), self)
+    def score(self) -> WrapperCommand:
+        return RunCommand(lambda: self.set_motors(-0.25), self).withName("Score")

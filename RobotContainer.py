@@ -5,7 +5,7 @@ from commands2.button import Trigger, CommandJoystick
 from cscore import CameraServer
 from ntcore import NetworkTableInstance
 from wpilib import DriverStation, RobotBase
-from wpilib import SmartDashboard, SendableChooser
+from wpilib import SmartDashboard, SendableChooser, PowerDistribution
 
 from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
@@ -25,7 +25,16 @@ from commands.score_l2 import score_l2_on_true
 from commands.score_l3 import score_l3_on_true
 from commands.intake import intake_algae_low, intake_algae_high, intake_coral
 
-from auto import blue_left_four_coral, positions, blue_test
+from auto import (
+    blue_center_two_algae,
+    blue_left_two_coral,
+    blue_right_two_coral,
+    positions,
+    blue_test,
+    red_center_two_algae,
+    red_left_two_coral,
+    red_right_two_coral,
+)
 
 import wpilib.cameraserver
 
@@ -45,8 +54,14 @@ trigger_lt = 2
 
 class RobotContainer:
     def __init__(self) -> None:
+        self.pdh = PowerDistribution()
+        self.pdh.setSwitchableChannel(True)
         self.nettable = NetworkTableInstance.getDefault().getTable("0000DriverInfo")
-        self.alliance = DriverStation.Alliance.kBlue
+        self.alliance = (
+            DriverStation.getAlliance()
+            if (DriverStation.getAlliance() is not None)
+            else DriverStation.Alliance.kBlue
+        )
         self.drivetrain = Drivetrain(self.get_alliance)
         self.wrist = Wrist()
         # self.climber = Climber()
@@ -56,15 +71,51 @@ class RobotContainer:
         self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
         self.elevator = Elevator(lambda: Rotation2d(0))
         # self.wrist.get_claw_distance = self.claw.get_dist
+        self.wrist.get_claw_distance = lambda: 0
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
-        # self.fingers = Fingers()
+        self.fingers = Fingers()
 
         self.auto_chooser = SendableChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         # self.auto_chooser.addOption(
-        #     "Blue -- Four Coral Left", blue_left_four_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
+        #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
         # )
-        self.auto_chooser.addOption("Blue -- Test", blue_test.get_auto(self.drivetrain))
+        self.auto_chooser.addOption(
+            "Blue -- Coral Left",
+            blue_left_two_coral.get_auto(
+                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+            ),
+        )
+        self.auto_chooser.addOption(
+            "Blue -- Coral Right",
+            blue_right_two_coral.get_auto(
+                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+            ),
+        )
+        self.auto_chooser.addOption(
+            "Blue -- Algae",
+            blue_center_two_algae.get_auto(
+                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+            ),
+        )
+        self.auto_chooser.addOption(
+            "Red -- Coral Left",
+            red_left_two_coral.get_auto(
+                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+            ),
+        )
+        self.auto_chooser.addOption(
+            "Red -- Coral Right",
+            red_right_two_coral.get_auto(
+                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+            ),
+        )
+        self.auto_chooser.addOption(
+            "Red -- Algae",
+            red_center_two_algae.get_auto(
+                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+            ),
+        )
 
         self.level = 1
         self.field_oriented = True
@@ -158,6 +209,13 @@ class RobotContainer:
 
         self.operator_controller.button(button_right).onTrue(self.elevator.reset())
 
+        Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
+            self.fingers.score()
+        ).onFalse(self.fingers.stop())
+        Trigger(lambda: self.operator_controller.getRawAxis(2) > 0.5).whileTrue(
+            self.fingers.intake()
+        ).onFalse(self.fingers.stop())
+
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
 
         def toggle_field_oriented():
@@ -225,8 +283,6 @@ class RobotContainer:
             InstantCommand(decrease_elevator_setpoint)
         )
 
-        # self.operator_controller.button(button_rb).onTrue(self.elevator.reset())
-
         # self.wrist.setDefaultCommand(
         #     RunCommand(
         #         lambda: self.wrist.motor.set(self.operator_controller.getTwist()),
@@ -248,57 +304,33 @@ class RobotContainer:
         # self.operator_controller.button(button_left).whileTrue(self.fingers.intake())
         # self.operator_controller.button(button_right).whileTrue(self.fingers.score())
 
-        Trigger(self.operator_controller.button(button_rb)).onTrue(
-            self.claw.home_outside()
-        )
-        Trigger(self.operator_controller.button(button_a)).onTrue(self.claw.cage())
-        Trigger(self.operator_controller.button(button_b)).onTrue(self.claw.coral())
-        Trigger(self.operator_controller.button(button_x)).onTrue(self.claw.algae())
+        # Trigger(self.operator_controller.button(button_rb)).onTrue(
+        #     self.claw.home_outside()
+        # )
+        self.operator_controller.button(button_y).onTrue(self.claw.cage())
+        # self.operator_controller.button(button_b).onTrue(self.claw.coral())
+        self.operator_controller.button(button_rpush).onTrue(self.claw.set_position(17))
+        self.operator_controller.button(button_lpush).onTrue(self.claw.algae())
 
-        # self.operator_controller.button(button_a).onTrue(self.wrist.angle_score())
+        self.operator_controller.button(button_a).whileTrue(
+            self.wrist.angle_zero()
+        ).onFalse(self.wrist.stop())
+
+        self.operator_controller.button(button_b).whileTrue(
+            self.wrist.angle_intake()
+        ).onFalse(self.wrist.stop())
+
+        self.operator_controller.button(button_x).whileTrue(
+            self.wrist.angle_score()
+        ).onFalse(self.wrist.stop())
+
+        self.operator_controller.button(button_left).whileTrue(
+            RunCommand(lambda: self.wrist.motor.set(-0.1))
+        ).onFalse(RunCommand(lambda: self.wrist.motor.set(0)))
 
         # self.operator_controller.button(button_b).onTrue(self.wrist.angle_zero())
 
         # self.operator_controller.button(button_y).onTrue(self.wrist.angle_intake())
-
-        lb_trigger = self.operator_controller.button(button_lb)
-        rb_trigger = self.operator_controller.button(button_rb)
-
-        # drive to the algae on the closest reef when lb and rb are pressed
-        lb_trigger.and_(rb_trigger).whileTrue(WaitCommand(0))
-
-        # drive to the left peg on the closest part of the reef when only lb is pressed
-        lb_trigger.and_(rb_trigger.not_()).whileTrue(WaitCommand(0))
-
-        # drive to the right peg on the closest part of the reef when only lb is pressed
-        rb_trigger.and_(lb_trigger.not_()).whileTrue(WaitCommand(0))
-
-        # self.driver_controller.button(button_a).whileTrue(
-        #     self.drivetrain.drive_position(Pose2d(0, 0, Rotation2d(0)))
-        # )
-
-        # self.driver_controller.button(button_b).onTrue(
-        #     self.drivetrain.reset_pose(Pose2d())
-        # )
-        # self.operator_controller.button(button_rb).whileTrue(self.climber.climb())
-
-        # self.driver_controller.button(button_y).whileTrue(
-        #     self.drivetrain.drive_position(
-        #         Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0))
-        #     )
-        #     .andThen(WaitCommand(0.5))
-        #     .andThen(
-        #         self.drivetrain.drive_position(
-        #             Pose2d.fromFeet(4, 0, Rotation2d.fromDegrees(90))
-        #         )
-        #     )
-        #     .andThen(WaitCommand(0.5))
-        #     .andThen(
-        #         self.drivetrain.drive_position(
-        #             Pose2d.fromFeet(4, 4, Rotation2d.fromDegrees(0))
-        #         )
-        #     )
-        # )
 
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)
@@ -308,4 +340,4 @@ class RobotContainer:
 
     def get_auto_command(self) -> Command:
         return self.auto_chooser.getSelected()
-        # return blue_left_four_coral.get_auto(self.drivetrain)
+        # return blue_left_two_coral.get_auto(self.drivetrain)

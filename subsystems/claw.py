@@ -38,7 +38,7 @@ class Claw(Subsystem):
 
         self.motor = SparkMax(28, SparkLowLevel.MotorType.kBrushless)
         motor_config = SparkMaxConfig()
-        motor_config.setIdleMode(SparkMaxConfig.IdleMode.kBrake).smartCurrentLimit(
+        motor_config.setIdleMode(SparkMaxConfig.IdleMode.kCoast).smartCurrentLimit(
             20
         ).encoder.positionConversionFactor(pi * PCD / 9).velocityConversionFactor(
             pi * PCD / (9 * 60)
@@ -89,7 +89,7 @@ class Claw(Subsystem):
     def at_center(self) -> bool:
         return (
             self.is_stalling
-            and time() - self.stall_timer > 0.125
+            and time() - self.stall_timer > 0.25
             and abs(self.encoder.getVelocity()) < 0.25
             and self.motor.getAppliedOutput() > 0
         )
@@ -97,7 +97,7 @@ class Claw(Subsystem):
     def at_outside(self) -> bool:
         return (
             self.is_stalling
-            and time() - self.stall_timer > 0.125
+            and time() - self.stall_timer > 0.25
             and abs(self.encoder.getVelocity()) < 0.25
             and self.motor.getAppliedOutput() < 0
         )
@@ -162,11 +162,7 @@ class Claw(Subsystem):
     def set_position(self, distance: float) -> WrapperCommand:
         """the distance is in inches"""
         return (
-            DeferredCommand(
-                lambda: (
-                    self.home_outside() if not self.has_homed else commands2.cmd.none()
-                )
-            )
+            self.home_outside()
             .andThen(
                 RunCommand(
                     lambda: self.set_motor(
@@ -183,13 +179,25 @@ class Claw(Subsystem):
         return InstantCommand(lambda: self.motor.set(0))
 
     def algae(self) -> WrapperCommand:
-        return self.set_position(16).andThen(self.stop()).withName("Grab Algae")
+        return (
+            self.set_position(17)
+            .andThen(
+                RunCommand(lambda: self.set_motor(-0.2)).onlyWhile(
+                    lambda: not self.is_stalling and time() - self.stall_timer > 0.25
+                )
+            )
+            .andThen(self.stop())
+            .withName("Grab Algae")
+        )
 
     def coral(self) -> WrapperCommand:
-        return self.set_position(2.25).andThen(self.stop()).withName("Grab Coral")
+        # return self.set_position(0.5).andThen(self.stop()).withName("Grab Coral")
+        return (
+            self.home_inside(lambda: False).until(self.at_center).withName("Grab Coral")
+        )
 
     def cage(self) -> WrapperCommand:
-        return self.set_position(11).andThen(self.stop()).withName("Inside of Cage")
+        return self.set_position(10.25).andThen(self.stop()).withName("Inside of Cage")
 
     def reset_position(self) -> None:
         self.encoder.setPosition(0)
@@ -206,10 +214,10 @@ class Claw(Subsystem):
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )
 
-    def home_inside(self) -> WrapperCommand:
+    def home_inside(self, end: Callable[[], bool] | None = None) -> WrapperCommand:
         return (
             RunCommand(lambda: self.set_motor(-0.25))
-            .until(lambda: self.has_homed)
+            .until(lambda: (end() if end is not None else self.has_homed))
             .andThen(self.stop())
             .withName("Homing Outside")
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
