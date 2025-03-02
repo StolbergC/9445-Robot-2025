@@ -201,7 +201,9 @@ class RobotContainer:
 
         self.elevator.setDefaultCommand(
             RunCommand(
-                lambda: self.elevator.motor.set(self.operator_controller.getX()),
+                lambda: self.elevator.motor.set(
+                    applyDeadband(self.operator_controller.getX(), 0.1)
+                ),
                 self.elevator,
             ),
         )
@@ -307,22 +309,18 @@ class RobotContainer:
         # Trigger(self.operator_controller.button(button_rb)).onTrue(
         #     self.claw.home_outside()
         # )
+
         self.operator_controller.button(button_y).onTrue(self.claw.cage())
-        # self.operator_controller.button(button_b).onTrue(self.claw.coral())
+        self.operator_controller.povRight().onTrue(self.claw.coral())
         self.operator_controller.button(button_rpush).onTrue(self.claw.set_position(17))
         self.operator_controller.button(button_lpush).onTrue(self.claw.algae())
 
-        self.operator_controller.button(button_a).whileTrue(
-            self.wrist.angle_zero()
-        ).onFalse(self.wrist.stop())
+        self.wrist.setDefaultCommand(self.wrist.follow_angle())
+        self.operator_controller.button(button_a).onTrue(self.wrist.command_zero())
 
-        self.operator_controller.button(button_b).whileTrue(
-            self.wrist.angle_intake()
-        ).onFalse(self.wrist.stop())
+        self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
 
-        self.operator_controller.button(button_x).whileTrue(
-            self.wrist.angle_score()
-        ).onFalse(self.wrist.stop())
+        self.operator_controller.button(button_x).onTrue(self.wrist.command_score())
 
         self.operator_controller.button(button_left).whileTrue(
             RunCommand(lambda: self.wrist.motor.set(-0.1))

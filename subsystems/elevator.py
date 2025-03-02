@@ -67,13 +67,13 @@ class Elevator(Subsystem):
 
         self.motor_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(80)
+            .smartCurrentLimit(50)
             .inverted(True)
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
         self.motor_config.encoder.positionConversionFactor(
             1 / 15  # TODO: Find what the conversion factor needs to be
-        ).velocityConversionFactor(1 / (15 * 60))
+        ).velocityConversionFactor(60 / 15)
 
         self.motor.configure(
             self.motor_config,
@@ -85,10 +85,9 @@ class Elevator(Subsystem):
         self.bottom_limit = DigitalInput(0)
 
         self.pid = ProfiledPIDController(
-            0.01, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
+            13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         )
         self.feedforward = ElevatorFeedforward(0, 0.55, 0, 0)
-        self.tuning_ff = True
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
 
@@ -128,8 +127,6 @@ class Elevator(Subsystem):
                         self.feedforward.getKv(),
                         data.value.value(),
                     )
-                elif key == "Feedforward/tuning":
-                    self.tuning_ff = data.value.value()
 
         self.nettable.addListener("PID/p", EventFlags.kValueAll, nettable_updater)
         self.nettable.addListener("PID/i", EventFlags.kValueAll, nettable_updater)
@@ -147,10 +144,6 @@ class Elevator(Subsystem):
             "Feedforward/kA", EventFlags.kValueAll, nettable_updater
         )
 
-        self.nettable.addListener(
-            "Feedforward/tuning", EventFlags.kValueAll, nettable_updater
-        )
-
         self.nettable.putNumber("PID/p", self.pid.getP())
         self.nettable.putNumber("PID/i", self.pid.getI())
         self.nettable.putNumber("PID/d", self.pid.getD())
@@ -158,7 +151,6 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Feedforward/kG", self.feedforward.getKg())
         self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
-        self.nettable.putBoolean("Feedforward/tuning", self.tuning_ff)
 
         self.bottom_height: float = 9.75
         self.top_height: float = self.bottom_height + 19.5 + 22.5
@@ -187,8 +179,6 @@ class Elevator(Subsystem):
         )
         SmartDashboard.putData("ElevatorMech", self.mech)
 
-        self.nettable.putNumber("Test/rope area const", self.rope_area_constant)
-
     def periodic(self) -> None:
         if not self.bottom_limit.get():
             self.encoder.setPosition(self.bottom_height)
@@ -207,6 +197,9 @@ class Elevator(Subsystem):
             "Commanded/Velocity Setpoint (in per s)", self.pid.getSetpoint().velocity
         )
         return super().periodic()
+
+    def stop(self) -> InstantCommand:
+        return InstantCommand(lambda: self.motor.set(0))
 
     def simulationPeriodic(self) -> None:
         self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
@@ -254,7 +247,7 @@ class Elevator(Subsystem):
             self.spool_diameter
             + 2
             * self.rope_diameter
-            * 0.2479
+            * 0.3192
             * (self.encoder.getVelocity() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
@@ -268,7 +261,7 @@ class Elevator(Subsystem):
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
-        if abs(self.get_wrist_angle().degrees()) > 10:
+        if abs(self.get_wrist_angle().degrees() - 10) > 10:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
             return
         self.nettable.putBoolean("Safety/Waiting on Wrist", False)
@@ -278,13 +271,13 @@ class Elevator(Subsystem):
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
-        volts = self.pid.calculate(
+        volts = -self.pid.calculate(
             self.get_position(), position
-        ) + self.feedforward.calculate(  # the feedforward is negative
+        ) - self.feedforward.calculate(  # the feedforward is negative
             self.get_velocity(), self.pid.getSetpoint().velocity
         )
         self.nettable.putNumber("State/Out Power (V)", volts)
-        self.motor.setVoltage(-volts)
+        self.motor.setVoltage(volts)
 
     def _make_position_safe(self, position: feet) -> feet:
         """
@@ -341,7 +334,7 @@ class Elevator(Subsystem):
 
     # TODO: None of these heights are correct. They depend on the angle and stuff
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(24).withName("L1")
+        return self.command_position(22).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
         return self.command_position(
@@ -367,7 +360,7 @@ class Elevator(Subsystem):
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
-        self.motor.set(power)
+        self.motor.set(-power)
 
     def reset(self) -> InstantCommand:
         return InstantCommand(lambda: self.encoder.setPosition(0))

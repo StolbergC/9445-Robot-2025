@@ -193,7 +193,10 @@ class Claw(Subsystem):
     def coral(self) -> WrapperCommand:
         # return self.set_position(0.5).andThen(self.stop()).withName("Grab Coral")
         return (
-            self.home_inside(lambda: False).until(self.at_center).withName("Grab Coral")
+            self.home_inside(lambda: False)
+            .until(self.at_center)
+            .andThen(self.stop())
+            .withName("Grab Coral")
         )
 
     def cage(self) -> WrapperCommand:

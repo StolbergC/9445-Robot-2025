@@ -117,6 +117,8 @@ class Wrist(Subsystem):
         self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
+        self.setpoint: Rotation2d = Rotation2d.fromDegrees(0)
+
     def periodic(self) -> None:
         self.pid.calculate(self.get_angle().radians())
         self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
@@ -148,6 +150,12 @@ class Wrist(Subsystem):
         """rotation2d/s"""
         return Rotation2d.fromDegrees(self.encoder.getVelocity())
 
+    def follow_angle(self, angle: Callable[[], Rotation2d] | None = None) -> RunCommand:
+        return RunCommand(
+            lambda: self.set_state(angle() if angle is not None else self.setpoint),
+            self,
+        )
+
     def set_state(self, angle: Rotation2d) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
         if (
@@ -162,6 +170,7 @@ class Wrist(Subsystem):
             angle = Rotation2d.fromDegrees(-50)
         elif angle.degrees() > 90:  # more sky pointing
             angle = Rotation2d.fromDegrees(90)
+        self.setpoint = angle
         self.pid.setGoal(angle.radians())
         volts = self.pid.calculate(
             self.get_angle().radians(), angle.radians()
@@ -193,6 +202,24 @@ class Wrist(Subsystem):
 
     def angle_full_up(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(90)).withName("Max Angle")
+
+    def command_intake(self) -> InstantCommand:
+        def do_it():
+            self.setpoint = Rotation2d.fromDegrees(10)
+
+        return InstantCommand(do_it)
+
+    def command_score(self) -> InstantCommand:
+        def do_it():
+            self.setpoint = Rotation2d.fromDegrees(-22.5)
+
+        return InstantCommand(do_it)
+
+    def command_zero(self) -> InstantCommand:
+        def do_it():
+            self.setpoint = Rotation2d.fromDegrees(10)
+
+        return InstantCommand(do_it)
 
     def manual_control(self, power: Callable[[], float]) -> RunCommand:
         """This should only be used in test mode for the pit to reset the robot"""

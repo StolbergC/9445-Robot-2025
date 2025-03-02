@@ -220,8 +220,8 @@ class SwerveModule(Subsystem):
                 max_vel,
                 max_vel
                 * (
-                    (c := self.drive_pid.getConstraints()).maxVelocity
-                    / c.maxAcceleration
+                    (c := self.drive_pid.getConstraints()).maxAcceleration
+                    / c.maxVelocity
                 ),
             )
         )
@@ -237,7 +237,7 @@ class SwerveModule(Subsystem):
     def set_turn_idle(self, coast: bool) -> None:
         self.turn_motor_config.setIdleMode(
             SparkBaseConfig.IdleMode.kCoast
-            if not coast
+            if coast
             else SparkBaseConfig.IdleMode.kBrake
         )
         self._configure_turn()
