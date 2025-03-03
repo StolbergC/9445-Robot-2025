@@ -68,7 +68,7 @@ class Elevator(Subsystem):
         self.motor_config = (
             SparkMaxConfig()
             .smartCurrentLimit(50)
-            .inverted(True)
+            .inverted(False)
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
         self.motor_config.encoder.positionConversionFactor(
@@ -230,7 +230,7 @@ class Elevator(Subsystem):
             + 2
             * self.rope_diameter
             * 0.3192
-            * (-self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
+            * (self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
             (
@@ -271,9 +271,9 @@ class Elevator(Subsystem):
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
-        volts = -self.pid.calculate(
+        volts = self.pid.calculate(
             self.get_position(), position
-        ) - self.feedforward.calculate(  # the feedforward is negative
+        ) + self.feedforward.calculate(  # the feedforward is negative
             self.get_velocity(), self.pid.getSetpoint().velocity
         )
         self.nettable.putNumber("State/Out Power (V)", volts)
