@@ -420,7 +420,9 @@ class Drivetrain(Subsystem):
         speeds: ChassisSpeeds,
         center_of_rotation: Translation2d = Translation2d(0, 0),
     ) -> None:
-        states = self.kinematics.toSwerveModuleStates(speeds, center_of_rotation)
+        states = self.kinematics.toSwerveModuleStates(
+            ChassisSpeeds.discretize(speeds, 0.02), center_of_rotation
+        )
         self.nettable.putNumber("commandedXVel fps", speeds.vx_fps)
         self.nettable.putNumber("commandedYVel fps", speeds.vy_fps)
         self.nettable.putNumber("commandedThetaVel degps", speeds.omega_dps)

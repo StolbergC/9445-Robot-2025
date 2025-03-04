@@ -205,7 +205,7 @@ class Wrist(Subsystem):
 
     def command_intake(self) -> InstantCommand:
         def do_it():
-            self.setpoint = Rotation2d.fromDegrees(10)
+            self.setpoint = Rotation2d.fromDegrees(55)
 
         return InstantCommand(do_it)
 

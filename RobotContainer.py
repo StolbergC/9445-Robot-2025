@@ -207,7 +207,7 @@ class RobotContainer:
                 self.elevator,
             ),
         )
-        self.operator_controller.button(button_lb).whileTrue(self.elevator.command_l1())
+        self.operator_controller.button(button_lb).whileTrue(self.elevator.command_l2())
 
         self.operator_controller.button(button_right).onTrue(self.elevator.reset())
 
@@ -332,6 +332,7 @@ class RobotContainer:
 
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)
+        self.nettable.putNumber("LX Test", self.operator_controller.getX())
 
     def get_alliance(self) -> DriverStation.Alliance:
         return self.alliance

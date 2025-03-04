@@ -230,7 +230,7 @@ class Elevator(Subsystem):
             + 2
             * self.rope_diameter
             * 0.3192
-            * (self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
+            * (-self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
         ) / 2
         return self.bottom_height + (
             (
@@ -316,30 +316,22 @@ class Elevator(Subsystem):
             .andThen(InstantCommand(set_homed))
         )
 
-    def command_position(self, position: feet) -> WrapperCommand:
-        if self.has_homed:
-            return RunCommand(lambda: self.set_state(position), self).withName(
-                f"Set Position to {position} ft"
-            )
-        else:
-            return (
-                self.home()
-                .andThen(RunCommand(lambda: self.set_state(position)))
-                .onlyWhile(lambda: abs(self.get_position() - position) > 2)
-                .withName("Home then Set Position to {position} ft")
-            )
+    def command_position(self, position: float) -> WrapperCommand:
+        return (
+            RunCommand(lambda: self.set_state(position), self)
+            .until(lambda: abs(self.get_position() - position) < 1)
+            .andThen(self.stop())
+            .withName(f"Set Position to {position} ft")
+        )
 
     def follow_setpoint(self, level: Callable[[], int]) -> RunCommand:
         return RunCommand(lambda: self.set_state(level()), self)
 
-    # TODO: None of these heights are correct. They depend on the angle and stuff
     def command_l1(self) -> WrapperCommand:
         return self.command_position(22).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(
-            2 * 12 + 7 + 7 / 8 + Rotation2d.fromDegrees(35).sin() * 12
-        ).withName("L2")
+        return self.command_position(42.75).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
         return self.command_position(
