@@ -37,7 +37,6 @@ def get_auto(
             )
             .alongWith(wrist.angle_intake().andThen(claw.coral()))
             .andThen(wrist.angle_zero())
-            .andThen(elevator.home())
         )
         .andThen(
             score_l2.score_l2_on_true(elevator, wrist).alongWith(

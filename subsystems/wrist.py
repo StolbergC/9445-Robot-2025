@@ -49,7 +49,7 @@ class Wrist(Subsystem):
         )
 
         self.pid = ProfiledPIDController(
-            30, 0, 0, TrapezoidProfile.Constraints(pi, 100 * pi)
+            17, 0, 0, TrapezoidProfile.Constraints(2 * pi, 100 * pi)
         )
 
         self.feedforward = ArmFeedforward(0, 0.25, 0, 0)

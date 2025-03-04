@@ -73,7 +73,7 @@ class Elevator(Subsystem):
         )
         self.motor_config.encoder.positionConversionFactor(
             1 / 15  # TODO: Find what the conversion factor needs to be
-        ).velocityConversionFactor(60 / 15)
+        ).velocityConversionFactor(1 / 15)
 
         self.motor.configure(
             self.motor_config,
@@ -250,7 +250,7 @@ class Elevator(Subsystem):
             * 0.3192
             * (self.encoder.getVelocity() * (self.spool_depth / self.rope_diameter))
         ) / 2
-        return self.bottom_height + (
+        return (
             (
                 (outer_radius * outer_radius)
                 - ((spool_radius := self.spool_diameter / 2) * spool_radius)
@@ -263,19 +263,19 @@ class Elevator(Subsystem):
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
         if abs(self.get_wrist_angle().degrees() - 10) > 10:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
+            self.motor.set(0)
             return
         self.nettable.putBoolean("Safety/Waiting on Wrist", False)
         self.nettable.putNumber("Commanded/position (in)", position)
-        position = self._make_position_safe(position)
         if position < self.bottom_height:
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
         volts = self.pid.calculate(
             self.get_position(), position
-        ) + self.feedforward.calculate(  # the feedforward is negative
-            self.get_velocity(), self.pid.getSetpoint().velocity
-        )
+        )  # + self.feedforward.calculate(  # the feedforward is negative
+        #     self.get_velocity(), self.pid.getSetpoint().velocity
+        # )
         self.nettable.putNumber("State/Out Power (V)", volts)
         self.motor.setVoltage(volts)
 
@@ -295,25 +295,12 @@ class Elevator(Subsystem):
         self.nettable.putBoolean("Safety/Adjusting Position", True)
         return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
-    def home(self) -> SequentialCommandGroup:
-        def set_homed():
-            self.has_homed = True
-
+    def tighten(self) -> WrapperCommand:
         return (
-            RunCommand(
-                lambda: self.motor.set(
-                    -0.25 if abs(self.get_wrist_angle().degrees()) < 10 else 0
-                ),
-                self,
-            )
-            .onlyWhile(lambda: not self.bottom_limit.get())
-            .andThen(
-                RunCommand(lambda: self.motor.set(0.1)).until(
-                    lambda: self.motor.getOutputCurrent() > 10
-                )
-            )
-            .andThen(InstantCommand(lambda: self.motor.set(0), self))
-            .andThen(InstantCommand(set_homed))
+            RunCommand(lambda: self.motor.set(0.25))
+            .until(lambda: self.motor.getOutputCurrent() > 3)
+            .andThen(InstantCommand(lambda: self.motor.set(0)))
+            .withName("Tighten Rope")
         )
 
     def command_position(self, position: float) -> WrapperCommand:
