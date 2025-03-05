@@ -178,9 +178,12 @@ class Claw(Subsystem):
     def stop(self) -> InstantCommand:
         return InstantCommand(lambda: self.motor.set(0))
 
+    def algae_outside(self) -> WrapperCommand:
+        return self.set_position(17).withName("Algae Outside")
+
     def algae(self) -> WrapperCommand:
         return (
-            self.set_position(17)
+            self.algae_outside()
             .andThen(
                 RunCommand(lambda: self.set_motor(-0.2)).onlyWhile(
                     lambda: not self.is_stalling and time() - self.stall_timer > 0.25

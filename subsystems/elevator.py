@@ -181,10 +181,6 @@ class Elevator(Subsystem):
         SmartDashboard.putData("ElevatorMech", self.mech)
 
     def periodic(self) -> None:
-        if not self.bottom_limit.get():
-            self.encoder.setPosition(self.bottom_height)
-            self.has_homed = True
-
         self.nettable.putNumber("State/position (in)", self.get_position())
         self.nettable.putNumber(
             "State/raw_position (rotations)", self.encoder.getPosition()
@@ -194,9 +190,10 @@ class Elevator(Subsystem):
         self.nettable.putNumber(
             "State/Current Draw (amp)", self.motor.getOutputCurrent()
         )
-        # self.nettable.putNumber(
-        #     "Commanded/Velocity Setpoint (in per s)", self.pid.getSetpoint().velocity
-        # )
+        if (c := self.getCurrentCommand()) is not None:
+            self.nettable.putString("Running Command", c.getName())
+        else:
+            self.nettable.putString("Running Command", "None")
         return super().periodic()
 
     def stop(self) -> InstantCommand:
@@ -314,6 +311,9 @@ class Elevator(Subsystem):
     def follow_setpoint(self, level: Callable[[], int]) -> RunCommand:
         return RunCommand(lambda: self.set_state(level()), self)
 
+    def command_bottom(self) -> WrapperCommand:
+        return self.command_position(0).withName("Bottom")
+
     def command_l1(self) -> WrapperCommand:
         return self.command_position(5.827).withName("L1")
 
@@ -340,4 +340,7 @@ class Elevator(Subsystem):
         self.motor.set(-power)
 
     def reset(self) -> InstantCommand:
-        return InstantCommand(lambda: self.encoder.setPosition(0))
+        def go() -> None:
+            self.encoder.setPosition(0)
+
+        return InstantCommand(go)

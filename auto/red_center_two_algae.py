@@ -51,7 +51,7 @@ def get_auto(
         # grab gh algae
         .andThen(drivetrain.drive_position(positions.red_algae_gh_far))
         .andThen(
-            intake.intake_algae_low(elevator, wrist, claw, fingers, 1).alongWith(
+            intake.intake_algae_low(elevator, wrist, claw).alongWith(
                 drivetrain.drive_position(positions.red_algae_gh)
             )
         )
@@ -65,10 +65,10 @@ def get_auto(
         .andThen(score.score_alage(fingers, 1))
         .andThen(
             drivetrain.drive_position(positions.red_algae_ef).alongWith(
-                intake.intake_algae_high(elevator, wrist, claw, fingers, 1)
+                intake.intake_algae_high(elevator, wrist, claw)
             )
         )
-        .andThen(intake.intake_algae_high(elevator, wrist, claw, fingers, 2))
+        .andThen(intake.intake_algae_high(elevator, wrist, claw))
         .andThen(drivetrain.drive_position(positions.red_algae_ef_far))
         .andThen(
             drivetrain.drive_position(positions.red_processor).alongWith(

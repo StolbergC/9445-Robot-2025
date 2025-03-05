@@ -20,21 +20,14 @@ def intake_coral(
     wrist: Wrist,
     claw: Claw,
     fingers: Fingers,
-    intake_timeout: float = 0,
-) -> SequentialCommandGroup | WrapperCommand:
-    if intake_timeout > 0:
-        return (
-            wrist.angle_zero()
-            .andThen(elevator.command_intake().alongWith(claw.cage()))
-            .andThen(wrist.angle_intake())
-            .andThen(fingers.intake().withTimeout(intake_timeout))
-        )
+) -> WrapperCommand:
     return (
         wrist.angle_zero()
         .andThen(elevator.command_intake().alongWith(claw.cage()))
         .andThen(wrist.angle_intake())
         .andThen(fingers.intake())
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+        .withName("Intake Coral")
     )
 
 
@@ -47,34 +40,30 @@ def intake_algae(
     intake_timeout: float = 0,
 ) -> SequentialCommandGroup:
     if level == 2:
-        return intake_algae_low(elevator, wrist, claw, fingers, intake_timeout)
+        return intake_algae_low(elevator, wrist, claw)
     elif level == 3:
         return intake_algae_high(elevator, wrist, claw, fingers, intake_timeout)
     else:
         raise ValueError("The only levels for algae are 2 and 3")
 
 
+def intake_algae_ground(
+    elevator: Elevator,
+    wrist: Wrist,
+    claw: Claw,
+) -> SequentialCommandGroup:
+    return (wrist.angle_score()).andThen(
+        elevator.command_bottom().alongWith(claw.algae_outside())
+    )
+
+
 def intake_algae_low(
     elevator: Elevator,
     wrist: Wrist,
     claw: Claw,
-    fingers: Fingers,
-    intake_timeout: float = 0,
 ) -> SequentialCommandGroup:
-    if intake_timeout > 0:
-        return (
-            wrist.angle_zero()
-            .andThen(elevator.algae_intake_low())
-            .andThen(
-                (claw.algae().alongWith(fingers.intake(False))).withTimeout(
-                    intake_timeout
-                )
-            )
-        )
-    return (
-        wrist.angle_zero()
-        .andThen(elevator.algae_intake_low())
-        .andThen(claw.algae().alongWith(fingers.intake(False)))
+    return wrist.angle_zero().andThen(
+        elevator.algae_intake_low().alongWith(claw.algae_outside())
     )
 
 
@@ -82,21 +71,7 @@ def intake_algae_high(
     elevator: Elevator,
     wrist: Wrist,
     claw: Claw,
-    fingers: Fingers,
-    intake_timeout: float = 0,
 ) -> SequentialCommandGroup:
-    if intake_timeout > 0:
-        return (
-            wrist.angle_zero()
-            .andThen(elevator.algae_intake_high())
-            .andThen(
-                (claw.algae().alongWith(fingers.intake(False))).withTimeout(
-                    intake_timeout
-                )
-            )
-        )
-    return (
-        wrist.angle_zero()
-        .andThen(elevator.algae_intake_high())
-        .andThen(claw.algae().alongWith(fingers.intake(False)))
+    return wrist.angle_zero().andThen(
+        elevator.algae_intake_high().alongWith(claw.algae_outside())
     )
