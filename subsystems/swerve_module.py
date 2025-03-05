@@ -12,6 +12,7 @@ from commands2 import Subsystem
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData
 
 from wpilib import RobotBase
+from wpimath import applyDeadband
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
 from wpimath.units import (
     inchesToMeters,
@@ -67,7 +68,10 @@ class SwerveModule(Subsystem):
         self.drive_motor = SparkMax(drive_id, SparkLowLevel.MotorType.kBrushless)
         self.drive_encoder = self.drive_motor.getEncoder()
         self.drive_pid = ProfiledPIDController(
-            0.35, 0, 0.0075, TrapezoidProfile.Constraints(max_velocity, max_accel * 2)
+            12 * 0.35,
+            0,
+            12 * 0.0075,
+            TrapezoidProfile.Constraints(max_velocity, max_accel * 2),
         )
 
         self.drive_motor_config = SparkMaxConfig()
@@ -94,7 +98,9 @@ class SwerveModule(Subsystem):
             0.01, 0, 0, TrapezoidProfile.Constraints(720, 7200)
         )
         self.turn_motor_config = SparkMaxConfig()
-        self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(40)
+        self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(
+            40
+        ).setIdleMode(SparkMaxConfig.IdleMode.kCoast)
 
         self.turn_pid.enableContinuousInput(-180, 180)
 
@@ -269,7 +275,7 @@ class SwerveModule(Subsystem):
         cosine optimization - make the wheel slower when pointed the wrong direction
         note that there in no abs over cos because cos(-x) == cos(x)
         """
-        cos_optimizer = (commanded_state.angle - self.get_angle()).cos()
+        cos_optimizer = (self.get_angle() - commanded_state.angle).cos()
         self.nettable.putNumber("Commanded/Speed", commanded_state.speed)
         self.nettable.putNumber(
             "Commanded/Optimized Speed", commanded_state.speed * cos_optimizer
@@ -305,14 +311,13 @@ class SwerveModule(Subsystem):
         drive_speed = self.drive_pid.calculate(
             self.get_vel(), commanded_state.speed * cos_optimizer
         )
-        drive_speed = 1 if drive_speed > 1 else -1 if drive_speed < -1 else drive_speed
         self.nettable.putNumber(
             "State/change",
             max(commanded_state.speed, self.get_vel())
             - min(commanded_state.speed, self.get_vel()),
         )
 
-        self.drive_motor.set(drive_speed)
+        self.drive_motor.setVoltage(drive_speed)
         self.nettable.putNumber("State/Out Drive Speed (%)", drive_speed)
 
     def _rotation2d_to_rotations(self, angle: Rotation2d) -> float:

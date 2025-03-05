@@ -23,7 +23,7 @@ from wpimath.units import (
     feet,
     inches,
 )
-from wpimath.controller import ProfiledPIDController, ElevatorFeedforward
+from wpimath.controller import ProfiledPIDController, ElevatorFeedforward, PIDController
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
@@ -84,9 +84,10 @@ class Elevator(Subsystem):
         # TODO: Check if this is actually the bottom, what it means, how we use it, etc.
         self.bottom_limit = DigitalInput(0)
 
-        self.pid = ProfiledPIDController(
-            13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
-        )
+        self.pid = PIDController(75, 0, 0)
+        # self.pid = ProfiledPIDController(
+        #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
+        # )
         self.feedforward = ElevatorFeedforward(0, 0.55, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
@@ -152,8 +153,8 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
-        self.bottom_height: float = 9.75
-        self.top_height: float = self.bottom_height + 19.5 + 22.5
+        self.bottom_height: float = 0
+        self.top_height: float = 19
 
         if not RobotBase.isReal():
             self.gearbox = DCMotor.NEO(1)
@@ -193,9 +194,9 @@ class Elevator(Subsystem):
         self.nettable.putNumber(
             "State/Current Draw (amp)", self.motor.getOutputCurrent()
         )
-        self.nettable.putNumber(
-            "Commanded/Velocity Setpoint (in per s)", self.pid.getSetpoint().velocity
-        )
+        # self.nettable.putNumber(
+        #     "Commanded/Velocity Setpoint (in per s)", self.pid.getSetpoint().velocity
+        # )
         return super().periodic()
 
     def stop(self) -> InstantCommand:
@@ -271,9 +272,8 @@ class Elevator(Subsystem):
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
-        volts = self.pid.calculate(
-            self.get_position(), position
-        )  # + self.feedforward.calculate(  # the feedforward is negative
+        volts = self.pid.calculate(self.encoder.getPosition(), position)
+        # + self.feedforward.calculate(  # the feedforward is negative
         #     self.get_velocity(), self.pid.getSetpoint().velocity
         # )
         self.nettable.putNumber("State/Out Power (V)", volts)
@@ -306,7 +306,7 @@ class Elevator(Subsystem):
     def command_position(self, position: float) -> WrapperCommand:
         return (
             RunCommand(lambda: self.set_state(position), self)
-            .until(lambda: abs(self.get_position() - position) < 1)
+            .until(lambda: abs(self.encoder.getPosition() - position) < 1)
             .andThen(self.stop())
             .withName(f"Set Position to {position} ft")
         )
@@ -315,15 +315,13 @@ class Elevator(Subsystem):
         return RunCommand(lambda: self.set_state(level()), self)
 
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(22).withName("L1")
+        return self.command_position(5.827).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(42.75).withName("L2")
+        return self.command_position(13.365).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(
-            3 * 12 + 11 + 5 / 8 + Rotation2d.fromDegrees(35).sin() * 12
-        ).withName("L3")
+        return self.command_position(17.241).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
         return self.command_position(1).withName("Intake")

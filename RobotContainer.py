@@ -1,4 +1,11 @@
-from commands2 import Command, DeferredCommand, RunCommand, WaitCommand, InstantCommand
+from commands2 import (
+    Command,
+    DeferredCommand,
+    RepeatCommand,
+    RunCommand,
+    WaitCommand,
+    InstantCommand,
+)
 import commands2
 from commands2.button import Trigger, CommandJoystick
 
@@ -191,22 +198,22 @@ class RobotContainer:
     def set_teleop_bindings(self) -> None:
         self.drivetrain.setDefaultCommand(
             self.drivetrain.drive_joystick(
-                lambda: -self.driver_controller.getX(),
-                lambda: -self.driver_controller.getY(),
-                lambda: -self.driver_controller.getTwist(),
+                lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
+                lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
+                lambda: applyDeadband(-self.driver_controller.getTwist(), 0.05),
                 # this assumes that -1 is resting and 1 is full
                 lambda: self.field_oriented,
             )
         )
 
-        self.elevator.setDefaultCommand(
-            RunCommand(
-                lambda: self.elevator.motor.set(
-                    applyDeadband(self.operator_controller.getX(), 0.1)
-                ),
-                self.elevator,
-            ),
-        )
+        # self.elevator.setDefaultCommand(
+        #     RunCommand(
+        #         lambda: self.elevator.motor.set(
+        #             applyDeadband(self.operator_controller.getX(), 0.1)
+        #         ),
+        #         self.elevator,
+        #     ),
+        # )
 
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
             self.fingers.score()
@@ -257,8 +264,17 @@ class RobotContainer:
         self.operator_controller.button(button_a).onTrue(
             self.claw.set_position(17)
         ).onFalse(self.claw.algae())
+        self.operator_controller.button(button_y).onTrue(self.claw.coral())
 
         self.wrist.setDefaultCommand(self.wrist.follow_angle())
+        # self.wrist.setDefaultCommand(
+        #     RepeatCommand(
+        #         self.wrist.angle_score()
+        #         .andThen(WaitCommand(0.25))
+        #         .andThen(self.wrist.angle_intake())
+        #     )
+        # )
+
         self.operator_controller.povRight().onTrue(self.wrist.command_zero())
 
         self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
@@ -270,10 +286,23 @@ class RobotContainer:
         # ).onFalse(self.elevator.tighten().andThen(self.elevator.reset()))
         self.operator_controller.button(button_rb).onTrue(self.elevator.reset())
 
-        self.operator_controller.button(button_lb).onTrue(
+        self.elevator.setDefaultCommand(
             # self.elevator.command_processor()
-            self.elevator.command_l2().andThen(self.elevator.stop())
-        ).onFalse(self.elevator.stop())
+            RepeatCommand(
+                self.elevator.command_l1()
+                .andThen(WaitCommand(0.25))
+                .andThen(self.elevator.command_position(0))
+                .andThen(WaitCommand(0.25))
+                .andThen(self.elevator.command_l2())
+                .andThen(WaitCommand(0.25))
+                .andThen(self.elevator.command_position(0))
+                .andThen(WaitCommand(0.25))
+                .andThen(self.elevator.command_l3())
+                .andThen(WaitCommand(0.25))
+                .andThen(self.elevator.command_position(0))
+                .andThen(WaitCommand(0.25))
+            )
+        )
 
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)

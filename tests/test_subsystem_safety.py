@@ -13,10 +13,10 @@ def pretty_close(x: float, y: float) -> bool:
 def test_working():
     elevator = Elevator(lambda: Rotation2d(0))
     elevator.set_state(elevator.top_height + 1)
-    assert elevator.pid.getGoal().position == elevator.top_height
+    assert elevator.pid.getSetpoint() == elevator.top_height
 
     elevator.set_state(elevator.bottom_height - 1)
-    assert elevator.pid.getGoal().position == elevator.bottom_height
+    assert elevator.pid.getSetpoint() == elevator.bottom_height
 
     elevator.get_wrist_angle = lambda: Rotation2d.fromDegrees(-90)
     elevator.set_state(elevator.bottom_height - 1)
