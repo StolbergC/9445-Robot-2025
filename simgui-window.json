@@ -11,8 +11,8 @@
       "style": "0",
       "userScale": "2",
       "width": "1920",
-      "xpos": "-898",
-      "ypos": "-2093"
+      "xpos": "0",
+      "ypos": "29"
     }
   },
   "Table": {
@@ -35,7 +35,7 @@
     },
     "###/SmartDashboard/Field": {
       "Collapsed": "0",
-      "Pos": "1143,496",
+      "Pos": "939,452",
       "Size": "597,312"
     },
     "###FMS": {
@@ -45,7 +45,7 @@
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "306,410",
+      "Pos": "49,643",
       "Size": "976,278"
     },
     "###NetworkTables": {
@@ -60,12 +60,12 @@
     },
     "###Other Devices": {
       "Collapsed": "0",
-      "Pos": "1881,439",
+      "Pos": "939,439",
       "Size": "336,673"
     },
     "###Plot <0>": {
       "Collapsed": "0",
-      "Pos": "1901,810",
+      "Pos": "939,452",
       "Size": "1390,732"
     },
     "###System Joysticks": {

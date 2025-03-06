@@ -74,6 +74,7 @@ class Elevator(Subsystem):
         self.motor_config.encoder.positionConversionFactor(
             1 / 15  # TODO: Find what the conversion factor needs to be
         ).velocityConversionFactor(1 / 15)
+        self.encoder.setPosition(0)
 
         self.motor.configure(
             self.motor_config,
@@ -269,10 +270,9 @@ class Elevator(Subsystem):
             position = self.bottom_height
         elif position > self.top_height:
             position = self.top_height
-        volts = self.pid.calculate(self.encoder.getPosition(), position)
-        # + self.feedforward.calculate(  # the feedforward is negative
-        #     self.get_velocity(), self.pid.getSetpoint().velocity
-        # )
+        volts = self.pid.calculate(
+            self.encoder.getPosition(), position
+        ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
         self.motor.setVoltage(volts)
 
@@ -318,22 +318,22 @@ class Elevator(Subsystem):
         return self.command_position(5.827).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(13.365).withName("L2")
+        return self.command_position(14.79).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(17.241).withName("L3")
+        return self.command_position(self.top_height - 0.5).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(1).withName("Intake")
+        return self.command_position(1).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
         return self.command_position(1).withName("Algae Low")
 
     def algae_intake_high(self) -> WrapperCommand:
-        return self.command_position(1).withName("Algae high")
+        return self.command_position(self.top_height - 0.5).withName("Algae high")
 
     def command_processor(self) -> WrapperCommand:
-        return self.command_position(1).withName("Processor")
+        return self.command_position(10).withName("Processor")  # this is a guess
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power

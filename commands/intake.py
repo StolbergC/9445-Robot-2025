@@ -39,12 +39,14 @@ def intake_algae(
     level: int,
     intake_timeout: float = 0,
 ) -> SequentialCommandGroup:
-    if level == 2:
+    if level == 1:
+        return intake_algae_ground(elevator, wrist, claw)
+    elif level == 2:
         return intake_algae_low(elevator, wrist, claw)
     elif level == 3:
-        return intake_algae_high(elevator, wrist, claw, fingers, intake_timeout)
+        return intake_algae_high(elevator, wrist, claw)
     else:
-        raise ValueError("The only levels for algae are 2 and 3")
+        raise ValueError("The only levels for algae are 1, 2, and 3")
 
 
 def intake_algae_ground(
@@ -73,5 +75,7 @@ def intake_algae_high(
     claw: Claw,
 ) -> SequentialCommandGroup:
     return wrist.angle_zero().andThen(
-        elevator.algae_intake_high().alongWith(claw.algae_outside())
+        elevator.algae_intake_high()
+        .andThen(wrist.angle_intake())
+        .alongWith(claw.algae_outside())
     )

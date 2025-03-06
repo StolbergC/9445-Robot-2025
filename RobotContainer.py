@@ -260,6 +260,16 @@ class RobotContainer:
         #     )
         # )
 
+        self.elevator.setDefaultCommand(
+            RunCommand(
+                lambda: self.elevator.manual_control(
+                    applyDeadband(self.operator_controller.getX(), 0.1)
+                ),
+                self.elevator,
+            ),
+        )
+        self.operator_controller.button(button_x).onTrue(self.elevator.reset())
+
         """actual bindings"""
         """defaults"""
         self.drivetrain.setDefaultCommand(
@@ -340,7 +350,7 @@ class RobotContainer:
 
         # self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
 
-        # self.operator_controller.button(button_x).onTrue(self.wrist.command_score())
+        self.operator_controller.button(button_x).onTrue(self.wrist.command_score())
 
         self.operator_controller.button(button_b).onTrue(
             self.wrist.angle_zero()
@@ -348,12 +358,9 @@ class RobotContainer:
             .andThen(self.wrist.angle_intake())
         )
 
-        # self.operator_controller.button(button_rb).whileTrue(
-        #     RunCommand(lambda: self.elevator.manual_control(-0.25))
-        # ).onFalse(self.elevator.tighten().andThen(self.elevator.reset()))
-
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)
+        self.nettable.putBoolean("Coral", self.grabbing_coral)
 
     def get_alliance(self) -> DriverStation.Alliance:
         return self.alliance
