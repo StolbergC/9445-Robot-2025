@@ -274,6 +274,7 @@ class Elevator(Subsystem):
             self.encoder.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
+        volts = -9 if volts < -9 else volts
         self.motor.setVoltage(volts)
 
     def _make_position_safe(self, position: feet) -> feet:
@@ -303,7 +304,7 @@ class Elevator(Subsystem):
     def command_position(self, position: float) -> WrapperCommand:
         return (
             RunCommand(lambda: self.set_state(position), self)
-            .until(lambda: abs(self.encoder.getPosition() - position) < 1)
+            .until(lambda: abs(self.encoder.getPosition() - position) < 0.25)
             .andThen(self.stop())
             .withName(f"Set Position to {position} ft")
         )
@@ -324,7 +325,7 @@ class Elevator(Subsystem):
         return self.command_position(self.top_height - 0.5).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(1).withName("Intake")  # 21.95 in
+        return self.command_position(3.05).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
         return self.command_position(1).withName("Algae Low")
@@ -333,7 +334,7 @@ class Elevator(Subsystem):
         return self.command_position(self.top_height - 0.5).withName("Algae high")
 
     def command_processor(self) -> WrapperCommand:
-        return self.command_position(10).withName("Processor")  # this is a guess
+        return self.command_position(1.5).withName("Processor")  # this is a guess
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power

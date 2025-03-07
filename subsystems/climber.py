@@ -1,5 +1,3 @@
-from webbrowser import get
-
 from rev import SparkMax, SparkMaxConfig, SparkBase
 
 from phoenix6.hardware import CANcoder
@@ -28,14 +26,9 @@ class Climber(Subsystem):
             SparkBase.ResetMode.kResetSafeParameters,
             SparkBase.PersistMode.kNoPersistParameters,
         )
-        self.bottom_limit = DigitalInput(1)
 
     def climb(self):
-        return (
-            RunCommand(lambda: self.motor.set(1), self)
-            .onlyWhile(self.bottom_limit.get)
-            .withName("Climb")
-        )
+        return RunCommand(lambda: self.motor.set(1), self).withName("Climb")
 
     def reverse(self):
         return RunCommand(lambda: self.motor.set(-0.5), self).withName("Reverse")

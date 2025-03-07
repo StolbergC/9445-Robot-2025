@@ -319,7 +319,11 @@ class RobotContainer:
 
         Trigger(
             lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5
-        ).whileTrue(self.get_intake_command()).onFalse(self.get_intake_on_false())
+        ).whileTrue(self.get_intake_command()).onFalse(
+            self.get_intake_on_false().andThen(
+                WaitCommand(1).andThen(self.fingers.stop().alongWith(self.claw.stop()))
+            )
+        )
 
         def increase_elevator_setpoint() -> None:
             self.level = (self.level % 3) + 1

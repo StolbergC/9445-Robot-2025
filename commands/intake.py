@@ -25,7 +25,6 @@ def intake_coral(
         wrist.angle_zero()
         .andThen(elevator.command_intake().alongWith(claw.cage()))
         .andThen(wrist.angle_intake())
-        .andThen(fingers.intake())
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         .withName("Intake Coral")
     )

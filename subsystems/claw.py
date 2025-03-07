@@ -12,6 +12,7 @@ from wpimath.units import feet
 from wpilib import DigitalInput
 
 from commands2 import (
+    Command,
     DeferredCommand,
     InstantCommand,
     InterruptionBehavior,
@@ -39,7 +40,7 @@ class Claw(Subsystem):
         self.motor = SparkMax(28, SparkLowLevel.MotorType.kBrushless)
         motor_config = SparkMaxConfig()
         motor_config.setIdleMode(SparkMaxConfig.IdleMode.kCoast).smartCurrentLimit(
-            20
+            30
         ).encoder.positionConversionFactor(pi * PCD / 9).velocityConversionFactor(
             pi * PCD / (9 * 60)
         )
@@ -103,7 +104,7 @@ class Claw(Subsystem):
         )
 
     def periodic(self) -> None:
-        if not self.is_stalling and self.motor.getOutputCurrent() > 20:
+        if not self.is_stalling and self.motor.getOutputCurrent() > 18:
             self.is_stalling = True
             self.stall_timer = time()
 
@@ -185,8 +186,8 @@ class Claw(Subsystem):
         return (
             self.algae_outside()
             .andThen(
-                RunCommand(lambda: self.set_motor(-0.2)).onlyWhile(
-                    lambda: not self.is_stalling and time() - self.stall_timer > 0.25
+                RunCommand(lambda: self.set_motor(-0.2)).until(
+                    lambda: self.is_stalling and time() - self.stall_timer > 0.25
                 )
             )
             .andThen(self.stop())
@@ -194,12 +195,12 @@ class Claw(Subsystem):
         )
 
     def coral(self) -> WrapperCommand:
-        # return self.set_position(0.5).andThen(self.stop()).withName("Grab Coral")
         return (
             self.home_inside(lambda: False)
             .until(self.at_center)
             .andThen(self.stop())
             .withName("Grab Coral")
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
         )
 
     def cage(self) -> WrapperCommand:

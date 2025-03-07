@@ -35,7 +35,7 @@ class Fingers(Subsystem):
 
     def set_motors(self, power: float) -> None:
         power = 1 if power > 1 else -1 if power < -1 else power
-        self.left_motor.set(power * 1.25)
+        self.left_motor.set(power * 1.5)
         self.right_motor.set(-power)
 
     def get_current(self) -> amperes:
@@ -48,7 +48,7 @@ class Fingers(Subsystem):
 
     def intake(self, is_coral: bool = True) -> WrapperCommand:
         return (
-            RunCommand(lambda: self.set_motors(0.25), self)
+            RunCommand(lambda: self.set_motors(0.35), self)
             .onlyWhile(
                 lambda: is_coral or self.get_current() > 25  # TODO: This is a guess
             )
@@ -56,4 +56,4 @@ class Fingers(Subsystem):
         )
 
     def score(self) -> WrapperCommand:
-        return RunCommand(lambda: self.set_motors(-0.25), self).withName("Score")
+        return RunCommand(lambda: self.set_motors(-0.35), self).withName("Score")
