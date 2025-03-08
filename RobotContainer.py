@@ -1,3 +1,4 @@
+from tkinter import W
 from commands2 import (
     Command,
     DeferredCommand,
@@ -77,7 +78,7 @@ class RobotContainer:
             self.alliance = a
         self.drivetrain = Drivetrain(self.get_alliance)
         self.wrist = Wrist()
-        # self.climber = Climber()
+        self.climber = Climber()
         # self.claw = Claw(
         #     self.wrist.get_angle, Rotation2d.fromDegrees(60)
         # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
@@ -324,6 +325,9 @@ class RobotContainer:
                 WaitCommand(1).andThen(self.fingers.stop().alongWith(self.claw.stop()))
             )
         )
+
+        self.operator_controller.button(button_lpush).whileTrue(self.climber.reverse())
+        self.operator_controller.button(button_rpush).whileTrue(self.climber.climb())
 
         def increase_elevator_setpoint() -> None:
             self.level = (self.level % 3) + 1

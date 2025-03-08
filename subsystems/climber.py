@@ -28,7 +28,7 @@ class Climber(Subsystem):
         )
 
     def climb(self):
-        return RunCommand(lambda: self.motor.set(1), self).withName("Climb")
+        return RunCommand(lambda: self.motor.set(-0.4), self).withName("Climb")
 
     def reverse(self):
-        return RunCommand(lambda: self.motor.set(-0.5), self).withName("Reverse")
+        return RunCommand(lambda: self.motor.set(0.25), self).withName("Reverse")
