@@ -284,6 +284,7 @@ class RobotContainer:
         )
 
         self.wrist.setDefaultCommand(self.wrist.follow_angle())
+        self.elevator.setDefaultCommand(self.elevator.follow_setpoint())
 
         """driver"""
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())

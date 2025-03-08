@@ -5,4 +5,4 @@ from subsystems.wrist import Wrist
 
 
 def score_processor_on_true(elevator: Elevator, wrist: Wrist) -> SequentialCommandGroup:
-    return wrist.angle_zero().andThen(elevator.command_processor())
+    return wrist.angle_zero().andThen(elevator.setpoint_processor())

@@ -28,6 +28,7 @@ from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
 from commands2 import (
+    Command,
     InstantCommand,
     RunCommand,
     SequentialCommandGroup,
@@ -156,6 +157,7 @@ class Elevator(Subsystem):
 
         self.bottom_height: float = 0
         self.top_height: float = 19
+        self.setpoint = 0
 
         if not RobotBase.isReal():
             self.gearbox = DCMotor.NEO(1)
@@ -277,6 +279,13 @@ class Elevator(Subsystem):
         volts = -9 if volts < -9 else volts
         self.motor.setVoltage(volts)
 
+    def follow_setpoint(self) -> WrapperCommand:
+        return (
+            RunCommand(lambda: self.set_state(self.setpoint), self)
+            .withName("Follow Setpoint")
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+        )
+
     def _make_position_safe(self, position: feet) -> feet:
         """
         This assumes that the wrist needs to point at the angle it is currently at
@@ -309,9 +318,6 @@ class Elevator(Subsystem):
             .withName(f"Set Position to {position} ft")
         )
 
-    def follow_setpoint(self, level: Callable[[], int]) -> RunCommand:
-        return RunCommand(lambda: self.set_state(level()), self)
-
     def command_bottom(self) -> WrapperCommand:
         return self.command_position(0).withName("Bottom")
 
@@ -335,6 +341,30 @@ class Elevator(Subsystem):
 
     def command_processor(self) -> WrapperCommand:
         return self.command_position(1.5).withName("Processor")  # this is a guess
+
+    def set_setpoint(self, setpoint: float) -> None:
+        self.setpoint = setpoint
+
+    def setpoint_l1(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(5.827))
+
+    def setpoint_l2(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(14.79))
+
+    def setpoint_l3(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(self.top_height - 0.5))
+
+    def setpoint_intake(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(3.05))
+
+    def setpoint_algae_intake_low(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(1))
+
+    def setpoint_algae_intake_high(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(self.top_height - 0.5))
+
+    def setpoint_processor(self) -> WrapperCommand:
+        return InstantCommand(self.set_setpoint(1.5))
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
