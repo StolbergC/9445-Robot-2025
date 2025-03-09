@@ -38,10 +38,9 @@ class Wrist(Subsystem):
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
-        self.motor_config.absoluteEncoder.zeroOffset(0.281).zeroCentered(
+        self.motor_config.absoluteEncoder.zeroOffset(51 / 360).zeroCentered(
             True
         ).positionConversionFactor(360).velocityConversionFactor(360)
-
         self.motor.configure(
             self.motor_config,
             SparkBase.ResetMode.kResetSafeParameters,
@@ -192,10 +191,13 @@ class Wrist(Subsystem):
         )
 
     def angle_intake(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(52.5)).withName("Intake")
+        return self.run_angle(Rotation2d.fromDegrees(70)).withName("Intake")
 
     def angle_score(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(-20)).withName("Score")
+
+    def angle_score_l3(self) -> WrapperCommand:
+        return self.run_angle(Rotation2d.fromDegrees(-10)).withName("Score")
 
     def angle_zero(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(10)).withName("Horizontal")
@@ -205,7 +207,7 @@ class Wrist(Subsystem):
 
     def command_intake(self) -> InstantCommand:
         def do_it():
-            self.setpoint = Rotation2d.fromDegrees(55)
+            self.setpoint = Rotation2d.fromDegrees(65)
 
         return InstantCommand(do_it)
 

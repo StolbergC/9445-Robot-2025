@@ -319,16 +319,16 @@ class Elevator(Subsystem):
         return self.command_position(5.827).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(14.79).withName("L2")
+        return self.command_position(16.20).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(self.top_height - 0.5).withName("L3")
+        return self.command_position(self.top_height).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(3.05).withName("Intake")  # 21.95 in
+        return self.command_position(3.5).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
-        return self.command_position(1).withName("Algae Low")
+        return self.command_position(10).withName("Algae Low")
 
     def algae_intake_high(self) -> WrapperCommand:
         return self.command_position(self.top_height - 0.5).withName("Algae high")

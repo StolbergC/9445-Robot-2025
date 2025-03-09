@@ -290,7 +290,7 @@ class RobotContainer:
         def toggle_field_oriented():
             self.field_oriented = not self.field_oriented
 
-        self.driver_controller.button(button_y).toggleOnTrue(
+        self.driver_controller.button(button_y).onTrue(
             InstantCommand(toggle_field_oriented)
         )
 
@@ -326,10 +326,14 @@ class RobotContainer:
         )
 
         def increase_elevator_setpoint() -> None:
-            self.level = (self.level % 3) + 1
+            self.level += 1
+            if self.level > 3:
+                self.level = 3
 
         def decrease_elevator_setpoint() -> None:
-            self.level = ((self.level + 1) % 3) + 1
+            self.level -= 1
+            if self.level < 1:
+                self.level = 1
 
         self.operator_controller.povUp().onTrue(
             InstantCommand(increase_elevator_setpoint)
@@ -353,8 +357,6 @@ class RobotContainer:
         # self.operator_controller.povRight().onTrue(self.wrist.command_zero())
 
         # self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
-
-        self.operator_controller.button(button_x).onTrue(self.wrist.command_score())
 
         self.operator_controller.button(button_b).onTrue(
             self.wrist.angle_zero()

@@ -75,7 +75,7 @@ class SwerveModule(Subsystem):
         )
 
         self.drive_motor_config = SparkMaxConfig()
-        self.drive_motor_config.inverted(drive_inverted).smartCurrentLimit(60)
+        self.drive_motor_config.inverted(drive_inverted).smartCurrentLimit(35)
 
         self.drive_encoder.setPosition(0)
 
