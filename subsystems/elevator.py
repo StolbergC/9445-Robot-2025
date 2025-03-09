@@ -345,25 +345,25 @@ class Elevator(Subsystem):
     def set_setpoint(self, setpoint: float) -> None:
         self.setpoint = setpoint
 
-    def setpoint_l1(self) -> WrapperCommand:
+    def setpoint_l1(self) -> InstantCommand:
         return InstantCommand(self.set_setpoint(5.827))
 
-    def setpoint_l2(self) -> WrapperCommand:
+    def setpoint_l2(self) -> InstantCommand:
         return InstantCommand(self.set_setpoint(14.79))
 
-    def setpoint_l3(self) -> WrapperCommand:
-        return InstantCommand(self.set_setpoint(self.top_height - 0.5))
+    def setpoint_l3(self) -> InstantCommand:
+        return InstantCommand(self.set_setpoint(self.top_height - 0.25))
 
-    def setpoint_intake(self) -> WrapperCommand:
+    def setpoint_intake(self) -> InstantCommand:
         return InstantCommand(self.set_setpoint(3.05))
 
-    def setpoint_algae_intake_low(self) -> WrapperCommand:
-        return InstantCommand(self.set_setpoint(1))
+    def setpoint_algae_intake_low(self) -> InstantCommand:
+        return InstantCommand(self.set_setpoint(10))
 
-    def setpoint_algae_intake_high(self) -> WrapperCommand:
-        return InstantCommand(self.set_setpoint(self.top_height - 0.5))
+    def setpoint_algae_intake_high(self) -> InstantCommand:
+        return InstantCommand(self.set_setpoint(self.top_height - 0.25))
 
-    def setpoint_processor(self) -> WrapperCommand:
+    def setpoint_processor(self) -> InstantCommand:
         return InstantCommand(self.set_setpoint(1.5))
 
     def manual_control(self, power: float) -> None:

@@ -190,6 +190,9 @@ class Wrist(Subsystem):
             .withName(f"Set Angle {angle.degrees()} (deg)")
         )
 
+    def angle_algae_intake(self) -> WrapperCommand:
+        return self.run_angle(Rotation2d.fromDegrees(30)).withName("Intake High Algae")
+
     def angle_intake(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(70)).withName("Intake")
 
