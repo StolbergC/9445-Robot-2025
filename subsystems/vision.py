@@ -24,25 +24,28 @@ class Vision:
             Translation3d(inchesToMeters(14), inchesToMeters(7), -inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 45, 45),
         )
-        self.fl = photonCamera.PhotonCamera("fl camera")
+        self.fl = photonCamera.PhotonCamera("Arducam FL")
+
+        if not self.fl.isConnected():
+            exit(1)
 
         self.to_fr = Transform3d(
             Translation3d(inchesToMeters(14), inchesToMeters(7), inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 35, -45),
         )
-        self.fr = photonCamera.PhotonCamera("fr camera")
+        self.fr = photonCamera.PhotonCamera("Arducam FR")
 
         self.to_bl = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(7), -inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 45, 135),
         )
-        self.bl = photonCamera.PhotonCamera("bl camera")
+        self.bl = photonCamera.PhotonCamera("Arducam BL")
 
         self.to_br = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(7), inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 45, -135),
         )
-        self.br = photonCamera.PhotonCamera("br camera")
+        self.br = photonCamera.PhotonCamera("Arducam BR")
 
         self.fl_est = photonPoseEstimator.PhotonPoseEstimator(
             self.field_layout,
@@ -69,7 +72,9 @@ class Vision:
             self.to_br,
         )
 
-    def update_position(self, odometry: SwerveDrive4PoseEstimator) -> None:
+    def update_position(
+        self, odometry: SwerveDrive4PoseEstimator
+    ) -> SwerveDrive4PoseEstimator:
         if (
             DriverStation.getAlliance() == DriverStation.Alliance.kRed
             and self.curr_alliance != DriverStation.Alliance.kRed
@@ -94,32 +99,50 @@ class Vision:
             and self.curr_alliance != DriverStation.Alliance.kBlue
         ):
             self.curr_alliance = DriverStation.Alliance.kBlue
-            self.field_layout.setOrigin(Pose3d(Pose2d(0, 0, Rotation2d(0))))
+            self.field_layout.setOrigin(Pose3d(Pose2d(0, 0, 0)))
 
             self.fl_est.fieldTags.setOrigin(self.field_layout.getOrigin())
             self.fr_est.fieldTags.setOrigin(self.field_layout.getOrigin())
             self.bl_est.fieldTags.setOrigin(self.field_layout.getOrigin())
             self.br_est.fieldTags.setOrigin(self.field_layout.getOrigin())
-        fl = self.fl_est.update()
+        fl_res = self.fl.getLatestResult()
+        fl = self.fl_est.update(fl_res)
         if fl:
             odometry.addVisionMeasurement(
-                fl.estimatedPose.toPose2d(), fl.timestampSeconds
+                fl.estimatedPose.toPose2d(),
+                fl.timestampSeconds,
+                (0.01, 0.01, float("infinity")),
             )
+            print("asdflasjdfak;ldsjkladfsjk;ladsjfkl;adfsj")
 
-        fr = self.fl_est.update()
+        fr_res = self.fr.getLatestResult()
+        fr = self.fr_est.update(fr_res)
         if fr:
             odometry.addVisionMeasurement(
-                fr.estimatedPose.toPose2d(), fr.timestampSeconds
+                fr.estimatedPose.toPose2d(),
+                fr.timestampSeconds,
+                (0.01, 0.01, float("infinity")),
             )
+            print("asdflasjdfak;ldsjkladfsjk;ladsjfkl;adfsj")
 
-        bl = self.fl_est.update()
-        if bl:
+        bl_res = self.bl.getLatestResult()
+        bl = self.bl_est.update(bl_res)
+        if bl is not None:
             odometry.addVisionMeasurement(
-                bl.estimatedPose.toPose2d(), bl.timestampSeconds
+                bl.estimatedPose.toPose2d(),
+                bl.timestampSeconds,
+                (0.01, 0.01, float("infinity")),
             )
+            print("asdflasjdfak;ldsjkladfsjk;ladsjfkl;adfsj")
 
-        br = self.fl_est.update()
+        br_res = self.br.getLatestResult()
+        br = self.br_est.update(br_res)
         if br:
             odometry.addVisionMeasurement(
-                br.estimatedPose.toPose2d(), br.timestampSeconds
+                br.estimatedPose.toPose2d(),
+                br.timestampSeconds,
+                (0.01, 0.01, float("infinity")),
             )
+            print("asdflasjdfak;ldsjkladfsjk;ladsjfkl;adfsj")
+
+        return odometry
