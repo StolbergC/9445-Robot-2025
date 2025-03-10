@@ -191,13 +191,13 @@ class Wrist(Subsystem):
         )
 
     def angle_intake(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(70)).withName("Intake")
+        return self.run_angle(Rotation2d.fromDegrees(65)).withName("Intake")
 
     def angle_score(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(-20)).withName("Score")
 
     def angle_score_l3(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(-10)).withName("Score")
+        return self.run_angle(Rotation2d.fromDegrees(-5)).withName("Score")
 
     def angle_zero(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(10)).withName("Horizontal")

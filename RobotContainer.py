@@ -19,7 +19,6 @@ from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 
-from subsystems import elevator
 from subsystems.drivetrain import Drivetrain
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
@@ -78,13 +77,10 @@ class RobotContainer:
         self.drivetrain = Drivetrain(self.get_alliance)
         self.wrist = Wrist()
         # self.climber = Climber()
-        # self.claw = Claw(
-        #     self.wrist.get_angle, Rotation2d.fromDegrees(60)
-        # )  # TODO: Test the 60_deg. Should be as close to 90 as is safe.
-        self.claw = Claw(lambda: Rotation2d(0), Rotation2d.fromDegrees(60))
-        self.elevator = Elevator(lambda: Rotation2d(0))
-        # self.wrist.get_claw_distance = self.claw.get_dist
-        self.wrist.get_claw_distance = lambda: 0
+        self.claw = Claw(self.wrist.get_angle, Rotation2d.fromDegrees(65))
+        self.elevator = Elevator(self.wrist.get_angle)
+        self.wrist.get_claw_distance = self.claw.get_dist
+        self.wrist.safe_claw_distance = 14
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
 
@@ -284,6 +280,8 @@ class RobotContainer:
 
         self.wrist.setDefaultCommand(self.wrist.follow_angle())
 
+        self.elevator.setDefaultCommand(self.elevator.follow_setpoint())
+
         """driver"""
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
 
@@ -320,10 +318,15 @@ class RobotContainer:
         Trigger(
             lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5
         ).whileTrue(self.get_intake_command()).onFalse(
-            self.get_intake_on_false().andThen(
+            WaitCommand(0.1)
+            .andThen(self.get_intake_on_false())
+            .andThen(
                 WaitCommand(1).andThen(self.fingers.stop().alongWith(self.claw.stop()))
             )
         )
+
+        # self.operator_controller.button(button_lpush).whileTrue(self.climber.reverse())
+        # self.operator_controller.button(button_rpush).whileTrue(self.climber.climb())
 
         def increase_elevator_setpoint() -> None:
             self.level += 1
@@ -335,12 +338,12 @@ class RobotContainer:
             if self.level < 1:
                 self.level = 1
 
-        self.operator_controller.povUp().onTrue(
-            InstantCommand(increase_elevator_setpoint)
+        self.operator_controller.pov(0).onTrue(
+            DeferredCommand(lambda: InstantCommand(increase_elevator_setpoint))
         )
 
-        self.operator_controller.povDown().onTrue(
-            InstantCommand(decrease_elevator_setpoint)
+        self.operator_controller.pov(180).onTrue(
+            DeferredCommand(lambda: InstantCommand(decrease_elevator_setpoint))
         )
 
         def set_piece(coral: bool) -> None:
@@ -360,9 +363,11 @@ class RobotContainer:
 
         self.operator_controller.button(button_b).onTrue(
             self.wrist.angle_zero()
-            .andThen(self.elevator.command_bottom())
+            .andThen(self.elevator.set_setpoint_bottom())
             .andThen(self.wrist.angle_intake())
         )
+
+        self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)

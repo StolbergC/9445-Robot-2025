@@ -2,6 +2,7 @@ from commands2 import (
     Command,
     ParallelCommandGroup,
     SequentialCommandGroup,
+    WaitCommand,
     WrapperCommand,
 )
 
@@ -9,10 +10,6 @@ from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
 from subsystems.claw import Claw
 from subsystems.fingers import Fingers
-
-
-def _upper_intake_coral(claw: Claw, fingers: Fingers) -> ParallelCommandGroup:
-    return claw.cage().alongWith(fingers.intake())
 
 
 def intake_coral(
@@ -23,7 +20,8 @@ def intake_coral(
 ) -> WrapperCommand:
     return (
         wrist.angle_zero()
-        .andThen(elevator.command_intake().alongWith(claw.cage()))
+        .andThen(elevator.set_setpoint_intake().alongWith(claw.cage()))
+        .andThen(WaitCommand(0.1).until(elevator.close))
         .andThen(wrist.angle_intake())
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         .withName("Intake Coral")
@@ -64,7 +62,9 @@ def intake_algae_low(
     claw: Claw,
 ) -> SequentialCommandGroup:
     return wrist.angle_zero().andThen(
-        elevator.algae_intake_low().alongWith(claw.algae_outside())
+        elevator.set_setpoint_algae_intake_low()
+        .andThen(WaitCommand(0.1).until(elevator.close))
+        .alongWith(claw.algae_outside())
     )
 
 
@@ -74,7 +74,8 @@ def intake_algae_high(
     claw: Claw,
 ) -> SequentialCommandGroup:
     return wrist.angle_zero().andThen(
-        elevator.algae_intake_high()
+        elevator.set_setpoint_algae_intake_high()
+        .andThen(WaitCommand(0.1).until(elevator.close))
         .andThen(wrist.angle_intake())
         .alongWith(claw.algae_outside())
     )

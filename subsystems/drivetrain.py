@@ -61,9 +61,11 @@ class Drivetrain(Subsystem):
 
         """member instantiation"""
         self.constant_of_acceleration = constant_of_acceleration
-        self.max_velocity_mps = feetToMeters(15)
+        # self.max_velocity_mps = feetToMeters(15)
+        self.max_velocity_mps = feetToMeters(7)
         if RobotBase.isReal():
-            self.max_angular_velocity = Rotation2d.fromDegrees(360)
+            # self.max_angular_velocity = Rotation2d.fromDegrees(360)
+            self.max_angular_velocity = Rotation2d.fromDegrees(90)
         else:
             self.max_angular_velocity = Rotation2d(0)
 

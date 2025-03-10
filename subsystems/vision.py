@@ -24,28 +24,25 @@ class Vision:
             Translation3d(inchesToMeters(14), inchesToMeters(7), -inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 45, 45),
         )
-        self.fl = photonCamera.PhotonCamera("Arducam FL")
-
-        if not self.fl.isConnected():
-            exit(1)
+        self.fl = photonCamera.PhotonCamera("Arducam_FL")
 
         self.to_fr = Transform3d(
             Translation3d(inchesToMeters(14), inchesToMeters(7), inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 35, -45),
         )
-        self.fr = photonCamera.PhotonCamera("Arducam FR")
+        self.fr = photonCamera.PhotonCamera("Arducam_FR")
 
         self.to_bl = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(7), -inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 45, 135),
         )
-        self.bl = photonCamera.PhotonCamera("Arducam BL")
+        self.bl = photonCamera.PhotonCamera("Arducam_BL")
 
         self.to_br = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(7), inchesToMeters(14)),
             Rotation3d.fromDegrees(0, 45, -135),
         )
-        self.br = photonCamera.PhotonCamera("Arducam BR")
+        self.br = photonCamera.PhotonCamera("Arducam_BR")
 
         self.fl_est = photonPoseEstimator.PhotonPoseEstimator(
             self.field_layout,

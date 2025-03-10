@@ -28,6 +28,7 @@ from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
 from commands2 import (
+    DeferredCommand,
     InstantCommand,
     RunCommand,
     SequentialCommandGroup,
@@ -85,7 +86,7 @@ class Elevator(Subsystem):
         # TODO: Check if this is actually the bottom, what it means, how we use it, etc.
         self.bottom_limit = DigitalInput(0)
 
-        self.pid = PIDController(75, 0, 0)
+        self.pid = PIDController(30, 0, 0)
         # self.pid = ProfiledPIDController(
         #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         # )
@@ -155,7 +156,7 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
         self.bottom_height: float = 0
-        self.top_height: float = 19
+        self.top_height: float = 20
 
         if not RobotBase.isReal():
             self.gearbox = DCMotor.NEO(1)
@@ -180,6 +181,8 @@ class Elevator(Subsystem):
             "Elevator Mutable", 0, 0
         )
         SmartDashboard.putData("ElevatorMech", self.mech)
+
+        self.setpoint = 0
 
     def periodic(self) -> None:
         self.nettable.putNumber("State/position (in)", self.get_position())
@@ -303,14 +306,17 @@ class Elevator(Subsystem):
 
     def command_position(self, position: float) -> WrapperCommand:
         return (
-            RunCommand(lambda: self.set_state(position), self)
+            self.set_setpoint(position)
+            .andThen(RunCommand(lambda: self.set_state(position), self))
             .until(lambda: abs(self.encoder.getPosition() - position) < 0.25)
             .andThen(self.stop())
             .withName(f"Set Position to {position} ft")
         )
 
-    def follow_setpoint(self, level: Callable[[], int]) -> RunCommand:
-        return RunCommand(lambda: self.set_state(level()), self)
+    def follow_setpoint(self) -> DeferredCommand:
+        return DeferredCommand(
+            lambda: RunCommand(lambda: self.set_state(self.setpoint), self), self
+        )
 
     def command_bottom(self) -> WrapperCommand:
         return self.command_position(0).withName("Bottom")
@@ -319,10 +325,10 @@ class Elevator(Subsystem):
         return self.command_position(5.827).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(16.20).withName("L2")
+        return self.command_position(15.15).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(self.top_height).withName("L3")
+        return self.command_position(self.top_height - 0.25).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
         return self.command_position(3.5).withName("Intake")  # 21.95 in
@@ -335,6 +341,39 @@ class Elevator(Subsystem):
 
     def command_processor(self) -> WrapperCommand:
         return self.command_position(1.5).withName("Processor")  # this is a guess
+
+    def set_setpoint(self, setpoint: float) -> InstantCommand:
+        def do_it():
+            self.setpoint = setpoint
+
+        return InstantCommand(do_it)
+
+    def set_setpoint_bottom(self) -> WrapperCommand:
+        return self.set_setpoint(0).withName("Bottom")
+
+    def set_setpoint_l1(self) -> WrapperCommand:
+        return self.set_setpoint(5.827).withName("L1")
+
+    def set_setpoint_l2(self) -> WrapperCommand:
+        return self.set_setpoint(15.15).withName("L2")
+
+    def set_setpoint_l3(self) -> WrapperCommand:
+        return self.set_setpoint(self.top_height - 0.25).withName("L3")
+
+    def set_setpoint_intake(self) -> WrapperCommand:
+        return self.set_setpoint(3.5).withName("Intake")  # 21.95 in
+
+    def set_setpoint_algae_intake_low(self) -> WrapperCommand:
+        return self.set_setpoint(10).withName("Algae Low")
+
+    def set_setpoint_algae_intake_high(self) -> WrapperCommand:
+        return self.set_setpoint(self.top_height - 0.5).withName("Algae high")
+
+    def set_setpoint_processor(self) -> WrapperCommand:
+        return self.set_setpoint(1.5).withName("Processor")  # this is a guess
+
+    def close(self) -> bool:
+        return abs(self.setpoint - self.encoder.getPosition()) < 0.5
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
