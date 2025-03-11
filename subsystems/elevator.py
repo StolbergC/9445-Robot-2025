@@ -30,9 +30,13 @@ from wpimath.geometry import Rotation2d
 from commands2 import (
     DeferredCommand,
     InstantCommand,
+    ParallelCommandGroup,
+    ParallelRaceGroup,
+    RepeatCommand,
     RunCommand,
     SequentialCommandGroup,
     Subsystem,
+    WaitCommand,
     WrapperCommand,
 )
 
@@ -185,6 +189,8 @@ class Elevator(Subsystem):
         self.setpoint = 0
 
     def periodic(self) -> None:
+        self.nettable.putNumber("Commanded/position", self.setpoint)
+        self.nettable.putBoolean("Commanded/close", self.close())
         self.nettable.putNumber("State/position (in)", self.get_position())
         self.nettable.putNumber(
             "State/raw_position (rotations)", self.encoder.getPosition()
@@ -306,16 +312,18 @@ class Elevator(Subsystem):
 
     def command_position(self, position: float) -> WrapperCommand:
         return (
-            self.set_setpoint(position)
-            .andThen(RunCommand(lambda: self.set_state(position), self))
+            # self.set_setpoint(position)
+            # .andThen(
+            RunCommand(lambda: self.set_state(position), self)
+            # )
             .until(lambda: abs(self.encoder.getPosition() - position) < 0.25)
             .andThen(self.stop())
             .withName(f"Set Position to {position} ft")
         )
 
-    def follow_setpoint(self) -> DeferredCommand:
-        return DeferredCommand(
-            lambda: RunCommand(lambda: self.set_state(self.setpoint), self), self
+    def follow_setpoint(self) -> RepeatCommand:
+        return RepeatCommand(
+            DeferredCommand(lambda: InstantCommand(self.set_state(self.setpoint)), self)
         )
 
     def command_bottom(self) -> WrapperCommand:
@@ -373,7 +381,10 @@ class Elevator(Subsystem):
         return self.set_setpoint(1.5).withName("Processor")  # this is a guess
 
     def close(self) -> bool:
-        return abs(self.setpoint - self.encoder.getPosition()) < 0.5
+        return abs(self.setpoint - self.encoder.getPosition()) < 0.25
+
+    def wait_until_close(self) -> ParallelRaceGroup:
+        return RepeatCommand(WaitCommand(0.1)).until(self.close)
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power

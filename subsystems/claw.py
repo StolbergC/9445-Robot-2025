@@ -186,7 +186,7 @@ class Claw(Subsystem):
         return (
             self.algae_outside()
             .andThen(
-                RunCommand(lambda: self.set_motor(-0.2)).until(
+                RunCommand(lambda: self.set_motor(-0.4)).until(
                     lambda: self.is_stalling and time() - self.stall_timer > 0.25
                 )
             )

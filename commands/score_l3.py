@@ -7,7 +7,6 @@ from subsystems.wrist import Wrist
 def score_l3_on_true(elevator: Elevator, wrist: Wrist) -> SequentialCommandGroup:
     return (
         wrist.angle_zero()
-        .andThen(elevator.set_setpoint_l3())
-        .andThen(WaitCommand(0.1).until(elevator.close))
+        .andThen(elevator.command_l3())
         .andThen(wrist.angle_score_l3())
     )

@@ -20,8 +20,7 @@ def intake_coral(
 ) -> WrapperCommand:
     return (
         wrist.angle_zero()
-        .andThen(elevator.set_setpoint_intake().alongWith(claw.cage()))
-        .andThen(WaitCommand(0.1).until(elevator.close))
+        .andThen(elevator.command_intake().alongWith(claw.cage()))
         .andThen(wrist.angle_intake())
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         .withName("Intake Coral")
@@ -51,7 +50,7 @@ def intake_algae_ground(
     wrist: Wrist,
     claw: Claw,
 ) -> SequentialCommandGroup:
-    return (wrist.angle_score()).andThen(
+    return wrist.angle_score().andThen(
         elevator.command_bottom().alongWith(claw.algae_outside())
     )
 
@@ -62,9 +61,7 @@ def intake_algae_low(
     claw: Claw,
 ) -> SequentialCommandGroup:
     return wrist.angle_zero().andThen(
-        elevator.set_setpoint_algae_intake_low()
-        .andThen(WaitCommand(0.1).until(elevator.close))
-        .alongWith(claw.algae_outside())
+        elevator.algae_intake_low().alongWith(claw.algae_outside())
     )
 
 
@@ -74,8 +71,7 @@ def intake_algae_high(
     claw: Claw,
 ) -> SequentialCommandGroup:
     return wrist.angle_zero().andThen(
-        elevator.set_setpoint_algae_intake_high()
-        .andThen(WaitCommand(0.1).until(elevator.close))
-        .andThen(wrist.angle_intake())
+        elevator.algae_intake_high()
+        .andThen(wrist.intake_algae_high())
         .alongWith(claw.algae_outside())
     )

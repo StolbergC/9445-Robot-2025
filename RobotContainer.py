@@ -77,10 +77,10 @@ class RobotContainer:
         self.drivetrain = Drivetrain(self.get_alliance)
         self.wrist = Wrist()
         # self.climber = Climber()
-        self.claw = Claw(self.wrist.get_angle, Rotation2d.fromDegrees(65))
+        self.claw = Claw(self.wrist.get_angle, Rotation2d.fromDegrees(68))
         self.elevator = Elevator(self.wrist.get_angle)
         self.wrist.get_claw_distance = self.claw.get_dist
-        self.wrist.safe_claw_distance = 14
+        self.wrist.safe_claw_distance = 10
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
 
@@ -264,7 +264,7 @@ class RobotContainer:
                 self.elevator,
             ),
         )
-        self.operator_controller.button(button_x).onTrue(self.elevator.reset())
+        # self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
         """actual bindings"""
         """defaults"""
@@ -279,8 +279,6 @@ class RobotContainer:
         )
 
         self.wrist.setDefaultCommand(self.wrist.follow_angle())
-
-        self.elevator.setDefaultCommand(self.elevator.follow_setpoint())
 
         """driver"""
         self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
@@ -338,11 +336,11 @@ class RobotContainer:
             if self.level < 1:
                 self.level = 1
 
-        self.operator_controller.pov(0).onTrue(
+        self.operator_controller.povUp().onTrue(
             DeferredCommand(lambda: InstantCommand(increase_elevator_setpoint))
         )
 
-        self.operator_controller.pov(180).onTrue(
+        self.operator_controller.povDown().onTrue(
             DeferredCommand(lambda: InstantCommand(decrease_elevator_setpoint))
         )
 
@@ -363,7 +361,7 @@ class RobotContainer:
 
         self.operator_controller.button(button_b).onTrue(
             self.wrist.angle_zero()
-            .andThen(self.elevator.set_setpoint_bottom())
+            .andThen(self.elevator.command_bottom())
             .andThen(self.wrist.angle_intake())
         )
 

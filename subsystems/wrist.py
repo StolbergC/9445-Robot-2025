@@ -205,6 +205,9 @@ class Wrist(Subsystem):
     def angle_full_up(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(90)).withName("Max Angle")
 
+    def intake_algae_high(self) -> WrapperCommand:
+        return self.run_angle(Rotation2d.fromDegrees(10)).withName("Algae Intake high")
+
     def command_intake(self) -> InstantCommand:
         def do_it():
             self.setpoint = Rotation2d.fromDegrees(65)

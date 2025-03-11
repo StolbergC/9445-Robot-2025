@@ -7,6 +7,6 @@ from subsystems.wrist import Wrist
 def score_processor_on_true(elevator: Elevator, wrist: Wrist) -> SequentialCommandGroup:
     return (
         wrist.angle_zero()
-        .andThen(elevator.set_setpoint_processor())
-        .andThen(WaitCommand(0.1).until(elevator.close))
+        .andThen(elevator.command_processor())
+        .andThen(elevator.wait_until_close())
     )
