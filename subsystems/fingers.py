@@ -43,8 +43,8 @@ class Fingers(Subsystem):
             self.left_motor.getOutputCurrent(), self.right_motor.getOutputCurrent()
         )
 
-    def stop(self) -> RunCommand:
-        return RunCommand(lambda: self.set_motors(0), self)
+    def stop(self) -> InstantCommand:
+        return InstantCommand(lambda: self.set_motors(0), self)
 
     def intake(self, is_coral: bool = True) -> WrapperCommand:
         return (

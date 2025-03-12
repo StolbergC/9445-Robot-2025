@@ -19,9 +19,11 @@ def intake_coral(
     fingers: Fingers,
 ) -> WrapperCommand:
     return (
-        wrist.angle_zero()
-        .andThen(elevator.command_intake().alongWith(claw.cage()))
-        .andThen(wrist.angle_intake())
+        (
+            wrist.angle_zero()
+            .andThen(elevator.command_intake().alongWith(claw.cage()))
+            .andThen(wrist.angle_intake())
+        )
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         .withName("Intake Coral")
     )

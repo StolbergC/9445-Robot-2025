@@ -25,7 +25,10 @@ from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
 
 class Claw(Subsystem):
     def __init__(
-        self, get_wrist_angle: Callable[[], Rotation2d], safe_to_move_after: Rotation2d
+        self,
+        get_wrist_angle: Callable[[], Rotation2d],
+        safe_to_move_after_inside: Rotation2d,
+        safe_to_move_after_outside: Rotation2d,
     ) -> None:
         TEETH = 18
         DIAMETERAL_PITCH = 20  # units??? maybe /= 12
@@ -33,7 +36,8 @@ class Claw(Subsystem):
 
         super().__init__()
         self.get_wrist_angle = get_wrist_angle
-        self.safe_to_move = safe_to_move_after
+        self.safe_to_move_outside = safe_to_move_after_outside
+        self.safe_to_move_inside = safe_to_move_after_inside
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Claw")
 
@@ -142,17 +146,21 @@ class Claw(Subsystem):
             else -max_power if power < -max_power else power
         )  # TODO: Push this if possible b/c gears are now aluminum
         if (
-            (power > 0 and self.at_outside())
-            or (power < 0 and self.at_center())
-            or self.get_wrist_angle().radians() > self.safe_to_move.radians()
+            (power < 0 and self.at_outside())
+            or (power > 0 and self.at_center())
+            or (
+                power > 0
+                and self.get_wrist_angle().radians()
+                > self.safe_to_move_inside.radians()
+            )
+            or (
+                power < 0
+                and self.get_wrist_angle().radians()
+                > self.safe_to_move_outside.radians()
+            )
         ):
-            if self.get_wrist_angle().radians() > self.safe_to_move.radians():
-                self.nettable.putBoolean("Safety/Waiting on Wrist", True)
-            else:
-                self.nettable.putBoolean("Safety/Waiting on Wrist", False)
             self.nettable.putNumber("State/Out Speed (%)", 0)
             return 0
-        self.nettable.putBoolean("Safety/Waiting on Wrist", False)
         self.nettable.putNumber("State/Out Speed (%)", power)
         self.motor.set(-power)
         return power
@@ -163,69 +171,85 @@ class Claw(Subsystem):
     def set_position(self, distance: float) -> WrapperCommand:
         """the distance is in inches"""
         return (
-            self.home_outside()
-            .andThen(
-                RunCommand(
-                    lambda: self.set_motor(
-                        self.pid.calculate(self.get_dist(), distance)
+            (
+                self.home_outside()
+                .andThen(
+                    RunCommand(
+                        lambda: self.set_motor(
+                            self.pid.calculate(self.get_dist(), distance)
+                        ),
+                        self,
                     )
                 )
+                .onlyWhile(lambda: abs(self.get_dist() - distance) > 0.5)
             )
-            .onlyWhile(lambda: abs(self.get_dist() - distance) > 0.5)
             .withName(f"Go to {distance} ft")
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )
 
     def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self.motor.set(0))
+        return InstantCommand(lambda: self.motor.set(0), self)
 
     def algae_outside(self) -> WrapperCommand:
         return self.set_position(17).withName("Algae Outside")
 
     def algae(self) -> WrapperCommand:
         return (
-            self.algae_outside()
-            .andThen(
-                RunCommand(lambda: self.set_motor(-0.4)).until(
-                    lambda: self.is_stalling and time() - self.stall_timer > 0.25
+            (
+                self.algae_outside()
+                .andThen(
+                    RunCommand(lambda: self.set_motor(-0.3), self).until(
+                        lambda: self.is_stalling and time() - self.stall_timer > 0.25
+                    )
                 )
+                .andThen(self.stop())
             )
-            .andThen(self.stop())
             .withName("Grab Algae")
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
 
     def coral(self) -> WrapperCommand:
         return (
-            self.home_inside(lambda: False)
-            .until(self.at_center)
-            .andThen(self.stop())
+            (
+                self.home_inside(lambda: False)
+                .until(self.at_center)
+                .andThen(InstantCommand(lambda: self.set_motor(-0.3), self))
+            )
             .withName("Grab Coral")
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
 
     def cage(self) -> WrapperCommand:
-        return self.set_position(10.25).andThen(self.stop()).withName("Inside of Cage")
+        return (
+            (self.set_position(10).andThen(self.stop()))
+            .withName("Inside of Cage")
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+        )
 
     def reset_position(self) -> None:
         self.encoder.setPosition(0)
 
     def reset(self) -> InstantCommand:
-        return InstantCommand(self.reset_position)
+        return InstantCommand(self.reset_position, self)
 
     def home_outside(self) -> WrapperCommand:
         return (
-            RunCommand(lambda: self.set_motor(0.25))
-            .until(lambda: self.has_homed)
-            .andThen(self.stop())
+            (
+                RunCommand(lambda: self.set_motor(0.25), self)
+                .until(lambda: self.has_homed)
+                .andThen(self.stop())
+            )
             .withName("Homing Outside")
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )
 
     def home_inside(self, end: Callable[[], bool] | None = None) -> WrapperCommand:
         return (
-            RunCommand(lambda: self.set_motor(-0.25))
-            .until(lambda: (end() if end is not None else self.has_homed))
-            .andThen(self.stop())
+            (
+                RunCommand(lambda: self.set_motor(-0.25), self)
+                .until(lambda: (end() if end is not None else self.has_homed))
+                .andThen(self.stop())
+            )
             .withName("Homing Outside")
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )

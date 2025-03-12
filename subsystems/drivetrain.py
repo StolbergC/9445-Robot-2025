@@ -61,11 +61,10 @@ class Drivetrain(Subsystem):
 
         """member instantiation"""
         self.constant_of_acceleration = constant_of_acceleration
-        # self.max_velocity_mps = feetToMeters(15)
-        self.max_velocity_mps = feetToMeters(7)
+        self.max_velocity_mps = feetToMeters(15)
         if RobotBase.isReal():
-            # self.max_angular_velocity = Rotation2d.fromDegrees(360)
-            self.max_angular_velocity = Rotation2d.fromDegrees(90)
+            self.max_angular_velocity = Rotation2d.fromDegrees(270)
+            # self.max_angular_velocity = Rotation2d.fromDegrees(90)
         else:
             self.max_angular_velocity = Rotation2d(0)
 
@@ -254,7 +253,7 @@ class Drivetrain(Subsystem):
             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
         )
 
-        self.vision = Vision()
+        # self.vision = Vision()
 
         self.is_real = RobotBase.isReal()
 
@@ -274,7 +273,7 @@ class Drivetrain(Subsystem):
                 ),
             )
 
-        self.odometry = self.vision.update_position(self.odometry)
+        # self.odometry = self.vision.update_position(self.odometry)
 
         position = self.odometry.update(
             self.gyro.get_angle(),
@@ -397,7 +396,7 @@ class Drivetrain(Subsystem):
                 self.gyro.get_angle(), self.get_module_positions(), pose
             ),
             self,
-        ).andThen(self.reset_gyro(pose.rotation()))
+        )
 
     def _set_drive_idle(self, coast: bool) -> None:
         self.fl.set_drive_idle(coast)
@@ -499,6 +498,7 @@ class Drivetrain(Subsystem):
         self,
         position: Pose2d,
     ) -> ParallelRaceGroup | WrapperCommand:
+        return self.reset_pose(position)
         return (
             self.drive_joystick(
                 lambda: self.x_pid.calculate(

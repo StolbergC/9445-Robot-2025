@@ -48,7 +48,7 @@ class Wrist(Subsystem):
         )
 
         self.pid = ProfiledPIDController(
-            17, 0, 0, TrapezoidProfile.Constraints(2 * pi, 100 * pi)
+            17, 0, 0, TrapezoidProfile.Constraints(pi, 30 * pi)
         )
 
         self.feedforward = ArmFeedforward(0, 0.25, 0, 0)
@@ -191,13 +191,13 @@ class Wrist(Subsystem):
         )
 
     def angle_intake(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(65)).withName("Intake")
+        return self.run_angle(Rotation2d.fromDegrees(62.5)).withName("Intake")
 
     def angle_score(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(-20)).withName("Score")
 
     def angle_score_l3(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(-5)).withName("Score")
+        return self.run_angle(Rotation2d.fromDegrees(0)).withName("Score")
 
     def angle_zero(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(10)).withName("Horizontal")
@@ -210,7 +210,7 @@ class Wrist(Subsystem):
 
     def command_intake(self) -> InstantCommand:
         def do_it():
-            self.setpoint = Rotation2d.fromDegrees(65)
+            self.setpoint = Rotation2d.fromDegrees(62.5)
 
         return InstantCommand(do_it)
 

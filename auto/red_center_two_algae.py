@@ -47,7 +47,7 @@ def get_auto(
                 score_l1.score_l1_on_true(elevator, wrist)
             )
         )
-        .andThen(score.score_coral(claw, fingers))
+        .andThen(score.score_coral(fingers, 1))
         # grab gh algae
         .andThen(drivetrain.drive_position(positions.red_algae_gh_far))
         .andThen(

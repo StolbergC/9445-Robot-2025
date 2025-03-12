@@ -27,7 +27,11 @@ def test_working():
     assert elevator.nettable.getBoolean("Safety/Waiting on Wrist", False) == True
     assert elevator.motor.getAppliedOutput() == 0
 
-    claw = Claw(lambda: Rotation2d.fromDegrees(90), Rotation2d.fromDegrees(85))
+    claw = Claw(
+        lambda: Rotation2d.fromDegrees(90),
+        Rotation2d.fromDegrees(85),
+        Rotation2d.fromDegrees(-85),
+    )
     assert claw.set_motor(0.4) == 0
 
     claw.get_wrist_angle = lambda: Rotation2d.fromDegrees(0)

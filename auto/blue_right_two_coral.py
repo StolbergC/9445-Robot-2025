@@ -43,7 +43,7 @@ def get_auto(
                 drivetrain.drive_position(positions.blue_reef_f)
             )
         )
-        .andThen(score.score_coral(claw, fingers, 1))
+        .andThen(score.score_coral(fingers, 1))
         .andThen(
             drivetrain.drive_position(
                 positions.blue_coral_intake_right_right
@@ -57,7 +57,7 @@ def get_auto(
                 score_l2.score_l2_on_true(elevator, wrist)
             )
         )
-        .andThen(score.score_coral(claw, fingers, 2))
+        .andThen(score.score_coral(fingers, 2))
         .andThen(  # maybe happens, TODO: Test, if unable to reach, get rid of this
             drivetrain.drive_position(
                 positions.blue_coral_intake_right_right

@@ -11,11 +11,11 @@ from subsystems.fingers import Fingers
 
 
 def score_coral(
-    claw: Claw, fingers: Fingers, timeout: seconds = 0
+    fingers: Fingers, timeout: seconds = 0
 ) -> ParallelCommandGroup | ParallelRaceGroup:
     if timeout > 0:
-        return (fingers.score().alongWith(claw.cage())).withTimeout(timeout)
-    return fingers.score().alongWith(claw.cage())  # cage is just further out
+        return fingers.score().withTimeout(timeout)
+    return fingers.score()  # cage is just further out
 
 
 def score_alage(fingers: Fingers, timeout: seconds = 0) -> Command:

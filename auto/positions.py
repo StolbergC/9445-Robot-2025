@@ -188,7 +188,7 @@ blue_coral_intake_right_right = Pose2d.fromFeet(
 blue_processor = Pose2d.fromFeet(
     325.5 / 12 - ROBOT_WIDTH_FT - 61.76 / 12,
     ROBOT_WIDTH_FT / 2,
-    Rotation2d.fromDegrees(90),
+    Rotation2d.fromDegrees(-90),
 )
 
 red_start_line_left = rotate_about_center(blue_start_line_left)

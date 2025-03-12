@@ -3,6 +3,7 @@ from commands2 import (
     DeferredCommand,
     RepeatCommand,
     RunCommand,
+    Subsystem,
     WaitCommand,
     InstantCommand,
     WrapperCommand,
@@ -64,8 +65,12 @@ button_rpush = 10
 trigger_lt = 2
 
 
+class FakeSubsystem(Subsystem): ...
+
+
 class RobotContainer:
     def __init__(self) -> None:
+        self._fake_subsystem = FakeSubsystem()
         self.pdh = PowerDistribution()
         self.pdh.setSwitchableChannel(True)
         self.nettable = NetworkTableInstance.getDefault().getTable("0000DriverInfo")
@@ -77,7 +82,11 @@ class RobotContainer:
         self.drivetrain = Drivetrain(self.get_alliance)
         self.wrist = Wrist()
         # self.climber = Climber()
-        self.claw = Claw(self.wrist.get_angle, Rotation2d.fromDegrees(68))
+        self.claw = Claw(
+            lambda: Rotation2d.fromDegrees(0),
+            Rotation2d.fromDegrees(68),
+            Rotation2d.fromDegrees(55),
+        )
         self.elevator = Elevator(self.wrist.get_angle)
         self.wrist.get_claw_distance = self.claw.get_dist
         self.wrist.safe_claw_distance = 10
@@ -224,8 +233,10 @@ class RobotContainer:
         )
 
     def get_intake_on_false(self) -> DeferredCommand:
+        # return self.claw.coral()
         return DeferredCommand(
-            lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae()
+            lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
+            self.claw,
         )
 
     def set_teleop_bindings(self) -> None:
@@ -311,16 +322,20 @@ class RobotContainer:
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
             self.get_score_command()
-        ).onFalse(self.fingers.score().withTimeout(2).andThen(self.fingers.stop()))
+        ).onFalse(
+            self.claw.stop()
+            .andThen(self.fingers.score())
+            .withTimeout(2)
+            .andThen(self.fingers.stop())
+        )
 
         Trigger(
             lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5
         ).whileTrue(self.get_intake_command()).onFalse(
-            WaitCommand(0.1)
-            .andThen(self.get_intake_on_false())
-            .andThen(
-                WaitCommand(1).andThen(self.fingers.stop().alongWith(self.claw.stop()))
-            )
+            # self.claw.coral()
+            self.get_intake_on_false()
+            # .andThen(self.claw.stop())
+            # .andThen(WaitCommand(1)).andThen(self.fingers.stop())
         )
 
         # self.operator_controller.button(button_lpush).whileTrue(self.climber.reverse())
@@ -337,11 +352,21 @@ class RobotContainer:
                 self.level = 1
 
         self.operator_controller.povUp().onTrue(
-            DeferredCommand(lambda: InstantCommand(increase_elevator_setpoint))
+            WaitCommand(0.1).andThen(
+                DeferredCommand(
+                    lambda: InstantCommand(increase_elevator_setpoint),
+                    self._fake_subsystem,
+                )
+            )
         )
 
         self.operator_controller.povDown().onTrue(
-            DeferredCommand(lambda: InstantCommand(decrease_elevator_setpoint))
+            WaitCommand(0.1).andThen(
+                DeferredCommand(
+                    lambda: InstantCommand(decrease_elevator_setpoint),
+                    self._fake_subsystem,
+                )
+            )
         )
 
         def set_piece(coral: bool) -> None:

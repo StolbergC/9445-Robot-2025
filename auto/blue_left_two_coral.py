@@ -43,27 +43,26 @@ def get_auto(
                 drivetrain.drive_position(positions.blue_reef_i)
             )
         )
-        .andThen(score.score_coral(claw, fingers, 1))
+        .andThen(score.score_coral(fingers, 1))
+        .andThen(fingers.stop())
         .andThen(
             drivetrain.drive_position(positions.blue_coral_intake_left_left).alongWith(
                 intake.intake_coral(elevator, wrist, claw, fingers)
             )
         )
-        .andThen(
-            intake.intake_coral(elevator, wrist, claw, fingers)
-        )  # for if the drive beats the intake
+        .andThen(claw.coral())
         .andThen(
             drivetrain.drive_position(positions.blue_reef_j).alongWith(
                 score_l2.score_l2_on_true(elevator, wrist)
             )
         )
-        .andThen(score.score_coral(claw, fingers, 2))
+        .andThen(score.score_coral(fingers, 1))
+        .andThen(fingers.stop())
         .andThen(  # maybe happens, TODO: Test, if unable to reach, get rid of this
             drivetrain.drive_position(positions.blue_coral_intake_left_left).alongWith(
                 intake.intake_coral(elevator, wrist, claw, fingers)
             )
         )
-        .andThen(intake.intake_coral(elevator, wrist, claw, fingers))
         .andThen(claw.coral())
         .withName("Blue Left Four Coral")
         .withInterruptBehavior(

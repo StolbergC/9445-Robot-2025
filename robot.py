@@ -15,7 +15,7 @@ class Robot(TimedRobot):
     # Initialize Robot
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
-        Watchdog(10, lambda: None).disable()
+        Watchdog(10000000, lambda: None).disable()
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()

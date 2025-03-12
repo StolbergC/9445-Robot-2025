@@ -37,9 +37,8 @@ def get_auto(
                 else commands2.cmd.none()
             )
             .alongWith(
-                wrist.angle_intake().andThen(claw.home_outside()).andThen(claw.coral())
+                wrist.angle_zero().andThen(claw.home_outside()).andThen(claw.coral())
             )
-            .andThen(wrist.angle_zero())
         )
         # score preload on l1
         .andThen(
@@ -47,7 +46,8 @@ def get_auto(
                 score_l1.score_l1_on_true(elevator, wrist)
             )
         )
-        .andThen(score.score_coral(claw, fingers))
+        .andThen(score.score_coral(fingers, 1))
+        .andThen(fingers.stop())
         # grab gh algae
         .andThen(drivetrain.drive_position(positions.blue_algae_gh_far))
         .andThen(
@@ -64,6 +64,7 @@ def get_auto(
             )
         )
         .andThen(score.score_alage(fingers, 1))
+        .andThen(fingers.stop())
         .andThen(
             drivetrain.drive_position(positions.blue_algae_ef).alongWith(
                 intake.intake_algae_high(elevator, wrist, claw)
@@ -76,7 +77,8 @@ def get_auto(
                 score_processor.score_processor_on_true(elevator, wrist)
             )
         )
-        .andThen(score.score_alage(fingers, 2))
+        .andThen(score.score_alage(fingers, 1))
+        .andThen(fingers.stop())
         .andThen(
             drivetrain.set_speed_command(start_max_vel_mps, start_max_angular_vel)
             if RobotBase.isReal()
