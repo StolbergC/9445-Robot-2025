@@ -13,7 +13,7 @@ class NavX(GyroBase):
         serial_type: AHRS.NavXComType,
     ):
         self.hardware = AHRS(serial_type)
-        self.hardware.enableBoardlevelYawReset(True)
+        self.hardware.enableBoardlevelYawReset(False)
 
     @staticmethod
     def fromMXP():
@@ -31,6 +31,7 @@ class NavX(GyroBase):
             )
 
     def get_angle(self):
+        # return self.hardware.getYaw()
         return self.hardware.getRotation2d()
 
     def reset(self, new_angle: Rotation2d = Rotation2d.fromDegrees(0)) -> None:

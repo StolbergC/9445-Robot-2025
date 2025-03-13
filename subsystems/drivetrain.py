@@ -253,7 +253,7 @@ class Drivetrain(Subsystem):
             Pose2d.fromFeet(0, 0, Rotation2d.fromDegrees(0)),
         )
 
-        # self.vision = Vision()
+        self.vision = Vision()
 
         self.is_real = RobotBase.isReal()
 
@@ -273,7 +273,7 @@ class Drivetrain(Subsystem):
                 ),
             )
 
-        # self.odometry = self.vision.update_position(self.odometry)
+        self.odometry = self.vision.update_position(self.odometry)
 
         position = self.odometry.update(
             self.gyro.get_angle(),

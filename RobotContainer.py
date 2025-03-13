@@ -138,7 +138,7 @@ class RobotContainer:
         self.level = 1
         self.field_oriented = True
 
-        # wpilib.cameraserver.CameraServer.launch()
+        wpilib.cameraserver.CameraServer.launch()
 
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
