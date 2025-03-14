@@ -481,7 +481,7 @@ class Drivetrain(Subsystem):
                     applyDeadband(get_y(), 0.1, 1.0) * self.max_velocity_mps,
                     applyDeadband(get_theta(), 0.1, 1.0)
                     * self.max_angular_velocity.radians(),
-                    self.gyro.get_angle(),
+                    self.get_angle(),
                 )
                 if use_field_oriented()
                 else ChassisSpeeds(
@@ -498,7 +498,6 @@ class Drivetrain(Subsystem):
         self,
         position: Pose2d,
     ) -> ParallelRaceGroup | WrapperCommand:
-        return self.reset_pose(position)
         return (
             self.drive_joystick(
                 lambda: self.x_pid.calculate(

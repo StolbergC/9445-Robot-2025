@@ -20,6 +20,7 @@ from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 
+from commands import smack_algae
 from subsystems.drivetrain import Drivetrain
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
@@ -138,7 +139,7 @@ class RobotContainer:
         self.level = 1
         self.field_oriented = True
 
-        wpilib.cameraserver.CameraServer.launch()
+        # wpilib.cameraserver.CameraServer.launch()
 
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
@@ -298,7 +299,7 @@ class RobotContainer:
             self.field_oriented = not self.field_oriented
 
         self.driver_controller.button(button_y).onTrue(
-            InstantCommand(toggle_field_oriented)
+            DeferredCommand(lambda: InstantCommand(toggle_field_oriented))
         )
 
         self.driver_controller.button(button_a).whileTrue(
@@ -389,6 +390,14 @@ class RobotContainer:
             .andThen(self.elevator.command_bottom())
             .andThen(self.wrist.angle_intake())
         )
+
+        self.operator_controller.button(button_lb).onTrue(
+            DeferredCommand(
+                lambda: smack_algae.smack_algae_on_true(
+                    self.elevator, self.wrist, self.level <= 2
+                )
+            )
+        ).onFalse(smack_algae.smack_alage_on_false(self.elevator, self.wrist))
 
         self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 

@@ -202,7 +202,7 @@ class Claw(Subsystem):
                         lambda: self.is_stalling and time() - self.stall_timer > 0.25
                     )
                 )
-                .andThen(self.stop())
+                .andThen(InstantCommand(lambda: self.set_motor(-0.25)))
             )
             .withName("Grab Algae")
             .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)

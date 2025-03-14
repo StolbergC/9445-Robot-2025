@@ -151,6 +151,7 @@ class SwerveModule(Subsystem):
         self.mod_value = 50
 
     def periodic(self) -> None:
+        self.nettable.putNumber("State/distance", self.get_distance())
 
         self.nettable.putNumber("State/velocity (mps)", self.get_vel())
         self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())

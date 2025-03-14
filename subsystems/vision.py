@@ -1,4 +1,4 @@
-from math import pi
+from math import e, pi
 from commands2 import Subsystem
 from photonlibpy import photonCamera, photonPoseEstimator
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
@@ -24,25 +24,25 @@ class Vision:
 
         self.to_fl = Transform3d(
             Translation3d(inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 45, 45),
+            Rotation3d.fromDegrees(0, 12, 135),
         )
-        self.fl = photonCamera.PhotonCamera("Arducam_FL")
+        self.fl = photonCamera.PhotonCamera("Arducam_FL (1)")
 
         self.to_fr = Transform3d(
             Translation3d(inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 35, -45),
+            Rotation3d.fromDegrees(0, 12, -135),
         )
         self.fr = photonCamera.PhotonCamera("Arducam_FR")
 
         self.to_bl = Transform3d(
             Translation3d(-inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 45, 135),
+            Rotation3d.fromDegrees(0, 12, 135),
         )
         self.bl = photonCamera.PhotonCamera("Arducam_BL")
 
         self.to_br = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 45, -135),
+            Rotation3d.fromDegrees(0, 12, -135),
         )
         self.br = photonCamera.PhotonCamera("Arducam_BR")
 
@@ -105,14 +105,13 @@ class Vision:
         # self.bl_est.fieldTags.setOrigin(self.field_layout.getOrigin())
         # self.br_est.fieldTags.setOrigin(self.field_layout.getOrigin())
 
-        fl = self.fl_est.update()
-        if fl:
-            odometry.addVisionMeasurement(
-                fl.estimatedPose.toPose2d(),
-                fl.timestampSeconds,
-                self.std_devs,
-            )
-            print("asdflasjdfak;ldsjkladfsjk;ladsjfkl;adfsj")
+        # fl = self.fl_est.update()
+        # if fl:
+        #     odometry.addVisionMeasurement(
+        #         fl.estimatedPose.toPose2d(),
+        #         fl.timestampSeconds,
+        #         self.std_devs,
+        #     )
 
         fr = self.fr_est.update()
         if fr:
@@ -148,7 +147,7 @@ class Vision:
     @staticmethod
     def _calc_std_dev(avg_area: float) -> tuple[float, float, float]:
         return (
-            0.05**avg_area * 50,
-            0.05**avg_area * 50,
-            (pi / 8) ** avg_area,
+            x := 0.05 * (e ** (-0.5 * avg_area)),
+            x,
+            0.5 * (pi / 8) ** avg_area,
         )
