@@ -6,13 +6,13 @@
     "GLOBAL": {
       "font": "Fira Code Retina",
       "fps": "120",
-      "height": "991",
-      "maximized": "1",
+      "height": "981",
+      "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "1920",
-      "xpos": "0",
-      "ypos": "29"
+      "width": "958",
+      "xpos": "1",
+      "ypos": "38"
     }
   },
   "Table": {
@@ -46,7 +46,7 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "49,643",
-      "Size": "976,278"
+      "Size": "952,82"
     },
     "###NetworkTables": {
       "Collapsed": "0",

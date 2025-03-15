@@ -48,6 +48,7 @@ from auto import (
     red_center_two_algae,
     red_left_two_coral,
     red_right_two_coral,
+    red_test,
 )
 
 import wpilib.cameraserver
@@ -135,6 +136,14 @@ class RobotContainer:
                 self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
             ),
         )
+
+        if not RobotBase.isReal():
+            self.auto_chooser.addOption(
+                "Blue -- TEST", blue_test.get_auto(self.drivetrain)
+            )
+            self.auto_chooser.addOption(
+                "Red -- TEST", red_test.get_auto(self.drivetrain)
+            )
 
         self.level = 1
         self.field_oriented = True

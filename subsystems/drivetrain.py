@@ -498,6 +498,7 @@ class Drivetrain(Subsystem):
         self,
         position: Pose2d,
     ) -> ParallelRaceGroup | WrapperCommand:
+        return self.reset_pose(position)
         return (
             self.drive_joystick(
                 lambda: self.x_pid.calculate(
