@@ -172,10 +172,15 @@ class RobotContainer:
         # this sets the motors to idle on disable
         Trigger(DriverStation.isEnabled).onTrue(
             self.drivetrain.set_drive_idle(False)
-        ).onTrue(self.drivetrain.set_turn_idle(False))
-        Trigger(DriverStation.isEnabled).onFalse(
+        ).onTrue(self.drivetrain.set_turn_idle(False)).onTrue(
+            InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
+        ).onFalse(
             self.drivetrain.set_drive_idle(True)
-        ).onFalse(self.drivetrain.set_turn_idle(True))
+        ).onFalse(
+            self.drivetrain.set_turn_idle(True)
+        ).onFalse(
+            InstantCommand(lambda: self.pdh.setSwitchableChannel(True))
+        )
 
     def get_reef_score_command(self) -> DeferredCommand:
         return DeferredCommand(
@@ -271,7 +276,7 @@ class RobotContainer:
         self.elevator.setDefaultCommand(
             RunCommand(
                 lambda: self.elevator.manual_control(
-                    applyDeadband(self.operator_controller.getX(), 0.1)
+                    applyDeadband(self.operator_controller.getX(), 0.1) / 2
                 ),
                 self.elevator,
             ),
