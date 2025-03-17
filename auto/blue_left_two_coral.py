@@ -30,7 +30,7 @@ def get_auto(
             drivetrain.reset_pose(positions.blue_start_line_left)
             .alongWith(
                 drivetrain.set_speed_command(
-                    feetToMeters(25), Rotation2d.fromDegrees(480)
+                    feetToMeters(12), Rotation2d.fromDegrees(180)
                 )
                 if RobotBase.isReal()
                 else commands2.cmd.none()
@@ -40,9 +40,10 @@ def get_auto(
         )
         .andThen(
             score_l2.score_l2_on_true(elevator, wrist).alongWith(
-                drivetrain.drive_position(positions.blue_reef_i)
+                drivetrain.drive_position(positions.blue_reef_k_far)
             )
         )
+        .andThen(drivetrain.drive_position(positions.blue_reef_k))
         .andThen(score.score_coral(fingers, 1))
         .andThen(fingers.stop())
         .andThen(
@@ -52,10 +53,11 @@ def get_auto(
         )
         .andThen(claw.coral())
         .andThen(
-            drivetrain.drive_position(positions.blue_reef_j).alongWith(
-                score_l2.score_l2_on_true(elevator, wrist)
+            drivetrain.drive_position(positions.blue_reef_l_far).alongWith(
+                WaitCommand(0.25).andThen(score_l2.score_l2_on_true(elevator, wrist))
             )
         )
+        .andThen(drivetrain.drive_position(positions.blue_reef_l))
         .andThen(score.score_coral(fingers, 1))
         .andThen(fingers.stop())
         .andThen(  # maybe happens, TODO: Test, if unable to reach, get rid of this

@@ -4,7 +4,7 @@ from phoenix6.hardware import CANcoder
 from phoenix6.configs.config_groups import MagnetSensorConfigs
 from phoenix6.signals import SensorDirectionValue
 
-from commands2 import Subsystem, RunCommand, WrapperCommand
+from commands2 import InstantCommand, Subsystem, RunCommand, WrapperCommand
 
 from ntcore import NetworkTable, NetworkTableInstance, EventFlags, Event, ValueEventData
 
@@ -17,7 +17,7 @@ class Climber(Subsystem):
         self.motor = SparkMax(26, SparkBase.MotorType.kBrushless)
         self.motor_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(35)
+            .smartCurrentLimit(130)
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
@@ -27,8 +27,11 @@ class Climber(Subsystem):
             SparkBase.PersistMode.kNoPersistParameters,
         )
 
+    def stop(self):
+        return InstantCommand(lambda: self.motor.set(0), self)
+
     def climb(self):
-        return RunCommand(lambda: self.motor.set(1), self).withName("Climb")
+        return RunCommand(lambda: self.motor.set(-0.75), self).withName("Climb")
 
     def reverse(self):
-        return RunCommand(lambda: self.motor.set(-0.5), self).withName("Reverse")
+        return RunCommand(lambda: self.motor.set(0.3), self).withName("Reverse")

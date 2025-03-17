@@ -82,7 +82,7 @@ class RobotContainer:
             self.alliance = a
         self.drivetrain = Drivetrain(self.get_alliance)
         self.wrist = Wrist()
-        # self.climber = Climber()
+        self.climber = Climber()
         self.claw = Claw(
             lambda: Rotation2d.fromDegrees(0),
             Rotation2d.fromDegrees(68),
@@ -281,6 +281,9 @@ class RobotContainer:
                 self.elevator,
             ),
         )
+
+        self.fingers.setDefaultCommand(self.fingers.stop())
+        self.climber.setDefaultCommand(self.climber.stop())
         # self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
         """actual bindings"""
@@ -324,6 +327,9 @@ class RobotContainer:
                 self.get_algae_intake_command()
             )
         )
+
+        self.driver_controller.button(button_lpush).whileTrue(self.climber.climb())
+        self.driver_controller.button(button_rpush).whileTrue(self.climber.reverse())
 
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(

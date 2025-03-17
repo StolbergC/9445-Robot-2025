@@ -6,11 +6,11 @@
     "GLOBAL": {
       "font": "Fira Code Retina",
       "fps": "120",
-      "height": "991",
-      "maximized": "1",
+      "height": "981",
+      "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "1920",
+      "width": "455",
       "xpos": "0",
       "ypos": "29"
     }
@@ -35,7 +35,7 @@
     },
     "###/SmartDashboard/Field": {
       "Collapsed": "0",
-      "Pos": "939,452",
+      "Pos": "436,452",
       "Size": "597,312"
     },
     "###FMS": {
@@ -46,26 +46,26 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "49,643",
-      "Size": "976,278"
+      "Size": "449,278"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "505,59",
+      "Pos": "436,59",
       "Size": "1405,1642"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
-      "Pos": "685,63",
+      "Pos": "436,63",
       "Size": "750,146"
     },
     "###Other Devices": {
       "Collapsed": "0",
-      "Pos": "939,439",
+      "Pos": "436,439",
       "Size": "336,673"
     },
     "###Plot <0>": {
       "Collapsed": "0",
-      "Pos": "939,452",
+      "Pos": "436,452",
       "Size": "1390,732"
     },
     "###System Joysticks": {

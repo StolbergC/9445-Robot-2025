@@ -61,9 +61,9 @@ class Drivetrain(Subsystem):
 
         """member instantiation"""
         self.constant_of_acceleration = constant_of_acceleration
-        self.max_velocity_mps = feetToMeters(15)
+        self.max_velocity_mps = feetToMeters(12)
         if RobotBase.isReal():
-            self.max_angular_velocity = Rotation2d.fromDegrees(270)
+            self.max_angular_velocity = Rotation2d.fromDegrees(180)
             # self.max_angular_velocity = Rotation2d.fromDegrees(90)
         else:
             self.max_angular_velocity = Rotation2d(0)
@@ -84,16 +84,16 @@ class Drivetrain(Subsystem):
         )
 
         self.x_pid = ProfiledPIDController(
-            0.8,
+            0.6,
             0,
-            0.2,
+            0.0,
             TrapezoidProfile.Constraints(self.max_velocity_mps, max_accel),
         )
 
         self.y_pid = ProfiledPIDController(
-            0.8,
+            0.6,
             0,
-            0.2,
+            0.0,
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
             ),

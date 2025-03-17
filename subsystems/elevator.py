@@ -339,7 +339,7 @@ class Elevator(Subsystem):
         return self.command_position(self.top_height - 0.25).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(3.5).withName("Intake")  # 21.95 in
+        return self.command_position(4).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
         return self.command_position(10).withName("Algae Low")
@@ -366,7 +366,7 @@ class Elevator(Subsystem):
         return self.set_setpoint(15.15).withName("L2")
 
     def set_setpoint_l3(self) -> WrapperCommand:
-        return self.set_setpoint(self.top_height - 0.25).withName("L3")
+        return self.set_setpoint(self.top_height).withName("L3")
 
     def set_setpoint_intake(self) -> WrapperCommand:
         return self.set_setpoint(3.5).withName("Intake")  # 21.95 in

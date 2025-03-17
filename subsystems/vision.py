@@ -23,26 +23,26 @@ class Vision:
         self.std_devs = (0.01, 0.01, pi / 8)
 
         self.to_fl = Transform3d(
-            Translation3d(inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 12, 135),
+            Translation3d(inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
+            Rotation3d.fromDegrees(0, 30, 45),
         )
         self.fl = photonCamera.PhotonCamera("Arducam_FL (1)")
 
         self.to_fr = Transform3d(
-            Translation3d(inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 12, -135),
+            Translation3d(inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
+            Rotation3d.fromDegrees(0, 30, -45),
         )
         self.fr = photonCamera.PhotonCamera("Arducam_FR")
 
         self.to_bl = Transform3d(
-            Translation3d(-inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 12, 135),
+            Translation3d(-inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
+            Rotation3d.fromDegrees(0, 30, 135),
         )
         self.bl = photonCamera.PhotonCamera("Arducam_BL")
 
         self.to_br = Transform3d(
-            Translation3d(-inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 12, -135),
+            Translation3d(-inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
+            Rotation3d.fromDegrees(0, 30, -135),
         )
         self.br = photonCamera.PhotonCamera("Arducam_BR")
 
@@ -135,7 +135,6 @@ class Vision:
             std_devs = self._calc_std_dev(
                 sum(tag.getArea() for tag in br.targetsUsed) / len(br.targetsUsed)
             )
-            print(std_devs)
             odometry.addVisionMeasurement(
                 br.estimatedPose.toPose2d(),
                 br.timestampSeconds,
@@ -147,7 +146,7 @@ class Vision:
     @staticmethod
     def _calc_std_dev(avg_area: float) -> tuple[float, float, float]:
         return (
-            x := 0.05 * (e ** (-0.5 * avg_area)),
+            x := 0.07 * (e ** (-0.5 * avg_area)),
             x,
-            0.5 * (pi / 8) ** avg_area,
+            (pi) ** avg_area,
         )
