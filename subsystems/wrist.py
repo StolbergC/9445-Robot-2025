@@ -116,7 +116,7 @@ class Wrist(Subsystem):
         self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
-        self.setpoint: Rotation2d = Rotation2d.fromDegrees(0)
+        self.setpoint: Rotation2d = self.get_angle()
 
     def periodic(self) -> None:
         self.pid.calculate(self.get_angle().radians())
@@ -197,7 +197,7 @@ class Wrist(Subsystem):
         return self.run_angle(Rotation2d.fromDegrees(-20)).withName("Score")
 
     def angle_score_l3(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(0)).withName("Score")
+        return self.run_angle(Rotation2d.fromDegrees(5)).withName("Score")
 
     def angle_zero(self) -> WrapperCommand:
         return self.run_angle(Rotation2d.fromDegrees(10)).withName("Horizontal")

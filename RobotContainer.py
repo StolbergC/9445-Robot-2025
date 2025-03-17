@@ -139,7 +139,7 @@ class RobotContainer:
         self.level = 1
         self.field_oriented = True
 
-        # wpilib.cameraserver.CameraServer.launch()
+        wpilib.cameraserver.CameraServer.launch()
 
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
@@ -171,16 +171,18 @@ class RobotContainer:
 
         # this sets the motors to idle on disable
         Trigger(DriverStation.isEnabled).onTrue(
-            self.drivetrain.set_drive_idle(False)
-        ).onTrue(self.drivetrain.set_turn_idle(False)).onTrue(
-            InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
+            self.drivetrain.set_drive_idle(False).andThen(
+                InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
+            )
         ).onFalse(
-            self.drivetrain.set_drive_idle(True)
-        ).onFalse(
-            self.drivetrain.set_turn_idle(True)
-        ).onFalse(
-            InstantCommand(lambda: self.pdh.setSwitchableChannel(True))
+            (
+                self.drivetrain.set_drive_idle(True)
+                .andThen(self.drivetrain.set_turn_idle(True))
+                .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
+            ).ignoringDisable(True)
         )
+
+        self.claw.stop().schedule()
 
     def get_reef_score_command(self) -> DeferredCommand:
         return DeferredCommand(
@@ -316,6 +318,16 @@ class RobotContainer:
             )
         )
 
+        Trigger(lambda: self.driver_controller.getThrottle() > 0.5).onTrue(
+            self.drivetrain.set_speed_command(
+                feetToMeters(7), self.drivetrain.max_angular_velocity
+            )
+        ).onFalse(
+            self.drivetrain.set_speed_command(
+                self.drivetrain.old_speed, self.drivetrain.old_rot
+            )
+        )
+
         self.driver_controller.button(button_lb).whileTrue(
             self.drivetrain.drive_closest_reef().alongWith(
                 self.get_reef_score_command()
@@ -323,13 +335,19 @@ class RobotContainer:
         )
 
         self.driver_controller.button(button_rb).whileTrue(
-            self.drivetrain.drive_closest_algae().alongWith(
-                self.get_algae_intake_command()
-            )
+            # self.drivetrain.drive_closest_algae().alongWith(
+            #     self.get_algae_intake_command()
+            # )
+            self.drivetrain.reset_pose(positions.blue_reef_center)
         )
 
-        self.driver_controller.button(button_lpush).whileTrue(self.climber.climb())
-        self.driver_controller.button(button_rpush).whileTrue(self.climber.reverse())
+        Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).whileTrue(
+            self.drivetrain.auto_rotate_joystick_drive(
+                lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
+                lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
+                lambda: self.field_oriented,
+            )
+        )
 
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
@@ -405,7 +423,7 @@ class RobotContainer:
         self.operator_controller.button(button_lb).onTrue(
             DeferredCommand(
                 lambda: smack_algae.smack_algae_on_true(
-                    self.elevator, self.wrist, self.level <= 2
+                    self.elevator, self.wrist, self.claw, self.level <= 2
                 )
             )
         ).onFalse(smack_algae.smack_alage_on_false(self.elevator, self.wrist))

@@ -2,13 +2,17 @@ from commands2 import SequentialCommandGroup, Command
 
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
+from subsystems.claw import Claw
 
 
 def smack_algae_on_true(
-    elevator: Elevator, wrist: Wrist, low: bool = True
+    elevator: Elevator, wrist: Wrist, claw: Claw, low: bool = True
 ) -> SequentialCommandGroup:
-    return wrist.angle_zero().andThen(
-        (elevator.algae_intake_low() if low else elevator.algae_intake_high())
+    return (
+        wrist.angle_zero()
+        .andThen(claw.coral())
+        .andThen((elevator.algae_intake_low() if low else elevator.algae_intake_high()))
+        .andThen(claw.stop())
     )
 
 

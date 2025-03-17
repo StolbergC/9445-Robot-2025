@@ -21,7 +21,7 @@ from wpimath.units import (
     feetToMeters,
 )
 from wpimath.geometry import Rotation2d
-from wpimath.controller import ProfiledPIDController
+from wpimath.controller import ProfiledPIDController, PIDController
 from wpimath.filter import SlewRateLimiter
 from wpimath.trajectory import TrapezoidProfile
 
@@ -59,20 +59,19 @@ class SwerveModule(Subsystem):
         self.cancoder.optimize_bus_utilization()
         self.cancoder.get_absolute_position().set_update_frequency(100)
 
-        time.sleep(0.1)
-
         self.name = name
         self.setName(name)
 
         # drive
         self.drive_motor = SparkMax(drive_id, SparkLowLevel.MotorType.kBrushless)
         self.drive_encoder = self.drive_motor.getEncoder()
-        self.drive_pid = ProfiledPIDController(
-            12 * 0.35,
-            0,
-            12 * 0.0075,
-            TrapezoidProfile.Constraints(max_velocity, max_accel * 2),
-        )
+        # self.drive_pid = ProfiledPIDController(
+        #     5,
+        #     0,
+        #     0.1,
+        #     TrapezoidProfile.Constraints(max_velocity, max_accel * 2),
+        # )
+        self.drive_pid = PIDController(3.5, 0, 0)
 
         self.drive_motor_config = SparkMaxConfig()
         self.drive_motor_config.inverted(drive_inverted).smartCurrentLimit(35)
@@ -95,7 +94,7 @@ class SwerveModule(Subsystem):
         the range of error for this controller is [-0.25, 0.25] 
         """
         self.turn_pid = ProfiledPIDController(
-            0.01, 0, 0, TrapezoidProfile.Constraints(720, 7200)
+            0.01, 0, 0, TrapezoidProfile.Constraints(1440, 140000)
         )
         self.turn_motor_config = SparkMaxConfig()
         self.turn_motor_config.inverted(turn_inverted).smartCurrentLimit(
@@ -162,9 +161,9 @@ class SwerveModule(Subsystem):
 
         self.nettable.putNumber("State/drive position", self.get_distance())
 
-        self.nettable.putNumber(
-            "State/max velocity", self.drive_pid.getConstraints().maxVelocity
-        )
+        # self.nettable.putNumber(
+        #     "State/max velocity", self.drive_pid.getConstraints().maxVelocity
+        # )
         self.nettable.putNumber(
             "State/neo rotations", (self.turn_encoder.getPosition() % 1) - 1
         )
@@ -222,16 +221,17 @@ class SwerveModule(Subsystem):
         return SwerveModulePosition(self.get_distance(), self.get_angle())
 
     def set_max_vel(self, max_vel: float) -> None:
-        self.drive_pid.setConstraints(
-            TrapezoidProfile.Constraints(
-                max_vel,
-                max_vel
-                * (
-                    (c := self.drive_pid.getConstraints()).maxAcceleration
-                    / c.maxVelocity
-                ),
-            )
-        )
+        # self.drive_pid.setConstraints(
+        #     TrapezoidProfile.Constraints(
+        #         max_vel,
+        #         max_vel
+        #         * (
+        #             (c := self.drive_pid.getConstraints()).maxAcceleration
+        #             / c.maxVelocity
+        #         ),
+        #     )
+        # )
+        return
 
     def set_drive_idle(self, coast: bool) -> None:
         self.drive_motor_config.setIdleMode(

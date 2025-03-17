@@ -1,3 +1,4 @@
+from dataclasses import field
 from math import pi
 import time
 
@@ -71,16 +72,16 @@ class Drivetrain(Subsystem):
         max_accel = self.max_velocity_mps * constant_of_acceleration
 
         self.fl = SwerveModule(
-            "fl", 6, 8, 7, False, True, self.max_velocity_mps, max_accel
+            "fl", 6, 8, 7, False, True, self.max_velocity_mps, max_accel * 4
         )
         self.fr = SwerveModule(
-            "fr", 15, 17, 16, False, True, self.max_velocity_mps, max_accel
+            "fr", 15, 17, 16, False, True, self.max_velocity_mps, max_accel * 4
         )
         self.bl = SwerveModule(
-            "bl", 9, 11, 10, False, True, self.max_velocity_mps, max_accel
+            "bl", 9, 11, 10, False, True, self.max_velocity_mps, max_accel * 4
         )
         self.br = SwerveModule(
-            "br", 12, 14, 13, False, True, self.max_velocity_mps, max_accel
+            "br", 12, 14, 13, False, True, self.max_velocity_mps, max_accel * 4
         )
 
         self.x_pid = ProfiledPIDController(
@@ -94,9 +95,7 @@ class Drivetrain(Subsystem):
             0.6,
             0,
             0.0,
-            TrapezoidProfile.Constraints(
-                self.max_velocity_mps, self.max_velocity_mps * constant_of_acceleration
-            ),
+            TrapezoidProfile.Constraints(self.max_velocity_mps, max_accel),
         )
 
         self.t_pid = ProfiledPIDControllerRadians(
@@ -256,6 +255,9 @@ class Drivetrain(Subsystem):
         self.vision = Vision()
 
         self.is_real = RobotBase.isReal()
+
+        self.old_speed = self.max_velocity_mps
+        self.old_rot = self.max_angular_velocity
 
     def periodic(self) -> None:
         if (a := self.get_alliance()) != self.alliance:
@@ -536,7 +538,15 @@ class Drivetrain(Subsystem):
         )
 
     def get_closest(self, location_type: str) -> Pose2d:
-        if location_type == "reef":
+        if location_type == "all":
+            return self.get_pose().nearest(
+                [
+                    self.get_closest("reef"),
+                    self.get_closest("algae"),
+                    self.get_closest("intake"),
+                ]
+            )
+        elif location_type == "reef":
             if self.alliance == DriverStation.Alliance.kBlue:
                 drive_positions = [
                     positions.blue_reef_a,
@@ -663,6 +673,21 @@ class Drivetrain(Subsystem):
             else 3
         )
 
+    def auto_rotate_joystick_drive(
+        self,
+        x: typing.Callable[[], float],
+        y: typing.Callable[[], float],
+        field_oriented: typing.Callable[[], bool],
+    ) -> WrapperCommand:
+        return self.drive_joystick(
+            x,
+            y,
+            lambda: self.t_pid.calculate(
+                self.get_angle().radians(), self.get_closest("all").rotation().radians()
+            ),
+            field_oriented,
+        )
+
     def set_speed(self, drive_speed_mps: float, turn_speed: Rotation2d) -> None:
         self.max_velocity_mps = drive_speed_mps
         if RobotBase.isReal():
@@ -691,4 +716,8 @@ class Drivetrain(Subsystem):
     def set_speed_command(
         self, max_speed_mps: float, max_angular_speed: Rotation2d
     ) -> InstantCommand:
+        def set_old_speeds():
+            self.old_speed = self.max_velocity_mps
+            self.old_rot = self.max_angular_velocity
+
         return InstantCommand(lambda: self.set_speed(max_speed_mps, max_angular_speed))
