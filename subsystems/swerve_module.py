@@ -249,6 +249,10 @@ class SwerveModule(Subsystem):
         )
         self._configure_turn()
 
+    def stop(self) -> None:
+        self.drive_motor.set(0)
+        self.turn_motor.set(0)
+
     def set_state(self, commanded_state: SwerveModuleState) -> None:
         """command the swerve module to an angle and speed"""
         # optimize the new state

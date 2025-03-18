@@ -59,7 +59,7 @@ blue_reef_a = Pose2d.fromFeet(
 )
 
 blue_reef_a_far = Pose2d.fromFeet(
-    blue_reef_a.x_feet - ROBOT_WIDTH_FT * 2,
+    blue_reef_a.x_feet - ROBOT_WIDTH_FT,
     blue_reef_a.y_feet,
     blue_reef_a.rotation(),
 )
@@ -71,7 +71,7 @@ blue_reef_b = Pose2d.fromFeet(
 )
 
 blue_reef_b_far = Pose2d.fromFeet(
-    blue_reef_b.x_feet - ROBOT_WIDTH_FT * 2,
+    blue_reef_b.x_feet - ROBOT_WIDTH_FT,
     blue_reef_b.y_feet,
     blue_reef_b.rotation(),
 )

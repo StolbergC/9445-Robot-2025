@@ -38,6 +38,8 @@ class Robot(TimedRobot):
     def autonomousExit(self):
         if self.m_autonomousCommand:
             self.m_autonomousCommand.cancel()
+        if self.m_robotContainer:
+            self.m_robotContainer.drivetrain.stop().schedule()
 
     # Teleop Robot Functions
     def teleopInit(self):

@@ -72,7 +72,7 @@ class Elevator(Subsystem):
 
         self.motor_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(50)
+            .smartCurrentLimit(35)
             .inverted(False)
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
@@ -283,7 +283,7 @@ class Elevator(Subsystem):
             self.encoder.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
-        volts = -9 if volts < -9 else volts
+        volts = -11 if volts < -11 else volts
         self.motor.setVoltage(volts)
 
     def _make_position_safe(self, position: feet) -> feet:

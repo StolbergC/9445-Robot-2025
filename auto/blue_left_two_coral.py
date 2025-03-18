@@ -28,12 +28,12 @@ def get_auto(
         # setup
         (
             drivetrain.reset_pose(positions.blue_start_line_left)
-            .alongWith(
+            .andThen(
                 drivetrain.set_speed_command(
-                    feetToMeters(12), Rotation2d.fromDegrees(180)
+                    # feetToMeters(12), Rotation2d.fromDegrees(180)
+                    feetToMeters(20),
+                    Rotation2d.fromDegrees(270),
                 )
-                if RobotBase.isReal()
-                else commands2.cmd.none()
             )
             .alongWith(wrist.angle_intake().andThen(claw.coral()))
             .andThen(wrist.angle_zero())
@@ -44,7 +44,7 @@ def get_auto(
             )
         )
         .andThen(drivetrain.drive_position(positions.blue_reef_k))
-        .andThen(score.score_coral(fingers, 1))
+        .andThen(score.score_coral(fingers, 0.5))
         .andThen(fingers.stop())
         .andThen(
             drivetrain.drive_position(positions.blue_coral_intake_left_left).alongWith(
@@ -54,11 +54,11 @@ def get_auto(
         .andThen(claw.coral())
         .andThen(
             drivetrain.drive_position(positions.blue_reef_l_far).alongWith(
-                WaitCommand(0.25).andThen(score_l2.score_l2_on_true(elevator, wrist))
+                WaitCommand(0.5).andThen(score_l2.score_l2_on_true(elevator, wrist))
             )
         )
         .andThen(drivetrain.drive_position(positions.blue_reef_l))
-        .andThen(score.score_coral(fingers, 1))
+        .andThen(score.score_coral(fingers, 0.5))
         .andThen(fingers.stop())
         .andThen(  # maybe happens, TODO: Test, if unable to reach, get rid of this
             drivetrain.drive_position(positions.blue_coral_intake_left_left).alongWith(

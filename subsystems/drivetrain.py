@@ -55,7 +55,7 @@ class Drivetrain(Subsystem):
     def __init__(
         self,
         get_alliance: typing.Callable[[], DriverStation.Alliance],
-        constant_of_acceleration: float = 15,
+        constant_of_acceleration: float = 5,
     ):
         self.get_alliance = get_alliance
         self.alliance = get_alliance()
@@ -69,42 +69,41 @@ class Drivetrain(Subsystem):
         else:
             self.max_angular_velocity = Rotation2d(0)
 
-        max_accel = self.max_velocity_mps * constant_of_acceleration
+        self.max_accel = 4  # %/s^2
 
         self.fl = SwerveModule(
-            "fl", 6, 8, 7, False, True, self.max_velocity_mps, max_accel * 4
+            "fl", 6, 8, 7, False, True, self.max_velocity_mps, self.max_accel * 4
         )
         self.fr = SwerveModule(
-            "fr", 15, 17, 16, False, True, self.max_velocity_mps, max_accel * 4
+            "fr", 15, 17, 16, False, True, self.max_velocity_mps, self.max_accel * 4
         )
         self.bl = SwerveModule(
-            "bl", 9, 11, 10, False, True, self.max_velocity_mps, max_accel * 4
+            "bl", 9, 11, 10, False, True, self.max_velocity_mps, self.max_accel * 4
         )
         self.br = SwerveModule(
-            "br", 12, 14, 13, False, True, self.max_velocity_mps, max_accel * 4
+            "br", 12, 14, 13, False, True, self.max_velocity_mps, self.max_accel * 4
         )
 
         self.x_pid = ProfiledPIDController(
-            0.6,
+            2.75,
             0,
-            0.0,
-            TrapezoidProfile.Constraints(self.max_velocity_mps, max_accel),
+            0,
+            TrapezoidProfile.Constraints(self.max_velocity_mps, self.max_accel),
         )
 
         self.y_pid = ProfiledPIDController(
-            0.6,
+            2,
             0,
-            0.0,
-            TrapezoidProfile.Constraints(self.max_velocity_mps, max_accel),
+            0,
+            TrapezoidProfile.Constraints(self.max_velocity_mps, self.max_accel),
         )
 
         self.t_pid = ProfiledPIDControllerRadians(
-            0.6,
+            2.0,
             0,
-            0.1,
+            0,
             TrapezoidProfileRadians.Constraints(
-                self.max_angular_velocity.degrees(),
-                self.max_angular_velocity.degrees() * constant_of_acceleration,
+                self.max_angular_velocity.degrees(), 750
             ),
         )
 
@@ -445,7 +444,13 @@ class Drivetrain(Subsystem):
         self.br.set_state(states[3])
 
     def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self._run_chassis_speeds(ChassisSpeeds()), self)
+        def do_it():
+            self.fl.stop()
+            self.fr.stop()
+            self.bl.stop()
+            self.br.stop()
+
+        return InstantCommand(do_it)
 
     def drive_joystick(
         self,
@@ -499,7 +504,7 @@ class Drivetrain(Subsystem):
     def drive_position(
         self,
         position: Pose2d,
-    ) -> ParallelRaceGroup | WrapperCommand:
+    ) -> SequentialCommandGroup:
         return (
             self.drive_joystick(
                 lambda: self.x_pid.calculate(
@@ -521,8 +526,8 @@ class Drivetrain(Subsystem):
             .withName(f"Drive Position")
             .onlyWhile(
                 lambda: (
-                    abs(self.x_pid.getPositionError()) > feetToMeters(0.5)
-                    or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
+                    abs(self.x_pid.getPositionError()) > feetToMeters(0.25)
+                    or (abs(self.y_pid.getPositionError()) > feetToMeters(0.25))
                     or (
                         (abs(self.t_pid.getPositionError()) > pi / 16)
                         if self.is_real
@@ -535,7 +540,7 @@ class Drivetrain(Subsystem):
                     or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
                 )
             )
-        )
+        ).andThen(self.stop())
 
     def get_closest(self, location_type: str) -> Pose2d:
         if location_type == "all":
@@ -697,13 +702,13 @@ class Drivetrain(Subsystem):
         self.x_pid.setConstraints(
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps,
-                self.max_velocity_mps * self.constant_of_acceleration,
+                self.max_accel,
             )
         )
         self.y_pid.setConstraints(
             TrapezoidProfile.Constraints(
                 self.max_velocity_mps,
-                self.max_velocity_mps * self.constant_of_acceleration,
+                self.max_accel,
             )
         )
         self.t_pid.setConstraints(
@@ -715,9 +720,13 @@ class Drivetrain(Subsystem):
 
     def set_speed_command(
         self, max_speed_mps: float, max_angular_speed: Rotation2d
-    ) -> InstantCommand:
+    ) -> DeferredCommand:
         def set_old_speeds():
             self.old_speed = self.max_velocity_mps
             self.old_rot = self.max_angular_velocity
 
-        return InstantCommand(lambda: self.set_speed(max_speed_mps, max_angular_speed))
+        return DeferredCommand(
+            lambda: InstantCommand(
+                lambda: self.set_speed(max_speed_mps, max_angular_speed)
+            )
+        )

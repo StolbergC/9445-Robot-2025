@@ -176,7 +176,8 @@ class RobotContainer:
             )
         ).onFalse(
             (
-                self.drivetrain.set_drive_idle(True)
+                WaitCommand(5)
+                .andThen(self.drivetrain.set_drive_idle(True))
                 .andThen(self.drivetrain.set_turn_idle(True))
                 .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
             ).ignoringDisable(True)
@@ -247,6 +248,21 @@ class RobotContainer:
             self.claw,
         )
 
+    def get_drive_x(self) -> float:
+        return applyDeadband(-self.driver_controller.getX(), 0.05) * abs(
+            self.driver_controller.getX()
+        )
+
+    def get_drive_y(self) -> float:
+        return applyDeadband(-self.driver_controller.getY(), 0.05) * abs(
+            self.driver_controller.getY()
+        )
+
+    def get_drive_t(self) -> float:
+        return applyDeadband(-self.driver_controller.getTwist(), 0.05) * abs(
+            self.driver_controller.getTwist()
+        )
+
     def set_teleop_bindings(self) -> None:
         """testing"""
         # self.wrist.setDefaultCommand(
@@ -292,9 +308,9 @@ class RobotContainer:
         """defaults"""
         self.drivetrain.setDefaultCommand(
             self.drivetrain.drive_joystick(
-                lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
-                lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
-                lambda: applyDeadband(-self.driver_controller.getTwist(), 0.05),
+                self.get_drive_x,
+                self.get_drive_y,
+                self.get_drive_t,
                 # this assumes that -1 is resting and 1 is full
                 lambda: self.field_oriented,
             )
@@ -355,7 +371,7 @@ class RobotContainer:
         ).onFalse(
             self.claw.stop()
             .andThen(self.fingers.score())
-            .withTimeout(2)
+            .withTimeout(0.75)
             .andThen(self.fingers.stop())
         )
 
@@ -427,6 +443,8 @@ class RobotContainer:
                 )
             )
         ).onFalse(smack_algae.smack_alage_on_false(self.elevator, self.wrist))
+
+        # self.operator_controller.
 
         self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
