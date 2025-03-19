@@ -46,7 +46,10 @@ class Robot(TimedRobot):
         elastic.select_tab("Teleoperated")
         if self.m_robotContainer is not None:
             self.m_robotContainer.set_teleop_bindings()
-            self.m_robotContainer.wrist.angle_zero().schedule()
+            # self.m_robotContainer.wrist.angle_zero().schedule()
+            self.m_robotContainer.elevator.stop().schedule()
+            self.m_robotContainer.fingers.stop().schedule()
+            self.m_robotContainer.drivetrain.stop().schedule()
 
     def teleopPeriodic(self):
         pass

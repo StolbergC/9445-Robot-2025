@@ -291,14 +291,25 @@ class RobotContainer:
         #     )
         # )
 
-        self.elevator.setDefaultCommand(
+        # self.elevator.setDefaultCommand(
+        #     InstantCommand(
+        #         lambda: self.elevator.manual_control(
+        #             applyDeadband(self.operator_controller.getX(), 0.1) / 2
+        #         ),
+        #         self.elevator,
+        #     ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf),
+        # )
+
+        self.elevator.setDefaultCommand(self.elevator.stop())
+
+        Trigger(lambda: abs(self.operator_controller.getX()) > 0.1).whileTrue(
             RunCommand(
                 lambda: self.elevator.manual_control(
-                    applyDeadband(self.operator_controller.getX(), 0.1) / 2
+                    applyDeadband(self.operator_controller.getX(), 0.05) / 2
                 ),
                 self.elevator,
-            ),
-        )
+            )
+        ).onFalse(self.elevator.stop())
 
         self.fingers.setDefaultCommand(self.fingers.stop())
         self.climber.setDefaultCommand(self.climber.stop())
@@ -339,8 +350,10 @@ class RobotContainer:
                 feetToMeters(7), self.drivetrain.max_angular_velocity
             )
         ).onFalse(
-            self.drivetrain.set_speed_command(
-                self.drivetrain.old_speed, self.drivetrain.old_rot
+            DeferredCommand(
+                lambda: self.drivetrain.set_speed_command(
+                    self.drivetrain.old_speed, self.drivetrain.old_rot
+                )
             )
         )
 
@@ -371,7 +384,7 @@ class RobotContainer:
         ).onFalse(
             self.claw.stop()
             .andThen(self.fingers.score())
-            .withTimeout(0.75)
+            .withTimeout(2)
             .andThen(self.fingers.stop())
         )
 
@@ -444,9 +457,14 @@ class RobotContainer:
             )
         ).onFalse(smack_algae.smack_alage_on_false(self.elevator, self.wrist))
 
-        # self.operator_controller.
-
         self.operator_controller.button(button_x).onTrue(self.elevator.reset())
+
+        self.operator_controller.button(button_right).whileTrue(
+            self.climber.climb()
+        ).onFalse(self.climber.stop())
+        self.operator_controller.button(button_left).whileTrue(
+            self.climber.reverse()
+        ).onFalse(self.climber.stop())
 
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)

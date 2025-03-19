@@ -72,7 +72,7 @@ class Elevator(Subsystem):
 
         self.motor_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(35)
+            .smartCurrentLimit(55)
             .inverted(False)
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
@@ -207,7 +207,7 @@ class Elevator(Subsystem):
         return super().periodic()
 
     def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self.motor.set(0))
+        return InstantCommand(lambda: self.motor.set(0), self)
 
     def simulationPeriodic(self) -> None:
         self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
@@ -367,18 +367,6 @@ class Elevator(Subsystem):
 
     def set_setpoint_l3(self) -> WrapperCommand:
         return self.set_setpoint(self.top_height).withName("L3")
-
-    def set_setpoint_intake(self) -> WrapperCommand:
-        return self.set_setpoint(3.5).withName("Intake")  # 21.95 in
-
-    def set_setpoint_algae_intake_low(self) -> WrapperCommand:
-        return self.set_setpoint(10).withName("Algae Low")
-
-    def set_setpoint_algae_intake_high(self) -> WrapperCommand:
-        return self.set_setpoint(self.top_height - 0.5).withName("Algae high")
-
-    def set_setpoint_processor(self) -> WrapperCommand:
-        return self.set_setpoint(1.5).withName("Processor")  # this is a guess
 
     def close(self) -> bool:
         return abs(self.setpoint - self.encoder.getPosition()) < 0.25

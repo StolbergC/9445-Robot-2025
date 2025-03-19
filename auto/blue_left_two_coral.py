@@ -30,7 +30,9 @@ def get_auto(
             drivetrain.reset_pose(positions.blue_start_line_left)
             .alongWith(
                 drivetrain.set_speed_command(
-                    feetToMeters(19), Rotation2d.fromDegrees(270)
+                    # feetToMeters(19), Rotation2d.fromDegrees(270)
+                    feetToMeters(12),
+                    Rotation2d.fromDegrees(180),
                 )
                 if RobotBase.isReal()
                 else commands2.cmd.none()

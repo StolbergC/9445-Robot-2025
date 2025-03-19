@@ -62,7 +62,7 @@ class Drivetrain(Subsystem):
 
         """member instantiation"""
         self.constant_of_acceleration = constant_of_acceleration
-        self.max_velocity_mps = feetToMeters(12)
+        self.max_velocity_mps = feetToMeters(17)
         if RobotBase.isReal():
             self.max_angular_velocity = Rotation2d.fromDegrees(180)
             # self.max_angular_velocity = Rotation2d.fromDegrees(90)
@@ -726,7 +726,7 @@ class Drivetrain(Subsystem):
             self.old_rot = self.max_angular_velocity
 
         return DeferredCommand(
-            lambda: InstantCommand(
-                lambda: self.set_speed(max_speed_mps, max_angular_speed)
+            lambda: InstantCommand(set_old_speeds).andThen(
+                InstantCommand(lambda: self.set_speed(max_speed_mps, max_angular_speed))
             )
         )

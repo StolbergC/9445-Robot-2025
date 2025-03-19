@@ -48,7 +48,7 @@ class Fingers(Subsystem):
 
     def intake(self, is_coral: bool = True) -> WrapperCommand:
         return (
-            RunCommand(lambda: self.set_motors(0.65), self)
+            RunCommand(lambda: self.set_motors(1), self)
             .onlyWhile(
                 lambda: is_coral or self.get_current() > 25  # TODO: This is a guess
             )
@@ -56,4 +56,4 @@ class Fingers(Subsystem):
         )
 
     def score(self) -> WrapperCommand:
-        return RunCommand(lambda: self.set_motors(-0.65), self).withName("Score")
+        return RunCommand(lambda: self.set_motors(-1), self).withName("Score")
