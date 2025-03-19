@@ -38,20 +38,6 @@ def rotate_about_center(pose: Pose2d) -> Pose2d:
     )
 
 
-blue_start_line_left = Pose2d.fromFeet(
-    325.5 / 12 - ROBOT_WIDTH_FT,
-    FIELD_WIDTH_FT - 31.178 / 12,
-    Rotation2d.fromDegrees(180),
-)
-
-blue_start_line_right = Pose2d.fromFeet(
-    325.5 / 12 - ROBOT_WIDTH_FT, 31.178 / 12, Rotation2d.fromDegrees(180)
-)
-
-blue_start_line_center = Pose2d.fromFeet(
-    325.5 / 12 - ROBOT_WIDTH_FT, 0, Rotation2d.fromDegrees(180)
-)
-
 blue_reef_a = Pose2d.fromFeet(
     144 / 12 - ROBOT_WIDTH_FT / 2 - 1.5,
     FIELD_WIDTH_FT / 2 + REEF_CENTER_DISTANCE_FT / 2,
@@ -197,12 +183,6 @@ blue_processor = Pose2d.fromFeet(
     Rotation2d.fromDegrees(-90),
 )
 
-red_start_line_left = rotate_about_center(blue_start_line_left)
-
-red_start_line_right = rotate_about_center(blue_start_line_right)
-
-red_start_line_center = rotate_about_center(blue_start_line_center)
-
 red_reef_a = rotate_about_center(blue_reef_a)
 red_reef_b = rotate_about_center(blue_reef_b)
 
@@ -266,3 +246,28 @@ red_algae_ij_far = rotate_about_center(blue_algae_ij_far)
 red_algae_cd_far = rotate_about_center(blue_algae_cd_far)
 red_algae_ef_far = rotate_about_center(blue_algae_ef_far)
 red_algae_gh_far = rotate_about_center(blue_algae_gh_far)
+
+
+blue_start_line_left = Pose2d.fromFeet(
+    325.5 / 12 - ROBOT_WIDTH_FT,
+    # FIELD_WIDTH_FT - 31.178 / 12,
+    blue_reef_j.y_feet,
+    Rotation2d.fromDegrees(180),
+)
+
+blue_start_line_right = Pose2d.fromFeet(
+    325.5 / 12 - ROBOT_WIDTH_FT,
+    # 31.178 / 12,
+    blue_reef_e.y_feet,
+    Rotation2d.fromDegrees(180),
+)
+
+blue_start_line_center = Pose2d.fromFeet(
+    325.5 / 12 - ROBOT_WIDTH_FT, 0, Rotation2d.fromDegrees(180)
+)
+
+red_start_line_left = rotate_about_center(blue_start_line_left)
+
+red_start_line_right = rotate_about_center(blue_start_line_right)
+
+red_start_line_center = rotate_about_center(blue_start_line_center)
