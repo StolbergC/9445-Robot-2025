@@ -30,7 +30,9 @@ def get_auto(
             drivetrain.reset_pose(positions.red_start_line_left)
             .alongWith(
                 drivetrain.set_speed_command(
-                    feetToMeters(25), Rotation2d.fromDegrees(480)
+                    # feetToMeters(19), Rotation2d.fromDegrees(270)
+                    feetToMeters(12),
+                    Rotation2d.fromDegrees(180),
                 )
                 if RobotBase.isReal()
                 else commands2.cmd.none()
@@ -40,32 +42,36 @@ def get_auto(
         )
         .andThen(
             score_l2.score_l2_on_true(elevator, wrist).alongWith(
-                drivetrain.drive_position(positions.red_reef_i)
+                drivetrain.drive_position(positions.red_reef_j)
             )
         )
-        .andThen(score.score_coral(fingers, 1))
+        .andThen(score.score_coral(fingers, 0.5))
+        .andThen(fingers.stop())
         .andThen(
             drivetrain.drive_position(positions.red_coral_intake_left_left).alongWith(
                 intake.intake_coral(elevator, wrist, claw, fingers)
             )
         )
+        .andThen(claw.coral())
         .andThen(
-            intake.intake_coral(elevator, wrist, claw, fingers)
-        )  # for if the drive beats the intake
-        .andThen(
-            drivetrain.drive_position(positions.red_reef_j).alongWith(
-                score_l2.score_l2_on_true(elevator, wrist)
+            drivetrain.drive_position(positions.red_reef_a).alongWith(
+                WaitCommand(0.5).andThen(score_l2.score_l2_on_true(elevator, wrist))
             )
         )
-        .andThen(score.score_coral(fingers, 2))
+        .andThen(score.score_coral(fingers, 0.5))
+        .andThen(fingers.stop())
         .andThen(  # maybe happens, TODO: Test, if unable to reach, get rid of this
             drivetrain.drive_position(positions.red_coral_intake_left_left).alongWith(
                 intake.intake_coral(elevator, wrist, claw, fingers)
             )
         )
-        .andThen(intake.intake_coral(elevator, wrist, claw, fingers))
         .andThen(claw.coral())
-        .withName("Red Left Four Coral")
+        .andThen(
+            drivetrain.set_speed_command(start_max_vel_mps, start_max_angular_vel)
+            if RobotBase.isReal()
+            else commands2.cmd.none()
+        )
+        .withName("Red Left Two Coral")
         .withInterruptBehavior(
             Command.InterruptionBehavior.kCancelIncoming
         )  # I do not know why this is needed, but auto does not run in the autonomousInit without it

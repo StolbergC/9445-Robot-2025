@@ -27,7 +27,7 @@ def get_auto(
     return (
         # setup
         (
-            drivetrain.reset_pose(positions.blue_start_line_left)
+            drivetrain.reset_pose(positions.red_start_line_left)
             .alongWith(
                 drivetrain.set_speed_command(
                     # feetToMeters(19), Rotation2d.fromDegrees(270)
@@ -42,7 +42,7 @@ def get_auto(
         )
         .andThen(
             score_l2.score_l2_on_true(elevator, wrist).alongWith(
-                drivetrain.drive_position(positions.blue_reef_e)
+                drivetrain.drive_position(positions.red_reef_e)
             )
         )
         .andThen(score.score_coral(fingers, 0.5))
@@ -66,6 +66,11 @@ def get_auto(
             )
         )
         .andThen(claw.coral())
+        .andThen(
+            drivetrain.set_speed_command(start_max_vel_mps, start_max_angular_vel)
+            if RobotBase.isReal()
+            else commands2.cmd.none()
+        )
         .withName("Blue Left Four Coral")
         .withInterruptBehavior(
             Command.InterruptionBehavior.kCancelIncoming

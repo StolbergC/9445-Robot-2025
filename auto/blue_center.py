@@ -40,7 +40,7 @@ def get_auto(
             .alongWith(wrist.angle_intake().andThen(claw.coral()))
         )
         .andThen(
-            score_l1.score_l1_on_true(elevator, wrist).andThen(
+            score_l1.score_l1_on_true(elevator, wrist).alongWith(
                 drivetrain.drive_position(positions.blue_algae_gh)
             )
         )
@@ -58,6 +58,6 @@ def get_auto(
             if RobotBase.isReal()
             else commands2.cmd.none()
         )
-        .withName("Blue Center Two Algae")
+        .withName("Blue Center")
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
     )
