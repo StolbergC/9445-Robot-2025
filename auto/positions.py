@@ -252,14 +252,16 @@ blue_start_line_left = Pose2d.fromFeet(
     325.5 / 12 - ROBOT_WIDTH_FT,
     # FIELD_WIDTH_FT - 31.178 / 12,
     blue_reef_j.y_feet,
-    Rotation2d.fromDegrees(180),
+    # Rotation2d.fromDegrees(180),
+    blue_reef_j.rotation(),
 )
 
 blue_start_line_right = Pose2d.fromFeet(
     325.5 / 12 - ROBOT_WIDTH_FT,
     # 31.178 / 12,
     blue_reef_e.y_feet,
-    Rotation2d.fromDegrees(180),
+    # Rotation2d.fromDegrees(180),
+    blue_reef_e.rotation(),
 )
 
 blue_start_line_center = Pose2d.fromFeet(
