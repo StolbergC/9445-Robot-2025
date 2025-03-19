@@ -27,10 +27,12 @@ def get_auto(
     return (
         # setup
         (
-            drivetrain.reset_pose(positions.blue_start_line_right)
+            drivetrain.reset_pose(positions.blue_start_line_left)
             .alongWith(
                 drivetrain.set_speed_command(
-                    feetToMeters(25), Rotation2d.fromDegrees(480)
+                    # feetToMeters(19), Rotation2d.fromDegrees(270)
+                    feetToMeters(12),
+                    Rotation2d.fromDegrees(180),
                 )
                 if RobotBase.isReal()
                 else commands2.cmd.none()
@@ -40,30 +42,29 @@ def get_auto(
         )
         .andThen(
             score_l2.score_l2_on_true(elevator, wrist).alongWith(
-                drivetrain.drive_position(positions.blue_reef_f)
+                drivetrain.drive_position(positions.blue_reef_e)
             )
         )
-        .andThen(score.score_coral(fingers, 1))
+        .andThen(score.score_coral(fingers, 0.5))
+        .andThen(fingers.stop())
         .andThen(
-            drivetrain.drive_position(
-                positions.blue_coral_intake_right_right
-            ).alongWith(intake.intake_coral(elevator, wrist, claw, fingers))
-        )
-        .andThen(
-            intake.intake_coral(elevator, wrist, claw, fingers)
-        )  # for if the drive beats the intake
-        .andThen(
-            drivetrain.drive_position(positions.blue_reef_e).alongWith(
-                score_l2.score_l2_on_true(elevator, wrist)
+            drivetrain.drive_position(positions.blue_coral_intake_left_left).alongWith(
+                intake.intake_coral(elevator, wrist, claw, fingers)
             )
         )
-        .andThen(score.score_coral(fingers, 2))
+        .andThen(claw.coral())
+        .andThen(
+            drivetrain.drive_position(positions.blue_reef_b).alongWith(
+                WaitCommand(0.25).andThen(score_l2.score_l2_on_true(elevator, wrist))
+            )
+        )
+        .andThen(score.score_coral(fingers, 0.5))
+        .andThen(fingers.stop())
         .andThen(  # maybe happens, TODO: Test, if unable to reach, get rid of this
-            drivetrain.drive_position(
-                positions.blue_coral_intake_right_right
-            ).alongWith(intake.intake_coral(elevator, wrist, claw, fingers))
+            drivetrain.drive_position(positions.blue_coral_intake_left_left).alongWith(
+                intake.intake_coral(elevator, wrist, claw, fingers)
+            )
         )
-        .andThen(intake.intake_coral(elevator, wrist, claw, fingers))
         .andThen(claw.coral())
         .withName("Blue Left Four Coral")
         .withInterruptBehavior(
