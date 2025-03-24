@@ -77,8 +77,8 @@ class Elevator(Subsystem):
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
         self.motor_config.encoder.positionConversionFactor(
-            1 / 15  # TODO: Find what the conversion factor needs to be
-        ).velocityConversionFactor(1 / 15)
+            1 / 12  # TODO: Find what the conversion factor needs to be
+        ).velocityConversionFactor(1 / (12 * 60))
         self.encoder.setPosition(0)
 
         self.motor.configure(
@@ -87,14 +87,24 @@ class Elevator(Subsystem):
             SparkBase.PersistMode.kPersistParameters,
         )
 
-        # TODO: Check if this is actually the bottom, what it means, how we use it, etc.
-        self.bottom_limit = DigitalInput(0)
+        self.motor2 = SparkMax(25, SparkLowLevel.MotorType.kBrushless)
+        self.encoder2 = self.motor2.getEncoder()
+        self.motor2_config = (
+            SparkMaxConfig()
+            .smartCurrentLimit(55)
+            .inverted(True)
+            .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
+        )
+        self.motor2_config.encoder.positionConversionFactor(
+            1 / 12
+        ).velocityConversionFactor(1 / (12 * 60))
 
         self.pid = PIDController(30, 0, 0)
+        self.pid2 = PIDController(30, 0, 0)
         # self.pid = ProfiledPIDController(
         #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         # )
-        self.feedforward = ElevatorFeedforward(0, 0.55, 0, 0)
+        self.feedforward = ElevatorFeedforward(0, 0.275, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
 
@@ -102,10 +112,13 @@ class Elevator(Subsystem):
             if isinstance(data := ev.data, ValueEventData):
                 if key == "PID/p":
                     self.pid.setP(data.value.value())
+                    self.pid2.setP(data.value.value())
                 elif key == "PID/i":
                     self.pid.setI(data.value.value())
+                    self.pid2.setI(data.value.value())
                 elif key == "PID/d":
                     self.pid.setD(data.value.value())
+                    self.pid2.setD(data.value.value())
                 elif key == "Feedforward/kS":
                     self.feedforward = ElevatorFeedforward(
                         data.value.value(),
@@ -189,16 +202,17 @@ class Elevator(Subsystem):
         self.setpoint = 0
 
     def periodic(self) -> None:
-        self.nettable.putNumber("Commanded/position", self.setpoint)
-        self.nettable.putBoolean("Commanded/close", self.close())
-        self.nettable.putNumber("State/position (in)", self.get_position())
         self.nettable.putNumber(
-            "State/raw_position (rotations)", self.encoder.getPosition()
+            "State/raw_position1 (rotations)", self.encoder.getPosition()
         )
-        self.nettable.putNumber("State/velocity (in per s)", self.get_velocity())
-        self.nettable.putNumber("At Bottom ?", self.bottom_limit.get())
+        self.nettable.putNumber(
+            "State/raw_position2 (rotations)", self.encoder2.getPosition()
+        )
         self.nettable.putNumber(
             "State/Current Draw (amp)", self.motor.getOutputCurrent()
+        )
+        self.nettable.putNumber(
+            "State/Current Draw2 (amp)", self.motor2.getOutputCurrent()
         )
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
@@ -206,8 +220,12 @@ class Elevator(Subsystem):
             self.nettable.putString("Running Command", "None")
         return super().periodic()
 
+    def set_motor(self, power: float) -> None:
+        self.motor.set(power)
+        self.motor2.set(power)
+
     def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self.motor.set(0), self)
+        return InstantCommand(lambda: self.set_motor(0), self)
 
     def simulationPeriodic(self) -> None:
         self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
@@ -231,42 +249,6 @@ class Elevator(Subsystem):
         self.mech_elevator_mutable.setLength(self.elevator_sim.getPosition())
         return super().simulationPeriodic()
 
-    def get_position(self) -> feet:
-        # this is based loosely on integration with washers for volume
-        outer_radius = (
-            self.spool_diameter
-            + 2
-            * self.rope_diameter
-            * 0.3192
-            * (-self.encoder.getPosition() * (self.spool_depth / self.rope_diameter))
-        ) / 2
-        return self.bottom_height + (
-            (
-                (outer_radius * outer_radius)
-                - ((spool_radius := self.spool_diameter / 2) * spool_radius)
-            )
-            * self.spool_depth
-            * pi
-        ) / (pi * (spool_radius * spool_radius))
-
-    def get_velocity(self) -> float:
-        # this is based loosely on integration with washers for volume
-        outer_radius = (
-            self.spool_diameter
-            + 2
-            * self.rope_diameter
-            * 0.3192
-            * (self.encoder.getVelocity() * (self.spool_depth / self.rope_diameter))
-        ) / 2
-        return (
-            (
-                (outer_radius * outer_radius)
-                - ((spool_radius := self.spool_diameter / 2) * spool_radius)
-            )
-            * self.spool_depth
-            * pi
-        ) / (pi * (spool_radius * spool_radius))
-
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
         if abs(self.get_wrist_angle().degrees() - 10) > 10:
@@ -285,6 +267,10 @@ class Elevator(Subsystem):
         self.nettable.putNumber("State/Out Power (V)", volts)
         volts = -11 if volts < -11 else volts
         self.motor.setVoltage(volts)
+        volts2 = self.pid2.calculate(
+            self.encoder2.getPosition(), position
+        ) + self.feedforward.calculate(0, 0)
+        self.motor2.setVoltage(volts2)
 
     def _make_position_safe(self, position: feet) -> feet:
         """
@@ -349,30 +335,6 @@ class Elevator(Subsystem):
 
     def command_processor(self) -> WrapperCommand:
         return self.command_position(1.5).withName("Processor")  # this is a guess
-
-    def set_setpoint(self, setpoint: float) -> InstantCommand:
-        def do_it():
-            self.setpoint = setpoint
-
-        return InstantCommand(do_it)
-
-    def set_setpoint_bottom(self) -> WrapperCommand:
-        return self.set_setpoint(0).withName("Bottom")
-
-    def set_setpoint_l1(self) -> WrapperCommand:
-        return self.set_setpoint(5.827).withName("L1")
-
-    def set_setpoint_l2(self) -> WrapperCommand:
-        return self.set_setpoint(15.15).withName("L2")
-
-    def set_setpoint_l3(self) -> WrapperCommand:
-        return self.set_setpoint(self.top_height).withName("L3")
-
-    def close(self) -> bool:
-        return abs(self.setpoint - self.encoder.getPosition()) < 0.25
-
-    def wait_until_close(self) -> ParallelRaceGroup:
-        return RepeatCommand(WaitCommand(0.1)).until(self.close)
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power

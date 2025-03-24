@@ -45,8 +45,8 @@ class Claw(Subsystem):
         motor_config = SparkMaxConfig()
         motor_config.setIdleMode(SparkMaxConfig.IdleMode.kCoast).smartCurrentLimit(
             30
-        ).encoder.positionConversionFactor(pi * PCD / 9).velocityConversionFactor(
-            pi * PCD / (9 * 60)
+        ).encoder.positionConversionFactor(pi * PCD / 5).velocityConversionFactor(
+            pi * PCD / (5 * 60)
         )
         self.motor.configure(
             motor_config,

@@ -48,10 +48,10 @@ class Wrist(Subsystem):
         )
 
         self.pid = ProfiledPIDController(
-            17, 0, 0, TrapezoidProfile.Constraints(pi, 30 * pi)
+            17 / 2, 0, 0, TrapezoidProfile.Constraints(pi / 2, 3 * pi)
         )
 
-        self.feedforward = ArmFeedforward(0, 0.25, 0, 0)
+        self.feedforward = ArmFeedforward(0, 0.5, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
 
