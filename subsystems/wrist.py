@@ -38,7 +38,7 @@ class Wrist(Subsystem):
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
-        self.motor_config.absoluteEncoder.zeroOffset(51 / 360).zeroCentered(
+        self.motor_config.absoluteEncoder.zeroOffset(45 / 360).zeroCentered(
             True
         ).positionConversionFactor(360).velocityConversionFactor(360)
         self.motor.configure(
@@ -48,10 +48,10 @@ class Wrist(Subsystem):
         )
 
         self.pid = ProfiledPIDController(
-            17 / 2, 0, 0, TrapezoidProfile.Constraints(pi / 2, 3 * pi)
+            8, 0, 0, TrapezoidProfile.Constraints(3 * pi / 4, 3 * pi)
         )
 
-        self.feedforward = ArmFeedforward(0, 0.5, 0, 0)
+        self.feedforward = ArmFeedforward(0, 0.3, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
 
@@ -185,7 +185,7 @@ class Wrist(Subsystem):
     def run_angle(self, angle: Rotation2d) -> WrapperCommand:
         return (
             RepeatCommand(InstantCommand(lambda: self.set_state(angle), self))
-            .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 1)
+            .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 10)
             .andThen(self.stop())
             .withName(f"Set Angle {angle.degrees()} (deg)")
         )

@@ -28,6 +28,7 @@ from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
 from commands2 import (
+    Command,
     DeferredCommand,
     InstantCommand,
     ParallelCommandGroup,
@@ -99,12 +100,20 @@ class Elevator(Subsystem):
             1 / 12
         ).velocityConversionFactor(1 / (12 * 60))
 
-        self.pid = PIDController(30, 0, 0)
-        self.pid2 = PIDController(30, 0, 0)
+        self.motor2.configure(
+            self.motor2_config,
+            SparkBase.ResetMode.kResetSafeParameters,
+            SparkBase.PersistMode.kPersistParameters,
+        )
+
+        self.encoder2.setPosition(0)
+
+        self.pid = PIDController(10, 0, 0)
+        self.pid2 = PIDController(10, 0, 0)
         # self.pid = ProfiledPIDController(
         #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         # )
-        self.feedforward = ElevatorFeedforward(0, 0.275, 0, 0)
+        self.feedforward = ElevatorFeedforward(0, 0.4, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
 
@@ -173,7 +182,7 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
         self.bottom_height: float = 0
-        self.top_height: float = 20
+        self.top_height: float = 9
 
         if not RobotBase.isReal():
             self.gearbox = DCMotor.NEO(1)
@@ -225,7 +234,9 @@ class Elevator(Subsystem):
         self.motor2.set(power)
 
     def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self.set_motor(0), self)
+        return InstantCommand(lambda: self.set_motor(0), self).withInterruptBehavior(
+            Command.InterruptionBehavior.kCancelSelf
+        )
 
     def simulationPeriodic(self) -> None:
         self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
@@ -251,7 +262,7 @@ class Elevator(Subsystem):
 
     def set_state(self, position: feet) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
-        if abs(self.get_wrist_angle().degrees() - 10) > 10:
+        if abs(self.get_wrist_angle().degrees() - 10) > 30:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
             self.motor.set(0)
             return
@@ -265,11 +276,12 @@ class Elevator(Subsystem):
             self.encoder.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
-        volts = -11 if volts < -11 else volts
+        volts = -9 if volts < -9 else volts
         self.motor.setVoltage(volts)
         volts2 = self.pid2.calculate(
             self.encoder2.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
+        volts2 = -7 if volts2 < -7 else volts2
         self.motor2.setVoltage(volts2)
 
     def _make_position_safe(self, position: feet) -> feet:
@@ -288,44 +300,34 @@ class Elevator(Subsystem):
         self.nettable.putBoolean("Safety/Adjusting Position", True)
         return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
-    def tighten(self) -> WrapperCommand:
-        return (
-            RunCommand(lambda: self.motor.set(0.25))
-            .until(lambda: self.motor.getOutputCurrent() > 3)
-            .andThen(InstantCommand(lambda: self.motor.set(0)))
-            .withName("Tighten Rope")
-        )
-
     def command_position(self, position: float) -> WrapperCommand:
         return (
             # self.set_setpoint(position)
             # .andThen(
             RunCommand(lambda: self.set_state(position), self)
             # )
-            .until(lambda: abs(self.encoder.getPosition() - position) < 0.25)
+            .until(
+                lambda: abs(self.encoder.getPosition() - position) < 0.125
+                and abs(self.encoder2.getPosition() - position) < 0.125
+            )
             .andThen(self.stop())
             .withName(f"Set Position to {position} ft")
-        )
-
-    def follow_setpoint(self) -> RepeatCommand:
-        return RepeatCommand(
-            DeferredCommand(lambda: InstantCommand(self.set_state(self.setpoint)), self)
         )
 
     def command_bottom(self) -> WrapperCommand:
         return self.command_position(0).withName("Bottom")
 
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(4).withName("L1")
+        return self.command_position(0.75).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(15.15).withName("L2")
+        return self.command_position(2.75).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(self.top_height).withName("L3")
+        return self.command_position(8).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(4).withName("Intake")  # 21.95 in
+        return self.command_position(1.5).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
         return self.command_position(4).withName("Algae Low")
@@ -338,10 +340,11 @@ class Elevator(Subsystem):
 
     def manual_control(self, power: float) -> None:
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
-        self.motor.set(-power)
+        self.set_motor(-power)
 
     def reset(self) -> InstantCommand:
         def go() -> None:
             self.encoder.setPosition(0)
+            self.encoder2.setPosition(0)
 
         return InstantCommand(go)

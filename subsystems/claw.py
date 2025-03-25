@@ -44,7 +44,7 @@ class Claw(Subsystem):
         self.motor = SparkMax(28, SparkLowLevel.MotorType.kBrushless)
         motor_config = SparkMaxConfig()
         motor_config.setIdleMode(SparkMaxConfig.IdleMode.kCoast).smartCurrentLimit(
-            30
+            25
         ).encoder.positionConversionFactor(pi * PCD / 5).velocityConversionFactor(
             pi * PCD / (5 * 60)
         )
@@ -58,7 +58,7 @@ class Claw(Subsystem):
         self.encoder.setPosition(0)
         # max of 1 ft/s and accelerate in 10s
         self.pid = ProfiledPIDController(
-            0.075, 0, 0, TrapezoidProfile.Constraints(12, 120)
+            0.03, 0, 0, TrapezoidProfile.Constraints(120, 12000)
         )
 
         self.stall_timer = time()
@@ -188,7 +188,9 @@ class Claw(Subsystem):
         )
 
     def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self.motor.set(0), self)
+        return InstantCommand(lambda: self.motor.set(0), self).withInterruptBehavior(
+            Command.InterruptionBehavior.kCancelSelf
+        )
 
     def algae_outside(self) -> WrapperCommand:
         return self.set_position(17).withName("Algae Outside")

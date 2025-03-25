@@ -88,8 +88,8 @@ class RobotContainer:
             Rotation2d.fromDegrees(68),
             Rotation2d.fromDegrees(55),
         )
-        self.elevator = Elevator(self.wrist.get_angle)
-        self.wrist.get_claw_distance = self.claw.get_dist
+        self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
+        self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
         self.wrist.safe_claw_distance = 10
         self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
@@ -198,9 +198,7 @@ class RobotContainer:
             ),
             self.elevator,
             self.wrist,
-            self.fingers,
-            self.claw,
-        )
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_algae_intake_command(self) -> DeferredCommand:
         return DeferredCommand(
@@ -215,9 +213,8 @@ class RobotContainer:
             ),
             self.elevator,
             self.wrist,
-            self.fingers,
             self.claw,
-        )
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_score_command(self) -> DeferredCommand:
         return DeferredCommand(
@@ -229,8 +226,7 @@ class RobotContainer:
             self.elevator,
             self.wrist,
             self.claw,
-            self.fingers,
-        )
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_intake_command(self) -> DeferredCommand:
         return DeferredCommand(
@@ -238,15 +234,19 @@ class RobotContainer:
                 intake_coral(self.elevator, self.wrist, self.claw, self.fingers)
                 if self.grabbing_coral
                 else self.get_algae_intake_command()
-            )
-        )
+            ),
+            self.elevator,
+            self.wrist,
+            self.claw,
+            self.fingers,
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_intake_on_false(self) -> DeferredCommand:
         # return self.claw.coral()
         return DeferredCommand(
             lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
             self.claw,
-        )
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_drive_x(self) -> float:
         return applyDeadband(-self.driver_controller.getX(), 0.05) * abs(
@@ -313,6 +313,7 @@ class RobotContainer:
 
         self.fingers.setDefaultCommand(self.fingers.stop())
         self.climber.setDefaultCommand(self.climber.stop())
+        # self.claw.setDefaultCommand(self.claw.stop())
         # self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
         """actual bindings"""
@@ -447,6 +448,7 @@ class RobotContainer:
             self.wrist.angle_zero()
             .andThen(self.elevator.command_bottom())
             .andThen(self.wrist.angle_intake())
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
 
         self.operator_controller.button(button_lb).onTrue(
