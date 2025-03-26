@@ -18,6 +18,7 @@ from commands2 import (
     InterruptionBehavior,
     RunCommand,
     Subsystem,
+    WaitCommand,
     WrapperCommand,
 )
 from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
@@ -211,6 +212,7 @@ class Claw(Subsystem):
         )
 
     def coral(self) -> WrapperCommand:
+        # return WaitCommand(0)
         return (
             (
                 self.home_inside(lambda: False)

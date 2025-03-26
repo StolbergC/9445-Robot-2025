@@ -139,8 +139,6 @@ class RobotContainer:
         self.level = 1
         self.field_oriented = True
 
-        wpilib.cameraserver.CameraServer.launch()
-
         def pick_alliance(new_auto: Command):
             if "RED" in new_auto.getName().upper():
                 self.alliance = DriverStation.Alliance.kRed
@@ -238,7 +236,6 @@ class RobotContainer:
             self.elevator,
             self.wrist,
             self.claw,
-            self.fingers,
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_intake_on_false(self) -> DeferredCommand:
@@ -353,8 +350,11 @@ class RobotContainer:
         ).onFalse(
             DeferredCommand(
                 lambda: self.drivetrain.set_speed_command(
-                    self.drivetrain.old_speed, self.drivetrain.old_rot
-                )
+                    # self.drivetrain.old_speed, self.drivetrain.old_rot
+                    15,
+                    Rotation2d.fromDegrees(240),
+                ),
+                self.drivetrain,
             )
         )
 
@@ -371,11 +371,26 @@ class RobotContainer:
             self.drivetrain.reset_pose(positions.blue_reef_center)
         )
 
-        Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).whileTrue(
-            self.drivetrain.auto_rotate_joystick_drive(
-                lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
-                lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
-                lambda: self.field_oriented,
+        Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
+            # self.drivetrain.auto_rotate_joystick_drive(
+            #     lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
+            #     lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
+            #     lambda: self.field_oriented,
+            # )
+            DeferredCommand(
+                lambda: self.drivetrain.set_speed_command(
+                    10000, self.drivetrain.old_rot
+                ),
+                self.drivetrain,
+            )
+        ).onFalse(
+            DeferredCommand(
+                lambda: self.drivetrain.set_speed_command(
+                    # self.drivetrain.old_speed, self.drivetrain.old_rot
+                    15,
+                    Rotation2d.fromDegrees(240),
+                ),
+                self.drivetrain,
             )
         )
 
@@ -389,9 +404,9 @@ class RobotContainer:
             .andThen(self.fingers.stop())
         )
 
-        Trigger(
-            lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5
-        ).whileTrue(self.get_intake_command()).onFalse(
+        Trigger(lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
+            self.get_intake_command()
+        ).onFalse(
             # self.claw.coral()
             self.get_intake_on_false()
             # .andThen(self.claw.stop())

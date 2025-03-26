@@ -3,7 +3,7 @@ from wpimath.geometry import Pose2d, Rotation2d
 FIELD_WIDTH_FT = 26 + 5 / 12
 FIELD_LENGTH_FT = 57 + (6 + 7 / 8) / 12
 ROBOT_WIDTH_FT = (
-    28 / 12
+    28 / 12 + 0.5
 )  # this file assumes the robot as being perfectly square for less complication
 # this is not the length of the side, but rather the center to center distance for pegs
 REEF_CENTER_DISTANCE_FT = 1 + 1 / 12

@@ -1,3 +1,4 @@
+from time import time
 from typing import Callable
 from math import floor, pi
 
@@ -210,6 +211,9 @@ class Elevator(Subsystem):
 
         self.setpoint = 0
 
+        self.stall_start_time = time()
+        self.is_stalling = False
+
     def periodic(self) -> None:
         self.nettable.putNumber(
             "State/raw_position1 (rotations)", self.encoder.getPosition()
@@ -223,6 +227,23 @@ class Elevator(Subsystem):
         self.nettable.putNumber(
             "State/Current Draw2 (amp)", self.motor2.getOutputCurrent()
         )
+
+        if (
+            max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) > 45
+            and min(self.encoder.getVelocity(), self.encoder2.getVelocity()) < 0.25
+        ) and not self.is_stalling:
+            self.is_stalling = True
+
+        if (
+            self.is_stalling
+            and max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) < 40
+            or min(self.encoder.getVelocity(), self.encoder2.getVelocity()) > 0.5
+        ):
+            self.is_stalling = False
+
+        self.nettable.putBoolean("State/Stalling", self.is_stalling)
+        self.nettable.putNumber("State/stall time", time() - self.stall_start_time)
+
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:
@@ -260,7 +281,7 @@ class Elevator(Subsystem):
         self.mech_elevator_mutable.setLength(self.elevator_sim.getPosition())
         return super().simulationPeriodic()
 
-    def set_state(self, position: feet) -> None:
+    def set_state(self, position: feet, max_down: float = -7) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
         if abs(self.get_wrist_angle().degrees() - 10) > 30:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
@@ -276,12 +297,12 @@ class Elevator(Subsystem):
             self.encoder.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
-        volts = -9 if volts < -9 else volts
+        volts = max_down if volts < max_down else volts
         self.motor.setVoltage(volts)
         volts2 = self.pid2.calculate(
             self.encoder2.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
-        volts2 = -7 if volts2 < -7 else volts2
+        volts2 = max_down if volts2 < max_down else volts2
         self.motor2.setVoltage(volts2)
 
     def _make_position_safe(self, position: feet) -> feet:
@@ -301,14 +322,17 @@ class Elevator(Subsystem):
         return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
 
     def command_position(self, position: float) -> WrapperCommand:
+        # return WaitCommand(0.25)
         return (
             # self.set_setpoint(position)
             # .andThen(
             RunCommand(lambda: self.set_state(position), self)
             # )
             .until(
-                lambda: abs(self.encoder.getPosition() - position) < 0.125
-                and abs(self.encoder2.getPosition() - position) < 0.125
+                lambda: (
+                    abs(self.encoder.getPosition() - position) < 0.125
+                    and abs(self.encoder2.getPosition() - position) < 0.125
+                )
             )
             .andThen(self.stop())
             .withName(f"Set Position to {position} ft")
@@ -321,10 +345,10 @@ class Elevator(Subsystem):
         return self.command_position(0.75).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(2.75).withName("L2")
+        return self.command_position(7).withName("L2")
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(8).withName("L3")
+        return self.command_position(7.75).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
         return self.command_position(1.5).withName("Intake")  # 21.95 in

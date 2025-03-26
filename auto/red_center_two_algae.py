@@ -29,7 +29,7 @@ def get_auto(
         # setup
         (
             drivetrain.reset_pose(positions.red_start_line_center)
-            .alongWith(
+            .andThen(
                 drivetrain.set_speed_command(
                     feetToMeters(25), Rotation2d.fromDegrees(480)
                 )

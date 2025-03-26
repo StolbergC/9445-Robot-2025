@@ -505,6 +505,7 @@ class Drivetrain(Subsystem):
         self,
         position: Pose2d,
     ) -> SequentialCommandGroup:
+        # return self.reset_pose(position).andThen(WaitCommand(0.5))
         return (
             self.drive_joystick(
                 lambda: self.x_pid.calculate(
@@ -728,5 +729,6 @@ class Drivetrain(Subsystem):
         return DeferredCommand(
             lambda: InstantCommand(set_old_speeds).andThen(
                 InstantCommand(lambda: self.set_speed(max_speed_mps, max_angular_speed))
-            )
+            ),
+            self,
         )

@@ -6,11 +6,11 @@
     "GLOBAL": {
       "font": "Fira Code Retina",
       "fps": "120",
-      "height": "981",
+      "height": "991",
       "maximized": "1",
       "style": "0",
       "userScale": "2",
-      "width": "455",
+      "width": "1920",
       "xpos": "0",
       "ypos": "29"
     }
@@ -38,6 +38,11 @@
       "Pos": "354,47",
       "Size": "788,404"
     },
+    "###/SmartDashboard/SendableChooser[0]": {
+      "Collapsed": "0",
+      "Pos": "60,60",
+      "Size": "354,60"
+    },
     "###FMS": {
       "Collapsed": "0",
       "Pos": "5,540",
@@ -46,7 +51,7 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "49,643",
-      "Size": "976,82"
+      "Size": "976,278"
     },
     "###NetworkTables": {
       "Collapsed": "0",
