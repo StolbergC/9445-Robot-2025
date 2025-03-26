@@ -109,8 +109,8 @@ class Elevator(Subsystem):
 
         self.encoder2.setPosition(0)
 
-        self.pid = PIDController(10, 0, 0)
-        self.pid2 = PIDController(10, 0, 0)
+        self.pid = PIDController(8.5, 0, 0)
+        self.pid2 = PIDController(8.5, 0, 0)
         # self.pid = ProfiledPIDController(
         #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         # )
