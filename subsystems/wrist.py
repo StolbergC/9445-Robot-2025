@@ -190,6 +190,7 @@ class Wrist(Subsystem):
             .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 10)
             .andThen(self.stop())
             .withName(f"Set Angle {angle.degrees()} (deg)")
+            .withTimeout(5)
         )
 
     def angle_intake(self) -> WrapperCommand:
