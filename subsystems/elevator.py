@@ -342,7 +342,7 @@ class Elevator(Subsystem):
         return self.command_position(0).withName("Bottom")
 
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(0.75).withName("L1")
+        return self.command_position(2.75).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
         return self.command_position(7).withName("L2")
