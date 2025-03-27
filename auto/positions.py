@@ -39,7 +39,7 @@ def rotate_about_center(pose: Pose2d) -> Pose2d:
 
 
 blue_reef_a = Pose2d.fromFeet(
-    144 / 12 - ROBOT_WIDTH_FT / 2 - 1.5,
+    144 / 12 - ROBOT_WIDTH_FT - 1.5,
     FIELD_WIDTH_FT / 2 + REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d.fromDegrees(0),
 )
@@ -51,7 +51,7 @@ blue_reef_a_far = Pose2d.fromFeet(
 )
 
 blue_reef_b = Pose2d.fromFeet(
-    144 / 12 - ROBOT_WIDTH_FT / 2 - 1.5,
+    144 / 12 - ROBOT_WIDTH_FT - 1.5,
     FIELD_WIDTH_FT / 2 - REEF_CENTER_DISTANCE_FT / 2,
     Rotation2d.fromDegrees(0),
 )
