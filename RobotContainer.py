@@ -394,6 +394,12 @@ class RobotContainer:
             )
         )
 
+        self.driver_controller.button(button_lb).whileTrue(
+            self.drivetrain.auto_rotate_joystick_drive(
+                self.get_drive_x, self.get_drive_y, lambda: self.field_oriented
+            )
+        )
+
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
             self.get_score_command()

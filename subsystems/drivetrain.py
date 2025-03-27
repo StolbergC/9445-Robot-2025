@@ -527,8 +527,8 @@ class Drivetrain(Subsystem):
             .withName(f"Drive Position")
             .onlyWhile(
                 lambda: (
-                    abs(self.x_pid.getPositionError()) > feetToMeters(0.25)
-                    or (abs(self.y_pid.getPositionError()) > feetToMeters(0.25))
+                    abs(self.x_pid.getPositionError()) > feetToMeters(0.5)
+                    or (abs(self.y_pid.getPositionError()) > feetToMeters(0.5))
                     or (
                         (abs(self.t_pid.getPositionError()) > pi / 16)
                         if self.is_real
@@ -537,8 +537,8 @@ class Drivetrain(Subsystem):
                     or abs((v := self.get_speeds()).vx) > feetToMeters(5)
                     or abs(v.vy) > feetToMeters(5)
                     or (abs(v.omega_dps) > 15 if self.is_real else False)
-                    or abs(self.x_pid.getSetpoint().position - position.X()) > 0.1
-                    or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.1
+                    or abs(self.x_pid.getSetpoint().position - position.X()) > 0.5
+                    or abs(self.y_pid.getSetpoint().position - position.Y()) > 0.5
                 )
             )
         ).andThen(self.stop())
