@@ -8,7 +8,7 @@ isolated = true
 [tool.robotpy]
 
 # Version of robotpy this project depends on
-robotpy_version = "2025.3.1.0"
+robotpy_version = "2025.3.2.1"
 
 
 # Which extra RobotPy components should be installed
@@ -30,4 +30,4 @@ robotpy_extras = [
 ]
 
 # Other pip packages to install
-requires = ["photonlibpy", "robotpy-rev==2025.0.1"]
+requires = ["photonlibpy"]

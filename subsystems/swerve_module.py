@@ -108,6 +108,9 @@ class SwerveModule(Subsystem):
 
         self.set_state(self.setpoint)
 
+        self.set_drive_idle(True)
+        self.set_turn_idle(True)
+
         if RobotBase.isSimulation():
             self.cancoder_sim = self.cancoder.sim_state
             self.drive_limiter = SlewRateLimiter(500)

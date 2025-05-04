@@ -43,8 +43,8 @@ class ModuleConstants:
     def __init__(
         self,
         drive: int,
-        turn: int,
         cancoder: int,
+        turn: int,
         cancoder_offset: turns,
         translation: Translation2d,
     ):
@@ -56,16 +56,16 @@ class ModuleConstants:
 
 
 front_left: ModuleConstants = ModuleConstants(
-    1, 2, 3, 0, Translation2d.fromFeet(14 / 12, 14 / 12)
+    14, 15, 16, -0.416, Translation2d.fromFeet(14 / 12, 14 / 12)
 )
 front_right: ModuleConstants = ModuleConstants(
-    4, 5, 6, 0, Translation2d.fromFeet(14 / 12, -14 / 12)
+    11, 12, 13, -0.436, Translation2d.fromFeet(14 / 12, -14 / 12)
 )
 back_left: ModuleConstants = ModuleConstants(
-    7, 8, 9, 0, Translation2d.fromFeet(-14 / 12, 14 / 12)
+    5, 6, 7, -0.477, Translation2d.fromFeet(-14 / 12, 14 / 12)
 )
 back_right: ModuleConstants = ModuleConstants(
-    10, 11, 12, 0, Translation2d.fromFeet(-14 / 12, -14 / 12)
+    8, 9, 10, 0, Translation2d.fromFeet(-14 / 12, -14 / 12)
 )
 
 drive_ratio: float = 1 / 1  # 8.14
@@ -105,12 +105,14 @@ turn_config: TalonFXConfiguration = (
     TalonFXConfiguration()
     .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(20))
     .with_slot0(
-        Slot0Configs()
-        .with_k_p(1.0)
-        .with_k_i(0.0)
-        .with_k_d(0.1)
+        # simulation
+        # Slot0Configs()
+        # .with_k_p(1.0)
+        # .with_k_i(0.0)
+        # .with_k_d(0.1)
         # .with_k_v(0.0)
         # .with_k_a(0.0)
+        Slot0Configs().with_k_p(0.15)
     )
     .with_feedback(
         FeedbackConfigs()

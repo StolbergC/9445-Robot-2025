@@ -38,8 +38,8 @@ class Robot(TimedRobot):
     def autonomousExit(self):
         if self.m_autonomousCommand:
             self.m_autonomousCommand.cancel()
-        if self.m_robotContainer:
-            self.m_robotContainer.drivetrain.stop_command().schedule()
+        # if self.m_robotContainer:
+        # self.m_robotContainer.drivetrain.stop_command().schedule()
 
     # Teleop Robot Functions
     def teleopInit(self):
@@ -49,7 +49,7 @@ class Robot(TimedRobot):
             # self.m_robotContainer.wrist.angle_zero().schedule()
             self.m_robotContainer.elevator.stop().schedule()
             self.m_robotContainer.fingers.stop().schedule()
-            self.m_robotContainer.drivetrain.stop_command().schedule()
+            # self.m_robotContainer.drivetrain.stop_command().schedule()
 
     def teleopPeriodic(self):
         pass

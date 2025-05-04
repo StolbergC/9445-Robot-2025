@@ -84,7 +84,7 @@ class RobotContainer:
             self.alliance = DriverStation.Alliance.kBlue
         else:
             self.alliance = a
-        self.drivetrain = Drivetrain()
+        # self.drivetrain = Drivetrain()
         self.wrist = Wrist()
         self.climber = Climber()
         self.claw = Claw(
@@ -95,7 +95,7 @@ class RobotContainer:
         self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
         self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
         self.wrist.safe_claw_distance = 10
-        self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
+        # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
 
         self.auto_chooser = SendableChooser()
@@ -178,19 +178,19 @@ class RobotContainer:
 
         self.grabbing_coral = True
 
-        # this sets the motors to idle on disable
-        Trigger(DriverStation.isEnabled).onTrue(
-            self.drivetrain.set_drive_idle_command(False).andThen(
-                InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
-            )
-        ).onFalse(
-            (
-                WaitCommand(5)
-                .andThen(self.drivetrain.set_drive_idle_command(True))
-                .andThen(self.drivetrain.set_turn_idle_command(True))
-                .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
-            ).ignoringDisable(True)
-        )
+        # # this sets the motors to idle on disable
+        # Trigger(DriverStation.isEnabled).onTrue(
+        #     self.drivetrain.set_drive_idle_command(False).andThen(
+        #         InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
+        #     )
+        # ).onFalse(
+        #     (
+        #         WaitCommand(5)
+        #         .andThen(self.drivetrain.set_drive_idle_command(True))
+        #         .andThen(self.drivetrain.set_turn_idle_command(True))
+        #         .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
+        #     ).ignoringDisable(True)
+        # )
 
         self.claw.stop().schedule()
         wpilib.cameraserver.CameraServer().launch()
@@ -334,22 +334,22 @@ class RobotContainer:
         # self.claw.setDefaultCommand(self.claw.stop())
         # self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
-        """actual bindings"""
-        """defaults"""
-        self.drivetrain.setDefaultCommand(
-            DriveJoystick(
-                self.drivetrain,
-                self.get_drive_x,
-                self.get_drive_y,
-                self.get_drive_t,
-                lambda: self.field_oriented,
-            )
-        )
+        # """actual bindings"""
+        # """defaults"""
+        # self.drivetrain.setDefaultCommand(
+        #     DriveJoystick(
+        #         self.drivetrain,
+        #         self.get_drive_x,
+        #         self.get_drive_y,
+        #         self.get_drive_t,
+        #         lambda: self.field_oriented,
+        #     )
+        # )
 
-        """driver"""
-        self.driver_controller.button(button_b).onTrue(
-            self.drivetrain.reset_gyro_command(Rotation2d())
-        )
+        # """driver"""
+        # self.driver_controller.button(button_b).onTrue(
+        #     self.drivetrain.reset_gyro_command(Rotation2d())
+        # )
 
         def toggle_field_oriented():
             self.field_oriented = not self.field_oriented
