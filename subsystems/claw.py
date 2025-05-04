@@ -182,7 +182,7 @@ class Claw(Subsystem):
                         self,
                     )
                 )
-                .onlyWhile(lambda: abs(self.get_dist() - distance) > 0.5)
+                .onlyWhile(lambda: abs(self.get_dist() - distance) > 1.5)
             )
             .withName(f"Go to {distance} ft")
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)

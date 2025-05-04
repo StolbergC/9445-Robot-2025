@@ -24,25 +24,25 @@ class Vision:
 
         self.to_fl = Transform3d(
             Translation3d(inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 30, 45),
+            Rotation3d.fromDegrees(0, 135, 45),
         )
         self.fl = photonCamera.PhotonCamera("Arducam_FL (1)")
 
         self.to_fr = Transform3d(
             Translation3d(inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 30, -45),
+            Rotation3d.fromDegrees(0, 135, -45),
         )
         self.fr = photonCamera.PhotonCamera("Arducam_FR")
 
         self.to_bl = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 30, 135),
+            Rotation3d.fromDegrees(0, 130, 135),
         )
         self.bl = photonCamera.PhotonCamera("Arducam_BL")
 
         self.to_br = Transform3d(
             Translation3d(-inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, 30, -135),
+            Rotation3d.fromDegrees(0, 135, -135),
         )
         self.br = photonCamera.PhotonCamera("Arducam_BR")
 
@@ -148,5 +148,5 @@ class Vision:
         return (
             x := 0.07 * (e ** (-0.5 * avg_area)),
             x,
-            (pi) ** avg_area,
+            (3 * pi) ** avg_area,
         )

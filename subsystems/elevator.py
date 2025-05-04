@@ -74,7 +74,7 @@ class Elevator(Subsystem):
 
         self.motor_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(55)
+            .smartCurrentLimit(35)
             .inverted(False)
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
@@ -93,7 +93,7 @@ class Elevator(Subsystem):
         self.encoder2 = self.motor2.getEncoder()
         self.motor2_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(55)
+            .smartCurrentLimit(35)
             .inverted(True)
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
@@ -281,7 +281,9 @@ class Elevator(Subsystem):
         self.mech_elevator_mutable.setLength(self.elevator_sim.getPosition())
         return super().simulationPeriodic()
 
-    def set_state(self, position: feet, max_down: float = -7) -> None:
+    def set_state(
+        self, position: feet, max_down: float = -7, max_up: float = 11
+    ) -> None:
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
         if abs(self.get_wrist_angle().degrees() - 10) > 30:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
@@ -297,12 +299,14 @@ class Elevator(Subsystem):
             self.encoder.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
-        volts = max_down if volts < max_down else volts
+        volts = max_down if volts < max_down else max_up if volts > max_up else volts
         self.motor.setVoltage(volts)
         volts2 = self.pid2.calculate(
             self.encoder2.getPosition(), position
         ) + self.feedforward.calculate(0, 0)
-        volts2 = max_down if volts2 < max_down else volts2
+        volts2 = (
+            max_down if volts2 < max_down else max_up if volts2 > max_up else volts2
+        )
         self.motor2.setVoltage(volts2)
 
     def _make_position_safe(self, position: feet) -> feet:
@@ -342,7 +346,7 @@ class Elevator(Subsystem):
         return self.command_position(0).withName("Bottom")
 
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(2.75).withName("L1")
+        return self.command_position(2).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
         return self.command_position(7).withName("L2")
@@ -351,7 +355,7 @@ class Elevator(Subsystem):
         return self.command_position(7.75).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(1.5).withName("Intake")  # 21.95 in
+        return self.command_position(2.5).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
         return self.command_position(4).withName("Algae Low")

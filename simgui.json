@@ -23,7 +23,8 @@
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/ElevatorMech": "Mechanism2d",
       "/SmartDashboard/Field": "Field2d",
-      "/SmartDashboard/SendableChooser[0]": "String Chooser"
+      "/SmartDashboard/SendableChooser[0]": "String Chooser",
+      "/SmartDashboard/Wrist": "Subsystem"
     },
     "windows": {
       "/SmartDashboard/Field": {
@@ -32,7 +33,6 @@
           "width": 0.7111999988555908
         },
         "bottom": 1638,
-        "builtin": "2025 Reefscape",
         "height": 8.051901817321777,
         "left": 534,
         "right": 3466,

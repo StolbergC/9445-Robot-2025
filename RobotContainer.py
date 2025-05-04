@@ -1,5 +1,6 @@
 from commands2 import (
     Command,
+    ConditionalCommand,
     DeferredCommand,
     RepeatCommand,
     RunCommand,
@@ -38,17 +39,20 @@ from commands.intake import (
     intake_coral,
     intake_algae_ground,
 )
+from commands.drive_joystick import DriveJoystick
 
-from auto import (
-    blue_center_two_algae,
-    blue_left_two_coral,
-    blue_right_two_coral,
-    positions,
-    blue_test,
-    red_center_two_algae,
-    red_left_two_coral,
-    red_right_two_coral,
-)
+# from auto import (
+#     blue_center_two_algae,
+#     blue_drive,
+#     blue_left_two_coral,
+#     blue_right_two_coral,
+#     positions,
+#     blue_test,
+#     red_center_two_algae,
+#     red_drive,
+#     red_left_two_coral,
+#     red_right_two_coral,
+# )
 
 import wpilib.cameraserver
 
@@ -80,7 +84,7 @@ class RobotContainer:
             self.alliance = DriverStation.Alliance.kBlue
         else:
             self.alliance = a
-        self.drivetrain = Drivetrain(self.get_alliance)
+        self.drivetrain = Drivetrain()
         self.wrist = Wrist()
         self.climber = Climber()
         self.claw = Claw(
@@ -99,42 +103,49 @@ class RobotContainer:
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
         # )
-        self.auto_chooser.addOption(
-            "Blue -- Coral Left",
-            blue_left_two_coral.get_auto(
-                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
-            ),
-        )
-        self.auto_chooser.addOption(
-            "Blue -- Coral Right",
-            blue_right_two_coral.get_auto(
-                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
-            ),
-        )
-        self.auto_chooser.addOption(
-            "Blue -- Algae",
-            blue_center_two_algae.get_auto(
-                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
-            ),
-        )
-        self.auto_chooser.addOption(
-            "Red -- Coral Left",
-            red_left_two_coral.get_auto(
-                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
-            ),
-        )
-        self.auto_chooser.addOption(
-            "Red -- Coral Right",
-            red_right_two_coral.get_auto(
-                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
-            ),
-        )
-        self.auto_chooser.addOption(
-            "Red -- Algae",
-            red_center_two_algae.get_auto(
-                self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
-            ),
-        )
+        # self.auto_chooser.addOption(
+        #     "Blue -- Coral Left",
+        #     blue_left_two_coral.get_auto(
+        #         self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+        #     ),
+        # )
+        # self.auto_chooser.addOption(
+        #     "Blue -- Coral Right",
+        #     blue_right_two_coral.get_auto(
+        #         self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+        #     ),
+        # )
+        # self.auto_chooser.addOption(
+        #     "Blue -- Algae",
+        #     blue_center_two_algae.get_auto(
+        #         self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+        #     ),
+        # )
+
+        # self.auto_chooser.addOption(
+        #     "Blue -- Drive", blue_drive.get_auto(self.drivetrain)
+        # )
+
+        # self.auto_chooser.addOption(
+        #     "Red -- Coral Left",
+        #     red_left_two_coral.get_auto(
+        #         self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+        #     ),
+        # )
+        # self.auto_chooser.addOption(
+        #     "Red -- Coral Right",
+        #     red_right_two_coral.get_auto(
+        #         self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+        #     ),
+        # )
+        # self.auto_chooser.addOption(
+        #     "Red -- Algae",
+        #     red_center_two_algae.get_auto(
+        #         self.drivetrain, self.elevator, self.wrist, self.claw, self.fingers
+        #     ),
+        # )
+
+        # self.auto_chooser.addOption("Red Drive", red_drive.get_auto(self.drivetrain))
 
         self.level = 1
         self.field_oriented = True
@@ -169,21 +180,29 @@ class RobotContainer:
 
         # this sets the motors to idle on disable
         Trigger(DriverStation.isEnabled).onTrue(
-            self.drivetrain.set_drive_idle(False).andThen(
+            self.drivetrain.set_drive_idle_command(False).andThen(
                 InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
             )
         ).onFalse(
             (
                 WaitCommand(5)
-                .andThen(self.drivetrain.set_drive_idle(True))
-                .andThen(self.drivetrain.set_turn_idle(True))
+                .andThen(self.drivetrain.set_drive_idle_command(True))
+                .andThen(self.drivetrain.set_turn_idle_command(True))
                 .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
             ).ignoringDisable(True)
         )
 
         self.claw.stop().schedule()
+        wpilib.cameraserver.CameraServer().launch()
 
-    def get_reef_score_command(self) -> DeferredCommand:
+        self.fingers.setDefaultCommand(self.fingers.stop())
+        self.climber.setDefaultCommand(self.climber.stop())
+        self.wrist.setDefaultCommand(self.wrist.default_follow_ff().withName("Feed"))
+        # self.wrist.setDefaultCommand(self.wrist.follow_angle())
+
+        self.invert = -1
+
+    def get_reef_score_command(self) -> WrapperCommand:
         return DeferredCommand(
             lambda: (
                 score_l1_on_true(self.elevator, self.wrist)
@@ -198,7 +217,7 @@ class RobotContainer:
             self.wrist,
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    def get_algae_intake_command(self) -> DeferredCommand:
+    def get_algae_intake_command(self) -> WrapperCommand:
         return DeferredCommand(
             lambda: (
                 intake_algae_ground(self.elevator, self.wrist, self.claw)
@@ -214,7 +233,7 @@ class RobotContainer:
             self.claw,
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    def get_score_command(self) -> DeferredCommand:
+    def get_score_command(self) -> WrapperCommand:
         return DeferredCommand(
             lambda: (
                 self.get_reef_score_command()
@@ -236,9 +255,9 @@ class RobotContainer:
             self.elevator,
             self.wrist,
             self.claw,
-        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+        )  # .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    def get_intake_on_false(self) -> DeferredCommand:
+    def get_intake_on_false(self) -> WrapperCommand:
         # return self.claw.coral()
         return DeferredCommand(
             lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
@@ -246,17 +265,21 @@ class RobotContainer:
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_drive_x(self) -> float:
-        return applyDeadband(-self.driver_controller.getX(), 0.05) * abs(
-            self.driver_controller.getX()
+        return (
+            self.invert
+            * applyDeadband(-self.driver_controller.getX(), 0.05)
+            * abs(self.driver_controller.getX())
         )
 
     def get_drive_y(self) -> float:
-        return applyDeadband(-self.driver_controller.getY(), 0.05) * abs(
-            self.driver_controller.getY()
+        return (
+            self.invert
+            * applyDeadband(-self.driver_controller.getY(), 0.05)
+            * abs(self.driver_controller.getY())
         )
 
     def get_drive_t(self) -> float:
-        return applyDeadband(-self.driver_controller.getTwist(), 0.05) * abs(
+        return applyDeadband(self.driver_controller.getTwist(), 0.05) * abs(
             self.driver_controller.getTwist()
         )
 
@@ -308,27 +331,25 @@ class RobotContainer:
             )
         ).onFalse(self.elevator.stop())
 
-        self.fingers.setDefaultCommand(self.fingers.stop())
-        self.climber.setDefaultCommand(self.climber.stop())
         # self.claw.setDefaultCommand(self.claw.stop())
         # self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
         """actual bindings"""
         """defaults"""
         self.drivetrain.setDefaultCommand(
-            self.drivetrain.drive_joystick(
+            DriveJoystick(
+                self.drivetrain,
                 self.get_drive_x,
                 self.get_drive_y,
                 self.get_drive_t,
-                # this assumes that -1 is resting and 1 is full
                 lambda: self.field_oriented,
             )
         )
 
-        self.wrist.setDefaultCommand(self.wrist.follow_angle())
-
         """driver"""
-        self.driver_controller.button(button_b).onTrue(self.drivetrain.reset_gyro())
+        self.driver_controller.button(button_b).onTrue(
+            self.drivetrain.reset_gyro_command(Rotation2d())
+        )
 
         def toggle_field_oriented():
             self.field_oriented = not self.field_oriented
@@ -337,67 +358,83 @@ class RobotContainer:
             DeferredCommand(lambda: InstantCommand(toggle_field_oriented))
         )
 
-        self.driver_controller.button(button_a).whileTrue(
-            self.drivetrain.drive_near_coral_station().alongWith(
-                intake_coral(self.elevator, self.wrist, self.claw, self.fingers)
-            )
-        )
+        # self.driver_controller.button(button_a).whileTrue(
+        #     self.drivetrain.drive_near_coral_station().alongWith(
+        #         intake_coral(self.elevator, self.wrist, self.claw, self.fingers)
+        #     )
+        # )
 
-        Trigger(lambda: self.driver_controller.getThrottle() > 0.5).onTrue(
-            self.drivetrain.set_speed_command(
-                feetToMeters(7), self.drivetrain.max_angular_velocity
-            )
-        ).onFalse(
-            DeferredCommand(
-                lambda: self.drivetrain.set_speed_command(
-                    # self.drivetrain.old_speed, self.drivetrain.old_rot
-                    15,
-                    Rotation2d.fromDegrees(240),
-                ),
-                self.drivetrain,
-            )
-        )
+        # Trigger(lambda: self.driver_controller.getThrottle() > 0.5).onTrue(
+        #     self.drivetrain.set_speed_command(
+        #         feetToMeters(7), self.drivetrain.max_angular_velocity
+        #     )
+        # ).onFalse(
+        #     DeferredCommand(
+        #         lambda: self.drivetrain.set_speed_command(
+        #             # self.drivetrain.old_speed, self.drivetrain.old_rot
+        #             12,
+        #             Rotation2d.fromDegrees(180),
+        #         ),
+        #         self.drivetrain,
+        #     )
+        # )
 
-        self.driver_controller.button(button_lb).whileTrue(
-            self.drivetrain.drive_closest_reef().alongWith(
-                self.get_reef_score_command()
-            )
-        )
+        # self.driver_controller.button(button_lb).whileTrue(
+        #     self.drivetrain.drive_closest_reef().alongWith(
+        #         self.get_reef_score_command()
+        #     )
+        # )
 
-        self.driver_controller.button(button_rb).whileTrue(
-            # self.drivetrain.drive_closest_algae().alongWith(
-            #     self.get_algae_intake_command()
-            # )
-            self.drivetrain.reset_pose(positions.blue_reef_center)
-        )
+        # self.driver_controller.button(button_rb).whileTrue(
+        #     # self.drivetrain.drive_closest_algae().alongWith(
+        #     #     self.get_algae_intake_command()
+        #     # )
+        #     self.drivetrain.reset_pose(positions.blue_reef_center)
+        # )
 
-        Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
-            # self.drivetrain.auto_rotate_joystick_drive(
-            #     lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
-            #     lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
-            #     lambda: self.field_oriented,
-            # )
-            DeferredCommand(
-                lambda: self.drivetrain.set_speed_command(
-                    10000, self.drivetrain.old_rot
-                ),
-                self.drivetrain,
-            )
-        ).onFalse(
-            DeferredCommand(
-                lambda: self.drivetrain.set_speed_command(
-                    # self.drivetrain.old_speed, self.drivetrain.old_rot
-                    15,
-                    Rotation2d.fromDegrees(240),
-                ),
-                self.drivetrain,
-            )
-        )
+        # Trigger(lambda: self.driver_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
+        #     # self.drivetrain.auto_rotate_joystick_drive(
+        #     #     lambda: applyDeadband(-self.driver_controller.getX(), 0.05),
+        #     #     lambda: applyDeadband(-self.driver_controller.getY(), 0.05),
+        #     #     lambda: self.field_oriented,
+        #     # )
+        #     DeferredCommand(
+        #         lambda: self.drivetrain.set_speed_command(
+        #             10000, self.drivetrain.old_rot
+        #         ),
+        #         self.drivetrain,
+        #     )
+        # ).onFalse(
+        #     DeferredCommand(
+        #         lambda: self.drivetrain.set_speed_command(
+        #             # self.drivetrain.old_speed, self.drivetrain.old_rot
+        #             12,
+        #             Rotation2d.fromDegrees(180),
+        #         ),
+        #         self.drivetrain,
+        #     )
+        # )
 
-        self.driver_controller.button(button_lb).whileTrue(
-            self.drivetrain.auto_rotate_joystick_drive(
-                self.get_drive_x, self.get_drive_y, lambda: self.field_oriented
-            )
+        # self.driver_controller.button(button_lb).whileTrue(
+        #     self.drivetrain.auto_rotate_joystick_drive(
+        #         self.get_drive_x, self.get_drive_y, lambda: self.field_oriented
+        #     )
+        # )
+
+        # def toggle_vision() -> ConditionalCommand:
+        #     return ConditionalCommand(
+        #         self.drivetrain.stop_vision(),
+        #         self.drivetrain.start_vision(),
+        #         lambda: self.drivetrain.using_vision,
+        #     )
+
+        # self.driver_controller.button(button_a).onTrue(toggle_vision())
+
+        def set_invert():
+            self.invert *= -1
+
+        self.driver_controller.button(button_x).onTrue(
+            DeferredCommand(lambda: InstantCommand(set_invert))
         )
 
         """operator controls"""
@@ -411,13 +448,29 @@ class RobotContainer:
         )
 
         Trigger(lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
-            self.get_intake_command()
+            self.get_intake_command().andThen(
+                DeferredCommand(
+                    lambda: (
+                        self.wrist.angle_intake()
+                        if self.grabbing_coral
+                        else commands2.cmd.none()
+                    )
+                )
+            )
         ).onFalse(
             # self.claw.coral()
             self.get_intake_on_false()
             # .andThen(self.claw.stop())
             # .andThen(WaitCommand(1)).andThen(self.fingers.stop())
         )
+
+        Trigger(lambda: abs(self.operator_controller.getRawAxis(5)) > 0.1).whileTrue(
+            RepeatCommand(
+                self.wrist.manual_control(
+                    lambda: self.operator_controller.getRawAxis(5) / -20
+                ),
+            )
+        ).onFalse(self.wrist.stop())
 
         # self.operator_controller.button(button_lpush).whileTrue(self.climber.reverse())
         # self.operator_controller.button(button_rpush).whileTrue(self.climber.climb())
@@ -467,6 +520,7 @@ class RobotContainer:
 
         self.operator_controller.button(button_b).onTrue(
             self.wrist.angle_zero()
+            .andThen(self.claw.cage())
             .andThen(self.elevator.command_bottom())
             .andThen(self.wrist.angle_intake())
             .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
@@ -480,6 +534,10 @@ class RobotContainer:
             )
         ).onFalse(smack_algae.smack_alage_on_false(self.elevator, self.wrist))
 
+        # self.operator_controller.button(button_rpush).whileTrue(
+        #     self.wrist.angle_intake()
+        # ).onFalse(self.wrist.stop())
+
         self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
         self.operator_controller.button(button_right).whileTrue(
@@ -489,9 +547,17 @@ class RobotContainer:
             self.climber.reverse()
         ).onFalse(self.climber.stop())
 
+        self.operator_controller.button(button_rb).whileTrue(
+            # self.wrist.angle_zero()
+            self.claw.cage()
+            # .andThen(self.elevator.command_intake())
+            .andThen(self.wrist.angle_intake_slow())
+        ).onFalse(self.wrist.stop().andThen(self.claw.coral()))
+
     def periodic(self) -> None:
         self.nettable.putNumber("Elevator Level", self.level)
         self.nettable.putBoolean("Coral", self.grabbing_coral)
+        self.nettable.putNumber("Invert", self.invert)
 
     def get_alliance(self) -> DriverStation.Alliance:
         return self.alliance

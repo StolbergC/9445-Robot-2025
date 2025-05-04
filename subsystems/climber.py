@@ -31,7 +31,7 @@ class Climber(Subsystem):
         return InstantCommand(lambda: self.motor.set(0), self)
 
     def climb(self):
-        return RunCommand(lambda: self.motor.set(-0.5), self).withName("Climb")
+        return RunCommand(lambda: self.motor.set(-0.75), self).withName("Climb")
 
     def reverse(self):
         return RunCommand(lambda: self.motor.set(0.3), self).withName("Reverse")

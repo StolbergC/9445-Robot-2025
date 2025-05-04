@@ -1,6 +1,6 @@
 from commands2 import Command, CommandScheduler
 from ntcore import NetworkTableInstance
-from wpilib import SmartDashboard, TimedRobot, Watchdog, run
+from wpilib import SmartDashboard, TimedRobot, Watchdog, run, DataLogManager
 
 from RobotContainer import RobotContainer, button_lb
 from subsystems.climber import Climber
@@ -15,7 +15,7 @@ class Robot(TimedRobot):
     # Initialize Robot
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
-        Watchdog(10000000, lambda: None).disable()
+        DataLogManager.start()
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
@@ -39,7 +39,7 @@ class Robot(TimedRobot):
         if self.m_autonomousCommand:
             self.m_autonomousCommand.cancel()
         if self.m_robotContainer:
-            self.m_robotContainer.drivetrain.stop().schedule()
+            self.m_robotContainer.drivetrain.stop_command().schedule()
 
     # Teleop Robot Functions
     def teleopInit(self):
@@ -49,7 +49,7 @@ class Robot(TimedRobot):
             # self.m_robotContainer.wrist.angle_zero().schedule()
             self.m_robotContainer.elevator.stop().schedule()
             self.m_robotContainer.fingers.stop().schedule()
-            self.m_robotContainer.drivetrain.stop().schedule()
+            self.m_robotContainer.drivetrain.stop_command().schedule()
 
     def teleopPeriodic(self):
         pass

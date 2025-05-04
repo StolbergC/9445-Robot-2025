@@ -2,8 +2,13 @@ from math import pi
 from typing import Callable
 from rev import SparkMax, SparkMaxConfig, SparkBase, EncoderConfig
 
+from wpilib import SmartDashboard
+
 from commands2 import (
+    Command,
     InstantCommand,
+    ParallelCommandGroup,
+    ParallelRaceGroup,
     RepeatCommand,
     Subsystem,
     RunCommand,
@@ -39,7 +44,7 @@ class Wrist(Subsystem):
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
-        self.motor_config.absoluteEncoder.zeroOffset(230 / 360).zeroCentered(
+        self.motor_config.absoluteEncoder.zeroOffset(240 / 360).zeroCentered(
             True
         ).positionConversionFactor(360).velocityConversionFactor(360)
         self.motor.configure(
@@ -52,7 +57,7 @@ class Wrist(Subsystem):
             8, 0, 0, TrapezoidProfile.Constraints(pi, 3 * pi)
         )
 
-        self.feedforward = ArmFeedforward(0, 0.3, 0, 0)
+        self.feedforward = ArmFeedforward(0, 0.02, 0, 0)
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
 
@@ -118,9 +123,11 @@ class Wrist(Subsystem):
         self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
 
         self.setpoint: Rotation2d = self.get_angle()
+        SmartDashboard.putData(self)
 
     def periodic(self) -> None:
         self.pid.calculate(self.get_angle().radians())
+        # self.pid.reset(self.get_angle().radians())
         self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
         self.nettable.putNumber(
             "State/velocity (rad p s)", self.get_velocity().radians()
@@ -156,7 +163,15 @@ class Wrist(Subsystem):
             self,
         )
 
-    def set_state(self, angle: Rotation2d) -> None:
+    def default_follow_ff(self) -> RunCommand:
+        return RunCommand(
+            lambda: self.motor.set(
+                self.feedforward.calculate(self.get_angle().radians(), 0)
+            ),
+            self,
+        )
+
+    def set_state(self, angle: Rotation2d, slow: bool = False) -> None:
         self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
         if (
             abs(self.get_claw_distance() - self.safe_claw_distance)
@@ -186,11 +201,13 @@ class Wrist(Subsystem):
     def run_angle(self, angle: Rotation2d) -> WrapperCommand:
         # return WaitCommand(0)
         return (
-            RepeatCommand(InstantCommand(lambda: self.set_state(angle), self))
+            InstantCommand(lambda: self.pid.reset(self.get_angle().radians()), self)
+            # .andThen(InstantCommand(setattr(self, "setpoint", angle)))
+            .andThen(RepeatCommand(InstantCommand(lambda: self.set_state(angle), self)))
             .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 10)
             .andThen(self.stop())
             .withName(f"Set Angle {angle.degrees()} (deg)")
-            .withTimeout(5)
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
 
     def angle_intake(self) -> WrapperCommand:
@@ -228,6 +245,16 @@ class Wrist(Subsystem):
             self.setpoint = Rotation2d.fromDegrees(10)
 
         return InstantCommand(do_it)
+
+    def angle_intake_slow(self) -> ParallelRaceGroup:
+        return RepeatCommand(
+            InstantCommand(
+                lambda: self.motor.set(
+                    0.1 if self.get_angle().degrees() < 62.5 else -0.1
+                ),
+                self,
+            )
+        ).until(lambda: abs(62.5 - self.get_angle().degrees()) < 5)
 
     def manual_control(self, power: Callable[[], float]) -> RunCommand:
         """This should only be used in test mode for the pit to reset the robot"""
