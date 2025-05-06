@@ -39,6 +39,7 @@ class ModuleConstants:
     cancoder_id: int
     cancoder_offset: turns
     translation_from_center: Translation2d
+    drive_inverted: bool
 
     def __init__(
         self,
@@ -47,25 +48,27 @@ class ModuleConstants:
         turn: int,
         cancoder_offset: turns,
         translation: Translation2d,
+        drive_inverted: bool,
     ):
         self.drive_id = drive
         self.turn_id = turn
         self.cancoder_id = cancoder
         self.cancoder_offset = cancoder_offset
         self.translation_from_center = translation
+        self.drive_inverted = drive_inverted
 
 
 front_left: ModuleConstants = ModuleConstants(
-    14, 15, 16, -0.416, Translation2d.fromFeet(14 / 12, 14 / 12)
+    14, 15, 16, -0.416, Translation2d.fromFeet(14 / 12, 14 / 12), False
 )
 front_right: ModuleConstants = ModuleConstants(
-    11, 12, 13, -0.436, Translation2d.fromFeet(14 / 12, -14 / 12)
+    11, 12, 13, 0.436, Translation2d.fromFeet(14 / 12, -14 / 12), True
 )
 back_left: ModuleConstants = ModuleConstants(
-    5, 6, 7, -0.477, Translation2d.fromFeet(-14 / 12, 14 / 12)
+    5, 6, 7, -0.519, Translation2d.fromFeet(-14 / 12, 14 / 12), True
 )
 back_right: ModuleConstants = ModuleConstants(
-    8, 9, 10, 0, Translation2d.fromFeet(-14 / 12, -14 / 12)
+    8, 9, 10, 0.520, Translation2d.fromFeet(-14 / 12, -14 / 12), False
 )
 
 drive_ratio: float = 1 / 1  # 8.14
@@ -85,8 +88,8 @@ drive_config: TalonFXConfiguration = (
     .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(60))
     .with_slot0(
         Slot0Configs()
-        .with_k_p(0.008)
-        .with_k_i(0.0)
+        .with_k_p(0.00)
+        .with_k_i(0.5)
         .with_k_d(0.00)
         .with_k_v(0.0)
         .with_k_a(0.0)
@@ -97,7 +100,7 @@ drive_config: TalonFXConfiguration = (
     # )
     # )
     .with_motor_output(
-        MotorOutputConfigs().with_inverted(InvertedValue.COUNTER_CLOCKWISE_POSITIVE)
+        MotorOutputConfigs().with_inverted(InvertedValue.CLOCKWISE_POSITIVE)
     )
 )
 
@@ -112,7 +115,7 @@ turn_config: TalonFXConfiguration = (
         # .with_k_d(0.1)
         # .with_k_v(0.0)
         # .with_k_a(0.0)
-        Slot0Configs().with_k_p(0.15)
+        Slot0Configs().with_k_p(3.0)
     )
     .with_feedback(
         FeedbackConfigs()
@@ -121,7 +124,7 @@ turn_config: TalonFXConfiguration = (
     )
     .with_closed_loop_general(ClosedLoopGeneralConfigs().with_continuous_wrap(True))
     .with_motor_output(
-        MotorOutputConfigs().with_inverted(InvertedValue.COUNTER_CLOCKWISE_POSITIVE)
+        MotorOutputConfigs().with_inverted(InvertedValue.CLOCKWISE_POSITIVE)
     )
 )
 

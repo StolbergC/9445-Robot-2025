@@ -2,7 +2,7 @@ from subsystems.swerve_module import SwerveModule, ModuleLocation
 
 from typing import Callable
 
-from commands2 import InstantCommand, Subsystem
+from commands2 import DeferredCommand, InstantCommand, Subsystem
 
 from wpimath.kinematics import (
     SwerveDrive4Kinematics,
@@ -14,7 +14,7 @@ from wpimath.estimator import SwerveDrive4PoseEstimator
 from wpimath.geometry import Pose2d, Rotation2d
 from wpimath.units import feetToMeters, degreesToRadians
 
-from wpilib import Field2d, DriverStation, RobotBase
+from wpilib import Field2d, DriverStation, RobotBase, SmartDashboard
 
 from navx import AHRS
 
@@ -38,7 +38,7 @@ class Drivetrain(Subsystem):
         self.bl = SwerveModule(ModuleLocation.BACK_LEFT)
         self.br = SwerveModule(ModuleLocation.BACK_RIGHT)
 
-        self.gyro = AHRS(AHRS.NavXComType.kMXP_UART)
+        self.gyro = AHRS(AHRS.NavXComType.kUSB1)
 
         self.kinematics = SwerveDrive4Kinematics(
             self.fl.get_from_center(),
@@ -73,6 +73,8 @@ class Drivetrain(Subsystem):
         self.setpoint_pub = self.nettable.getStructTopic(
             "Setpoint", ChassisSpeeds
         ).publish()
+
+        SmartDashboard.putData(self.gyro)
 
     def periodic(self):
         self.run_chassis_speeds(self.setpoint)
@@ -160,10 +162,15 @@ class Drivetrain(Subsystem):
         self.odometry.resetPose(new_pose)
 
     def reset_gyro(self, new_angle: Rotation2d) -> None:
-        self.gyro.setAngleAdjustment(new_angle.degrees())
+        if new_angle == Rotation2d():
+            self.gyro.reset()
+        else:
+            self.gyro.setAngleAdjustment(new_angle.degrees())
 
-    def reset_gyro_command(self, new_angle: Rotation2d) -> InstantCommand:
-        return InstantCommand(lambda: self.reset_gyro(new_angle))
+    def reset_gyro_command(self, new_angle: Rotation2d) -> DeferredCommand:
+        return DeferredCommand(
+            lambda: InstantCommand(lambda: self.reset_gyro(new_angle))
+        )
 
     def set_drive_idle(self, coast: bool) -> None:
         self.fl.set_drive_idle(coast)

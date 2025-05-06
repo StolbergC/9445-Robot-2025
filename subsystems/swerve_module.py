@@ -1,7 +1,7 @@
 from enum import Enum
 from math import pi
 
-from commands2 import Subsystem
+from commands2 import Subsystem, SwerveControllerCommand
 
 from wpilib import RobotBase
 
@@ -16,7 +16,7 @@ from phoenix6.hardware import TalonFX
 from phoenix6.hardware.cancoder import CANcoder
 from phoenix6.configs import FeedbackConfigs, MagnetSensorConfigs
 from phoenix6.controls import VelocityDutyCycle, PositionDutyCycle
-from phoenix6.signals import FeedbackSensorSourceValue, NeutralModeValue
+from phoenix6.signals import FeedbackSensorSourceValue, NeutralModeValue, InvertedValue
 
 from constants import ModuleConstants
 import constants
@@ -76,7 +76,22 @@ class SwerveModule(Subsystem):
                 MagnetSensorConfigs().with_magnet_offset(consts.cancoder_offset)
             )
         )
-        self.drive_motor.configurator.apply(swerve_consts.drive_config)
+        if not consts.drive_inverted:
+            self.drive_motor.configurator.apply(swerve_consts.drive_config)
+        else:
+            if (
+                swerve_consts.drive_config.motor_output.inverted
+                == InvertedValue.CLOCKWISE_POSITIVE
+            ):
+                new_inversion = InvertedValue.COUNTER_CLOCKWISE_POSITIVE
+            else:
+                new_inversion = InvertedValue.CLOCKWISE_POSITIVE
+            self.drive_motor.configurator.apply(
+                swerve_consts.drive_config.with_motor_output(
+                    swerve_consts.drive_config.motor_output.with_inverted(new_inversion)
+                )
+            )
+
         self.turn_motor.configurator.apply(
             swerve_consts.turn_config.with_feedback(
                 FeedbackConfigs()
@@ -108,8 +123,8 @@ class SwerveModule(Subsystem):
 
         self.set_state(self.setpoint)
 
-        self.set_drive_idle(True)
-        self.set_turn_idle(True)
+        self.set_drive_idle(False)
+        self.set_turn_idle(False)
 
         if RobotBase.isSimulation():
             self.cancoder_sim = self.cancoder.sim_state
@@ -123,7 +138,7 @@ class SwerveModule(Subsystem):
             self.drive_motor.set(0)
         else:
             self.drive_motor.set_control(
-                VelocityDutyCycle(self.meters_to_rotations(self.setpoint.speed))
+                VelocityDutyCycle(self.meters_to_rotations(-self.setpoint.speed))
             )
 
         self.turn_motor.set_control(
@@ -148,6 +163,18 @@ class SwerveModule(Subsystem):
         self.nettable.putNumber(
             "State/Velocity Setpoint",
             self.drive_motor.get_closed_loop_reference().value,
+        )
+
+        self.nettable.putNumber(
+            "State/turn error", self.turn_motor.get_closed_loop_error().value
+        )
+
+        self.nettable.putNumber(
+            "State/turn reference", self.turn_motor.get_closed_loop_reference().value
+        )
+
+        self.nettable.putNumber(
+            "State/drive reference", self.drive_motor.get_closed_loop_reference().value
         )
 
         # return super().periodic()
