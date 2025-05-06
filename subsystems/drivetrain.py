@@ -162,7 +162,7 @@ class Drivetrain(Subsystem):
         self.odometry.resetPose(new_pose)
 
     def reset_gyro(self, new_angle: Rotation2d) -> None:
-        if new_angle == Rotation2d():
+        if new_angle == Rotation2d() and not RobotBase.isSimulation():
             self.gyro.reset()
         else:
             self.gyro.setAngleAdjustment(new_angle.degrees())

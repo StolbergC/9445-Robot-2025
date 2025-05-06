@@ -1,5 +1,6 @@
 from math import pi
 
+from wpilib import RobotBase
 from wpimath.units import (
     meters,
     inchesToMeters,
@@ -59,19 +60,19 @@ class ModuleConstants:
 
 
 front_left: ModuleConstants = ModuleConstants(
-    14, 15, 16, -0.416, Translation2d.fromFeet(14 / 12, 14 / 12), False
+    14, 15, 16, -0.416, Translation2d.fromFeet(12 / 12, 12 / 12), False
 )
 front_right: ModuleConstants = ModuleConstants(
-    11, 12, 13, 0.436, Translation2d.fromFeet(14 / 12, -14 / 12), True
+    11, 12, 13, 0.436, Translation2d.fromFeet(12 / 12, -12 / 12), True
 )
 back_left: ModuleConstants = ModuleConstants(
-    5, 6, 7, -0.519, Translation2d.fromFeet(-14 / 12, 14 / 12), True
+    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), True
 )
 back_right: ModuleConstants = ModuleConstants(
-    8, 9, 10, 0.520, Translation2d.fromFeet(-14 / 12, -14 / 12), False
+    8, 9, 10, 0.520, Translation2d.fromFeet(-12 / 12, -12 / 12), False
 )
 
-drive_ratio: float = 1 / 1  # 8.14
+drive_ratio: float = 1 / 8.14 if RobotBase.isReal() else 1
 turn_ratio: float = 7 / 150
 
 drivebase_width: meters = inchesToMeters(28)
@@ -109,13 +110,14 @@ turn_config: TalonFXConfiguration = (
     .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(20))
     .with_slot0(
         # simulation
-        # Slot0Configs()
-        # .with_k_p(1.0)
-        # .with_k_i(0.0)
-        # .with_k_d(0.1)
-        # .with_k_v(0.0)
-        # .with_k_a(0.0)
-        Slot0Configs().with_k_p(3.0)
+        Slot0Configs()
+        .with_k_p(0.5)
+        .with_k_i(0.0)
+        .with_k_d(0.0)
+        .with_k_v(0.0)
+        .with_k_a(0.0)
+        if RobotBase.isSimulation()
+        else Slot0Configs().with_k_p(3.0)
     )
     .with_feedback(
         FeedbackConfigs()

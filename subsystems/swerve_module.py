@@ -76,7 +76,7 @@ class SwerveModule(Subsystem):
                 MagnetSensorConfigs().with_magnet_offset(consts.cancoder_offset)
             )
         )
-        if not consts.drive_inverted:
+        if not consts.drive_inverted or RobotBase.isSimulation():
             self.drive_motor.configurator.apply(swerve_consts.drive_config)
         else:
             if (
@@ -194,7 +194,7 @@ class SwerveModule(Subsystem):
         self.turn_motor.sim_state.add_rotor_position(turnRps * 0.02)
 
         # CANcoder Velocity and Position
-        canRps = turnRps * constants.turn_ratio
+        canRps = turnRps  # * constants.turn_ratio
         self.cancoder_sim.set_velocity(canRps)
         self.cancoder_sim.add_position(canRps * 0.02)
         self.nettable.putNumber("CanTurnRPS", canRps)

@@ -339,9 +339,12 @@ class RobotContainer:
         self.drivetrain.setDefaultCommand(
             DriveJoystick(
                 self.drivetrain,
-                self.get_drive_x,
-                self.get_drive_y,
-                self.get_drive_t,
+                lambda: 0.25,
+                lambda: 0,
+                lambda: 0.5,
+                # self.get_drive_x,
+                # self.get_drive_y,
+                # self.get_drive_t,
                 lambda: self.field_oriented,
             )
         )

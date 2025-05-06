@@ -8,6 +8,6 @@ class Error:
             or DriverStation.getMatchNumber() > 0
             or DriverStation.getMatchType() != DriverStation.MatchType.kNone
         ):
-            reportError(error)
+            reportError(str(error))
         else:
             raise error

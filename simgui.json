@@ -24,7 +24,8 @@
       "/SmartDashboard/ElevatorMech": "Mechanism2d",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/SendableChooser[0]": "String Chooser",
-      "/SmartDashboard/Wrist": "Subsystem"
+      "/SmartDashboard/Wrist": "Subsystem",
+      "/SmartDashboard/navX-Sensor[2]": "Gyro"
     },
     "windows": {
       "/SmartDashboard/Field": {
@@ -54,9 +55,6 @@
       "open": false
     },
     "transitory": {
-      "0000DriverInfo": {
-        "open": true
-      },
       "000Claw": {
         "PID": {
           "open": true
@@ -85,8 +83,7 @@
         },
         "State": {
           "open": true
-        },
-        "open": true
+        }
       },
       "000Wrist": {
         "PID": {
@@ -97,12 +94,19 @@
         }
       },
       "Drivetrain": {
+        "Pose2d##v_/Drivetrain/Pose": {
+          "Rotation2d##v_rotation": {
+            "open": true
+          },
+          "open": true
+        },
         "config": {
           "max_angular_velocity_deg": {
             "open": true
           },
           "open": true
         },
+        "open": true,
         "velocity": {
           "open": true
         }

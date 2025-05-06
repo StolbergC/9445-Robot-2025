@@ -77,11 +77,8 @@ class Robot(TimedRobot):
                 self.m_robotContainer.claw.stop().schedule()
             if self.nettable.getBoolean("Return Wrist", False):
                 self.m_robotContainer.wrist.angle_full_up().schedule()
-                # self.nettable.putBoolean("Return Wrist", False)
             if self.nettable.getBoolean("Return Wrist", True) == False:
                 self.m_robotContainer.wrist.stop().schedule()
-            if self.nettable.getBoolean("Home Elevator", False):
-                self.m_robotContainer.elevator.home().schedule()
             if self.nettable.getBoolean("Home Elevator", True) == False:
                 self.m_robotContainer.elevator.stop().schedule()
 
@@ -98,8 +95,8 @@ class Robot(TimedRobot):
     def disabledExit(self):
         pass
 
-    def SimulationPeriodic(self) -> None:
-        CommandScheduler.getInstance().run()
+    # def SimulationPeriodic(self) -> None:
+    #     CommandScheduler.getInstance().run()
 
 
 # Start the Robot when Executing Code
