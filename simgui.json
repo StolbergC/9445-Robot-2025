@@ -21,8 +21,12 @@
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Drive Diag+Turn": "Command",
+      "/SmartDashboard/Drive+Turn": "Command",
       "/SmartDashboard/ElevatorMech": "Mechanism2d",
       "/SmartDashboard/Field": "Field2d",
+      "/SmartDashboard/Just Drive": "Command",
+      "/SmartDashboard/Just Turn": "Command",
       "/SmartDashboard/SendableChooser[0]": "String Chooser",
       "/SmartDashboard/Wrist": "Subsystem",
       "/SmartDashboard/navX-Sensor[2]": "Gyro"

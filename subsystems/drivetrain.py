@@ -16,10 +16,14 @@ from wpimath.units import feetToMeters, degreesToRadians
 
 from wpilib import Field2d, DriverStation, RobotBase, SmartDashboard
 
+from ntcore import NetworkTableInstance
+from ntcore.util import ntproperty
+
 from navx import AHRS
 
-from ntcore.util import ntproperty
-from ntcore import NetworkTableInstance
+from pathplannerlib.auto import AutoBuilder, RobotConfig
+from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
+from pathplannerlib.logging import PathPlannerLogging
 
 
 class Drivetrain(Subsystem):
@@ -74,6 +78,20 @@ class Drivetrain(Subsystem):
             "Setpoint", ChassisSpeeds
         ).publish()
 
+        robot_cfg = RobotConfig.fromGUISettings()
+        self.auto_builder = AutoBuilder.configure(
+            self.get_pose,
+            self.reset_pose,
+            self.get_speeds,
+            lambda speeds, _feedforward: self.run_chassis_speeds(speeds),
+            PPHolonomicDriveController(
+                PIDConstants(0, 0, 0, 0), PIDConstants(0, 0, 0, 0)
+            ),
+            robot_cfg,
+            self.should_flip,
+            self,
+        )
+
         SmartDashboard.putData(self.gyro)
 
     def periodic(self):
@@ -86,7 +104,7 @@ class Drivetrain(Subsystem):
         return super().periodic()
 
     def simulationPeriodic(self):
-        speeds = self.kinematics.toChassisSpeeds(self.get_states())
+        speeds = self.get_speeds()
         self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * 0.02)
         return super().simulationPeriodic()
 
@@ -122,6 +140,12 @@ class Drivetrain(Subsystem):
             self.bl.get_state(),
             self.br.get_state(),
         )
+
+    def get_speeds(self) -> ChassisSpeeds:
+        return self.kinematics.toChassisSpeeds(self.get_states())
+
+    def get_pose(self) -> Pose2d:
+        return self.odometry.getEstimatedPosition()
 
     def stop(self) -> None:
         self.run_chassis_speeds(ChassisSpeeds())

@@ -44,12 +44,12 @@ class Robot(TimedRobot):
     # Teleop Robot Functions
     def teleopInit(self):
         elastic.select_tab("Teleoperated")
-        if self.m_robotContainer is not None:
-            self.m_robotContainer.set_teleop_bindings()
-            # self.m_robotContainer.wrist.angle_zero().schedule()
-            self.m_robotContainer.elevator.stop().schedule()
-            self.m_robotContainer.fingers.stop().schedule()
-            # self.m_robotContainer.drivetrain.stop_command().schedule()
+        # if self.m_robotContainer is not None:
+        #     self.m_robotContainer.set_teleop_bindings()
+        #     # self.m_robotContainer.wrist.angle_zero().schedule()
+        #     self.m_robotContainer.elevator.stop().schedule()
+        #     self.m_robotContainer.fingers.stop().schedule()
+        #     # self.m_robotContainer.drivetrain.stop_command().schedule()
 
     def teleopPeriodic(self):
         pass
@@ -67,20 +67,21 @@ class Robot(TimedRobot):
             self.nettable.putBoolean("Home Elevator", False)
 
     def testPeriodic(self):
-        if self.m_robotContainer:
-            if self.nettable.getBoolean("Zero Claw", False):
-                self.m_robotContainer.wrist.angle_zero().andThen(
-                    self.m_robotContainer.claw.cage()
-                ).schedule()
-                # self.nettable.putBoolean("Zero Claw", False)
-            if self.nettable.getBoolean("Zero Claw", True) == False:
-                self.m_robotContainer.claw.stop().schedule()
-            if self.nettable.getBoolean("Return Wrist", False):
-                self.m_robotContainer.wrist.angle_full_up().schedule()
-            if self.nettable.getBoolean("Return Wrist", True) == False:
-                self.m_robotContainer.wrist.stop().schedule()
-            if self.nettable.getBoolean("Home Elevator", True) == False:
-                self.m_robotContainer.elevator.stop().schedule()
+        # if self.m_robotContainer:
+        #     if self.nettable.getBoolean("Zero Claw", False):
+        #         self.m_robotContainer.wrist.angle_zero().andThen(
+        #             self.m_robotContainer.claw.cage()
+        #         ).schedule()
+        #         # self.nettable.putBoolean("Zero Claw", False)
+        #     if self.nettable.getBoolean("Zero Claw", True) == False:
+        #         self.m_robotContainer.claw.stop().schedule()
+        #     if self.nettable.getBoolean("Return Wrist", False):
+        #         self.m_robotContainer.wrist.angle_full_up().schedule()
+        #     if self.nettable.getBoolean("Return Wrist", True) == False:
+        #         self.m_robotContainer.wrist.stop().schedule()
+        #     if self.nettable.getBoolean("Home Elevator", True) == False:
+        #         self.m_robotContainer.elevator.stop().schedule()
+        ...
 
     def testExit(self):
         pass
