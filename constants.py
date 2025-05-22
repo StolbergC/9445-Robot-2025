@@ -63,7 +63,7 @@ front_left: ModuleConstants = ModuleConstants(
     14, 15, 16, -0.416, Translation2d.fromFeet(12 / 12, 12 / 12), False
 )
 front_right: ModuleConstants = ModuleConstants(
-    11, 12, 13, 0.436, Translation2d.fromFeet(12 / 12, -12 / 12), True
+    11, 12, 13, 0.555, Translation2d.fromFeet(12 / 12, -12 / 12), True
 )
 back_left: ModuleConstants = ModuleConstants(
     5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), True
@@ -90,7 +90,7 @@ drive_config: TalonFXConfiguration = (
     .with_slot0(
         Slot0Configs()
         .with_k_p(0.00)
-        .with_k_i(0.5)
+        .with_k_i(2.0)
         .with_k_d(0.00)
         .with_k_v(0.0)
         .with_k_a(0.0)
@@ -111,13 +111,13 @@ turn_config: TalonFXConfiguration = (
     .with_slot0(
         # simulation
         Slot0Configs()
-        .with_k_p(0.5)
+        .with_k_p(1.5)
         .with_k_i(0.0)
         .with_k_d(0.0)
         .with_k_v(0.0)
         .with_k_a(0.0)
         if RobotBase.isSimulation()
-        else Slot0Configs().with_k_p(3.0)
+        else Slot0Configs().with_k_p(5.0)
     )
     .with_feedback(
         FeedbackConfigs()

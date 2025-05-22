@@ -98,6 +98,9 @@
         }
       },
       "Drivetrain": {
+        "ChassisSpeeds##v_/Drivetrain/Setpoint": {
+          "open": true
+        },
         "Pose2d##v_/Drivetrain/Pose": {
           "Rotation2d##v_rotation": {
             "open": true

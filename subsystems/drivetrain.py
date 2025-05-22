@@ -27,7 +27,7 @@ from pathplannerlib.logging import PathPlannerLogging
 
 
 class Drivetrain(Subsystem):
-    max_speed = ntproperty("max_speed", feetToMeters(10))
+    max_speed = ntproperty("max_speed", feetToMeters(3))
     max_angular_speed = ntproperty("max_angular_speed", degreesToRadians(270))
 
     def __init__(
@@ -78,19 +78,19 @@ class Drivetrain(Subsystem):
             "Setpoint", ChassisSpeeds
         ).publish()
 
-        robot_cfg = RobotConfig.fromGUISettings()
-        self.auto_builder = AutoBuilder.configure(
-            self.get_pose,
-            self.reset_pose,
-            self.get_speeds,
-            lambda speeds, _feedforward: self.run_chassis_speeds(speeds),
-            PPHolonomicDriveController(
-                PIDConstants(0, 0, 0, 0), PIDConstants(0, 0, 0, 0)
-            ),
-            robot_cfg,
-            self.should_flip,
-            self,
-        )
+        # robot_cfg = RobotConfig.fromGUISettings()
+        # self.auto_builder = AutoBuilder.configure(
+        #     self.get_pose,
+        #     self.reset_pose,
+        #     self.get_speeds,
+        #     lambda speeds, _feedforward: self.run_chassis_speeds(speeds),
+        #     PPHolonomicDriveController(
+        #         PIDConstants(0, 0, 0, 0), PIDConstants(0, 0, 0, 0)
+        #     ),
+        #     robot_cfg,
+        #     self.should_flip,
+        #     self,
+        # )
 
         SmartDashboard.putData(self.gyro)
 

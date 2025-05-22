@@ -100,12 +100,12 @@ class RobotContainer:
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         # self.fingers = Fingers()
 
-        self.auto_chooser = AutoBuilder.buildAutoChooser()
-        self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
-        SmartDashboard.putData("Just Turn", PathPlannerAuto("turn"))
-        SmartDashboard.putData("Just Drive", PathPlannerAuto("drive"))
-        SmartDashboard.putData("Drive+Turn", PathPlannerAuto("both"))
-        SmartDashboard.putData("Drive Diag+Turn", PathPlannerAuto("diagBoth"))
+        # self.auto_chooser = AutoBuilder.buildAutoChooser()
+        # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
+        # SmartDashboard.putData("Just Turn", PathPlannerAuto("turn"))
+        # SmartDashboard.putData("Just Drive", PathPlannerAuto("drive"))
+        # SmartDashboard.putData("Drive+Turn", PathPlannerAuto("both"))
+        # SmartDashboard.putData("Drive Diag+Turn", PathPlannerAuto("diagBoth"))
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
         # )
@@ -153,21 +153,21 @@ class RobotContainer:
 
         # self.auto_chooser.addOption("Red Drive", red_drive.get_auto(self.drivetrain))
 
-        self.level = 1
+        # self.level = 1
         self.field_oriented = True
 
-        def pick_alliance(new_auto: Command):
-            if "RED" in new_auto.getName().upper():
-                self.alliance = DriverStation.Alliance.kRed
-            elif "BLUE" in new_auto.getName().upper():
-                self.alliance = DriverStation.Alliance.kBlue
-            else:
-                self.alliance = DriverStation.getAlliance()
+        # def pick_alliance(new_auto: Command):
+        # if "RED" in new_auto.getName().upper():
+        # self.alliance = DriverStation.Alliance.kRed
+        # elif "BLUE" in new_auto.getName().upper():
+        # self.alliance = DriverStation.Alliance.kBlue
+        # else:
+        # self.alliance = DriverStation.getAlliance()
 
-        self.auto_chooser.onChange(pick_alliance)
+        # self.auto_chooser.onChange(pick_alliance)
 
         # have to read from elastic
-        SmartDashboard.putData(self.auto_chooser)
+        # SmartDashboard.putData(self.auto_chooser)
 
         self.driver_controller = CommandJoystick(0)
         self.operator_controller = CommandJoystick(1)
@@ -345,12 +345,9 @@ class RobotContainer:
         self.drivetrain.setDefaultCommand(
             DriveJoystick(
                 self.drivetrain,
-                lambda: 0.25,
-                lambda: 0,
-                lambda: 0.5,
-                # self.get_drive_x,
-                # self.get_drive_y,
-                # self.get_drive_t,
+                self.get_drive_x,
+                self.get_drive_y,
+                self.get_drive_t,
                 lambda: self.field_oriented,
             )
         )
@@ -566,7 +563,7 @@ class RobotContainer:
     """
 
     def periodic(self) -> None:
-        self.nettable.putNumber("Elevator Level", self.level)
+        # self.nettable.putNumber("Elevator Level", self.level)
         self.nettable.putBoolean("Coral", self.grabbing_coral)
         self.nettable.putNumber("Invert", self.invert)
 
@@ -574,6 +571,7 @@ class RobotContainer:
         return self.alliance
 
     def get_auto_command(self) -> Command:
-        # return commands2.cmd.none()
-        return self.auto_chooser.getSelected()
-        # return blue_left_two_coral.get_auto(self.drivetrain)
+        return commands2.cmd.none()
+
+    #  return self.auto_chooser.getSelected()
+    # return blue_left_two_coral.get_auto(self.drivetrain)
