@@ -100,12 +100,12 @@ class RobotContainer:
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         # self.fingers = Fingers()
 
-        # self.auto_chooser = AutoBuilder.buildAutoChooser()
-        # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
-        # SmartDashboard.putData("Just Turn", PathPlannerAuto("turn"))
-        # SmartDashboard.putData("Just Drive", PathPlannerAuto("drive"))
-        # SmartDashboard.putData("Drive+Turn", PathPlannerAuto("both"))
-        # SmartDashboard.putData("Drive Diag+Turn", PathPlannerAuto("diagBoth"))
+        self.auto_chooser = AutoBuilder.buildAutoChooser()
+        self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
+        SmartDashboard.putData("Just Turn", PathPlannerAuto("turn"))
+        SmartDashboard.putData("Just Drive", PathPlannerAuto("drive"))
+        SmartDashboard.putData("Drive+Turn", PathPlannerAuto("both"))
+        SmartDashboard.putData("Drive Diag+Turn", PathPlannerAuto("diagBoth"))
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
         # )
@@ -167,7 +167,7 @@ class RobotContainer:
         # self.auto_chooser.onChange(pick_alliance)
 
         # have to read from elastic
-        # SmartDashboard.putData(self.auto_chooser)
+        SmartDashboard.putData(self.auto_chooser)
 
         self.driver_controller = CommandJoystick(0)
         self.operator_controller = CommandJoystick(1)
@@ -571,7 +571,8 @@ class RobotContainer:
         return self.alliance
 
     def get_auto_command(self) -> Command:
-        return commands2.cmd.none()
+        # return commands2.cmd.none()
 
-    #  return self.auto_chooser.getSelected()
+        return self.auto_chooser.getSelected()
+
     # return blue_left_two_coral.get_auto(self.drivetrain)
