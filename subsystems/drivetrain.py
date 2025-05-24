@@ -28,7 +28,7 @@ from pathplannerlib.logging import PathPlannerLogging
 
 class Drivetrain(Subsystem):
     max_speed = ntproperty("max_speed", feetToMeters(3))
-    max_angular_speed = ntproperty("max_angular_speed", degreesToRadians(270))
+    max_angular_speed = ntproperty("max_angular_speed", degreesToRadians(90))
 
     def __init__(
         self,
@@ -84,8 +84,14 @@ class Drivetrain(Subsystem):
             self.reset_pose,
             self.get_speeds,
             lambda speeds, _feedforward: self.run_chassis_speeds(speeds),
-            PPHolonomicDriveController(
-                PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
+            (
+                PPHolonomicDriveController(
+                    PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
+                )
+                if RobotBase.isReal()
+                else PPHolonomicDriveController(
+                    PIDConstants(0.75), PIDConstants(1.65, 0, 0.1)
+                )
             ),
             robot_cfg,
             self.should_flip,
@@ -96,7 +102,9 @@ class Drivetrain(Subsystem):
 
     def periodic(self):
         self.run_chassis_speeds(self.setpoint)
-        new_pose = self.odometry.update(self.get_angle(), self.get_module_positions())
+        new_pose = self.odometry.update(
+            self.gyro.getRotation2d(), self.get_module_positions()
+        )
         # self.field.setRobotPose(new_pose)
         self.swerve_pub.set(list(self.get_states()))
         self.pose_pub.set(new_pose)
@@ -125,9 +133,14 @@ class Drivetrain(Subsystem):
 
     def get_angle(self) -> Rotation2d:
         if self.should_flip():
-            return self.gyro.getRotation2d() + Rotation2d.fromDegrees(180)
+            return (
+                self.odometry.getEstimatedPosition().rotation()
+                + Rotation2d.fromDegrees(180)
+            )
+            # return self.gyro.getRotation2d() + Rotation2d.fromDegrees(180)
         else:
-            return self.gyro.getRotation2d()
+            # return self.gyro.getRotation2d()
+            return self.odometry.getEstimatedPosition().rotation()
 
     def get_states(
         self,

@@ -40,7 +40,7 @@
     },
     "###/SmartDashboard/SendableChooser[0]": {
       "Collapsed": "0",
-      "Pos": "222,60",
+      "Pos": "223,68",
       "Size": "354,60"
     },
     "###FMS": {
@@ -51,16 +51,16 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "49,643",
-      "Size": "976,278"
+      "Size": "976,82"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "1148,150",
+      "Pos": "1054,150",
       "Size": "1405,1642"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
-      "Pos": "1326,58",
+      "Pos": "1054,58",
       "Size": "750,146"
     },
     "###Other Devices": {
@@ -75,7 +75,7 @@
     },
     "###System Joysticks": {
       "Collapsed": "0",
-      "Pos": "80,175",
+      "Pos": "186,972",
       "Size": "240,254"
     },
     "###Timing": {
