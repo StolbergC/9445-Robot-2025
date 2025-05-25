@@ -29,5 +29,5 @@ class DriveJoystick(Command):
         return super().execute()
 
     def end(self, interrupted):
-        self.drivetrain.stop()
+        # self.drivetrain.stop()
         return super().end(interrupted)

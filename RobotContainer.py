@@ -102,10 +102,6 @@ class RobotContainer:
 
         self.auto_chooser = AutoBuilder.buildAutoChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
-        SmartDashboard.putData("Just Turn", PathPlannerAuto("turn"))
-        SmartDashboard.putData("Just Drive", PathPlannerAuto("drive"))
-        SmartDashboard.putData("Drive+Turn", PathPlannerAuto("both"))
-        SmartDashboard.putData("Drive Diag+Turn", PathPlannerAuto("diagBoth"))
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
         # )
@@ -273,7 +269,7 @@ class RobotContainer:
     def get_drive_x(self) -> float:
         return (
             self.invert
-            * applyDeadband(-self.driver_controller.getX(), 0.05)
+            * applyDeadband(self.driver_controller.getX(), 0.05)
             * abs(self.driver_controller.getX())
         )
 

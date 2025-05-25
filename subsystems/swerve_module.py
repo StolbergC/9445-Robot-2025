@@ -128,17 +128,17 @@ class SwerveModule(Subsystem):
 
         if RobotBase.isSimulation():
             self.cancoder_sim = self.cancoder.sim_state
-            self.drive_limiter = SlewRateLimiter(500)
-            self.turn_limiter = SlewRateLimiter(500)
 
     def periodic(self):
-        # self.setpoint.cosineScale(self.get_angle())
-        # self.setpoint.optimize(self.get_angle())
+        self.setpoint.cosineScale(self.get_angle())
+        self.setpoint.optimize(self.get_angle())
         if abs(self.setpoint.speed) < 0.025:
             self.drive_motor.set(0)
         else:
             self.drive_motor.set_control(
-                VelocityDutyCycle(self.meters_to_rotations(-self.setpoint.speed))
+                VelocityDutyCycle(
+                    SwerveModule.meters_to_rotations(-self.setpoint.speed)
+                )
             )
 
         self.turn_motor.set_control(
@@ -181,20 +181,17 @@ class SwerveModule(Subsystem):
 
     def simulationPeriodic(self):
         # Drive Motor Position and Velocity
-        driveRps = self.drive_limiter.calculate(100 * self.drive_motor.get())
-        # driveRps = self.drive_motor.get_velocity().value
+        driveRps = 100 * self.drive_motor.get()
         self.drive_motor.sim_state.set_rotor_velocity(driveRps)
         self.drive_motor.sim_state.add_rotor_position(driveRps * 0.02)
 
         # Turn Motor Position and Velocity
-        turnRps = self.turn_limiter.calculate(100 * self.turn_motor.get())
-        # turnRps = 6000
-        # turnRps = self.turn_motor.get_velocity().value * SwerveConstants.turn_ratio
+        turnRps = 100 * self.turn_motor.get()
         self.turn_motor.sim_state.set_rotor_velocity(turnRps)
         self.turn_motor.sim_state.add_rotor_position(turnRps * 0.02)
 
         # CANcoder Velocity and Position
-        canRps = turnRps  # * constants.turn_ratio
+        canRps = turnRps
         self.cancoder_sim.set_velocity(canRps)
         self.cancoder_sim.add_position(canRps * 0.02)
         self.nettable.putNumber("CanTurnRPS", canRps)
@@ -206,7 +203,7 @@ class SwerveModule(Subsystem):
             try_speed = self.drive_motor.get_velocity()
             i += 1
         self.last_good_speed = try_speed.value
-        return self.rotations_to_meters(try_speed.value)
+        return SwerveModule.rotations_to_meters(try_speed.value)
 
     def get_angle(self) -> Rotation2d:
         try_angle = self.cancoder.get_absolute_position()  # .wait_for_update(0.1)
@@ -241,12 +238,6 @@ class SwerveModule(Subsystem):
         self.turn_motor.setNeutralMode(
             NeutralModeValue.COAST if coast else NeutralModeValue.BRAKE
         )
-
-    def rotations_to_meters(self, rotations: float) -> meters:
-        return SwerveModule.rotations_to_meters(rotations)
-
-    def meters_to_rotations(self, m: meters) -> float:
-        return SwerveModule.meters_to_rotations(m)
 
     @staticmethod
     def rotations_to_meters(rotations: float) -> meters:

@@ -3,6 +3,9 @@ __pycache__/
 
 simgui*
 networktables.json
+simgui-ds.json
+simgui-window.json
+simgui.json
 CanCoder*.dat
 tests/ctre_sim/CANCoder vers. H - 07 - 0 - ext.dat
 tests/ctre_sim/CANCoder vers. H - 010 - 0 - ext.dat

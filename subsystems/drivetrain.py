@@ -28,7 +28,7 @@ from pathplannerlib.logging import PathPlannerLogging
 
 class Drivetrain(Subsystem):
     max_speed = ntproperty("max_speed", feetToMeters(3))
-    max_angular_speed = ntproperty("max_angular_speed", degreesToRadians(90))
+    max_angular_speed = ntproperty("max_angular_speed", degreesToRadians(180))
 
     def __init__(
         self,
@@ -78,6 +78,10 @@ class Drivetrain(Subsystem):
             "Setpoint", ChassisSpeeds
         ).publish()
 
+        self.swerve_setpoint_pub = self.nettable.getStructArrayTopic(
+            "Swerve Setpoints", SwerveModuleState
+        ).publish()
+
         robot_cfg = RobotConfig.fromGUISettings()
         self.auto_builder = AutoBuilder.configure(
             self.get_pose,
@@ -90,7 +94,7 @@ class Drivetrain(Subsystem):
                 )
                 if RobotBase.isReal()
                 else PPHolonomicDriveController(
-                    PIDConstants(0.75), PIDConstants(1.65, 0, 0.1)
+                    PIDConstants(0.75), PIDConstants(2.65, 0, 0.0)
                 )
             ),
             robot_cfg,
@@ -103,12 +107,16 @@ class Drivetrain(Subsystem):
     def periodic(self):
         self.run_chassis_speeds(self.setpoint)
         new_pose = self.odometry.update(
-            self.gyro.getRotation2d(), self.get_module_positions()
+            self.gyro.getRotation2d() + Rotation2d.fromDegrees(180),
+            self.get_module_positions(),
         )
         # self.field.setRobotPose(new_pose)
         self.swerve_pub.set(list(self.get_states()))
         self.pose_pub.set(new_pose)
         self.setpoint_pub.set(self.setpoint)
+        self.swerve_setpoint_pub.set(
+            [self.fl.setpoint, self.fr.setpoint, self.bl.setpoint, self.br.setpoint]
+        )
         return super().periodic()
 
     def simulationPeriodic(self):
@@ -167,10 +175,12 @@ class Drivetrain(Subsystem):
         return InstantCommand(self.stop)
 
     def run_chassis_speeds(self, speeds: ChassisSpeeds) -> None:
-        speeds = ChassisSpeeds.discretize(speeds, 0.02)
+        # speeds = ChassisSpeeds.discretize(speeds, 0.02)
         self.setpoint = speeds
         fl, fr, bl, br = self.kinematics.toSwerveModuleStates(speeds)
-        self.kinematics.desaturateWheelSpeeds((fl, fr, bl, br), self.max_speed)
+        fl, fr, bl, br = self.kinematics.desaturateWheelSpeeds(
+            (fl, fr, bl, br), self.max_speed
+        )
         self.fl.set_state(fl)
         self.fr.set_state(fr)
         self.bl.set_state(bl)
