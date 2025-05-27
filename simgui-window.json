@@ -51,11 +51,11 @@
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "49,643",
-      "Size": "976,82"
+      "Size": "976,278"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "1054,150",
+      "Pos": "820,106",
       "Size": "1405,1642"
     },
     "###NetworkTables Info": {
@@ -65,7 +65,7 @@
     },
     "###Other Devices": {
       "Collapsed": "0",
-      "Pos": "436,439",
+      "Pos": "567,165",
       "Size": "336,673"
     },
     "###Plot <0>": {

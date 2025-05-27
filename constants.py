@@ -1,4 +1,5 @@
 from math import pi
+from tkinter import W
 
 from wpilib import RobotBase
 from wpimath.units import (
@@ -25,6 +26,7 @@ from phoenix6.configs import (
     FeedbackConfigs,
     MagnetSensorConfigs,
     MotorOutputConfigs,
+    ClosedLoopRampsConfigs,
 )
 
 from phoenix6.signals import (
@@ -95,7 +97,11 @@ drive_config: TalonFXConfiguration = (
         .with_k_v(0.0)
         .with_k_a(0.0)
         if RobotBase.isReal()
-        else Slot0Configs().with_k_p(0.00).with_k_i(0.5).with_k_d(0.00).with_k_v(0.0)
+        else Slot0Configs()
+        .with_k_p(0.00)
+        .with_k_i(0.00001)
+        .with_k_d(0.00)
+        .with_k_v(0.010)
     )
     # .with_feedback(
     # FeedbackConfigs().with_sensor_to_mechanism_ratio(
@@ -113,7 +119,7 @@ turn_config: TalonFXConfiguration = (
     .with_slot0(
         # simulation
         Slot0Configs()
-        .with_k_p(0.4)
+        .with_k_p(0.6)
         .with_k_i(0.0)
         .with_k_d(0.0)
         .with_k_v(0.0)
@@ -131,6 +137,7 @@ turn_config: TalonFXConfiguration = (
         MotorOutputConfigs().with_inverted(InvertedValue.CLOCKWISE_POSITIVE)
     )
 )
+
 
 cancoder_config: CANcoderConfiguration = CANcoderConfiguration().with_magnet_sensor(
     MagnetSensorConfigs()

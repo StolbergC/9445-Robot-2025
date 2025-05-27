@@ -11,7 +11,7 @@ from wpimath.kinematics import (
     SwerveModuleState,
 )
 from wpimath.estimator import SwerveDrive4PoseEstimator
-from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters, degreesToRadians
 
 from wpilib import Field2d, DriverStation, RobotBase, SmartDashboard
@@ -78,6 +78,10 @@ class Drivetrain(Subsystem):
             "Setpoint", ChassisSpeeds
         ).publish()
 
+        self.speeds_pub = self.nettable.getStructTopic(
+            "Actual Speeds", ChassisSpeeds
+        ).publish()
+
         self.swerve_setpoint_pub = self.nettable.getStructArrayTopic(
             "Swerve Setpoints", SwerveModuleState
         ).publish()
@@ -87,14 +91,17 @@ class Drivetrain(Subsystem):
             self.get_pose,
             self.reset_pose,
             self.get_speeds,
-            lambda speeds, _feedforward: self.run_chassis_speeds(speeds),
+            lambda speeds, _feedforward: self.run_chassis_speeds(
+                speeds
+                # ChassisSpeeds.fromRobotRelativeSpeeds(speeds, self.get_angle())
+            ),
             (
                 PPHolonomicDriveController(
                     PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
                 )
                 if RobotBase.isReal()
                 else PPHolonomicDriveController(
-                    PIDConstants(0.75), PIDConstants(2.65, 0, 0.0)
+                    PIDConstants(0.75), PIDConstants(2.0, 0, 0.0)
                 )
             ),
             robot_cfg,
@@ -102,26 +109,35 @@ class Drivetrain(Subsystem):
             self,
         )
 
-        SmartDashboard.putData(self.gyro)
+        # SmartDashboard.putData(self.gyro)
 
     def periodic(self):
         self.run_chassis_speeds(self.setpoint)
         new_pose = self.odometry.update(
-            self.gyro.getRotation2d() + Rotation2d.fromDegrees(180),
+            Rotation2d.fromDegrees(self.gyro.getAngle()),
             self.get_module_positions(),
         )
         # self.field.setRobotPose(new_pose)
         self.swerve_pub.set(list(self.get_states()))
         self.pose_pub.set(new_pose)
         self.setpoint_pub.set(self.setpoint)
+        self.speeds_pub.set(self.get_speeds())
         self.swerve_setpoint_pub.set(
             [self.fl.setpoint, self.fr.setpoint, self.bl.setpoint, self.br.setpoint]
+        )
+        self.nettable.putString(
+            "Running Command",
+            (
+                "None"
+                if self.getCurrentCommand() is None
+                else self.getCurrentCommand().getName()
+            ),
         )
         return super().periodic()
 
     def simulationPeriodic(self):
         speeds = self.get_speeds()
-        self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * 0.02)
+        self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * -0.02)
         return super().simulationPeriodic()
 
     def get_module_positions(
@@ -176,11 +192,13 @@ class Drivetrain(Subsystem):
 
     def run_chassis_speeds(self, speeds: ChassisSpeeds) -> None:
         # speeds = ChassisSpeeds.discretize(speeds, 0.02)
-        self.setpoint = speeds
-        fl, fr, bl, br = self.kinematics.toSwerveModuleStates(speeds)
-        fl, fr, bl, br = self.kinematics.desaturateWheelSpeeds(
-            (fl, fr, bl, br), self.max_speed
+        fl, fr, bl, br = self.kinematics.toSwerveModuleStates(
+            speeds, Translation2d(0, 0)
         )
+        fl, fr, bl, br = self.kinematics.desaturateWheelSpeeds(
+            (fl, fr, bl, br), self.fl.theoretial_max_vel
+        )
+        self.setpoint = speeds
         self.fl.set_state(fl)
         self.fr.set_state(fr)
         self.bl.set_state(bl)
@@ -189,9 +207,9 @@ class Drivetrain(Subsystem):
     def run_percent(
         self, tx: float, ty: float, omega: float, field_relative: bool
     ) -> None:
-        self.nettable.putNumber("tx", tx)
-        self.nettable.putNumber("ty", ty)
-        self.nettable.putNumber("omega", omega)
+        # self.nettable.putNumber("tx", tx)
+        # self.nettable.putNumber("ty", ty)
+        # self.nettable.putNumber("omega", omega)
         if field_relative:
             speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 tx * self.max_speed,
@@ -209,10 +227,10 @@ class Drivetrain(Subsystem):
         self.odometry.resetPose(new_pose)
 
     def reset_gyro(self, new_angle: Rotation2d) -> None:
-        if new_angle == Rotation2d() and not RobotBase.isSimulation():
-            self.gyro.reset()
-        else:
-            self.gyro.setAngleAdjustment(new_angle.degrees())
+        # if new_angle == Rotation2d() and not RobotBase.isSimulation():
+        #     self.gyro.reset()
+        # else:
+        self.gyro.setAngleAdjustment(new_angle.degrees())
 
     def reset_gyro_command(self, new_angle: Rotation2d) -> DeferredCommand:
         return DeferredCommand(

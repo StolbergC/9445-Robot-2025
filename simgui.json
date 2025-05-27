@@ -59,6 +59,9 @@
       "open": false
     },
     "transitory": {
+      "0000DriverInfo": {
+        "open": true
+      },
       "000Claw": {
         "PID": {
           "open": true

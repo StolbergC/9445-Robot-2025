@@ -1,14 +1,14 @@
 from enum import Enum
-from math import pi
+from math import cos, pi
 
-from commands2 import Subsystem, SwerveControllerCommand
+from commands2 import Subsystem
 
 from wpilib import RobotBase
 
 from wpimath.kinematics import SwerveModuleState, SwerveModulePosition
 from wpimath.geometry import Rotation2d, Translation2d
 from wpimath.units import meters_per_second, meters
-from wpimath.filter import SlewRateLimiter
+from wpimath.system.plant import DCMotor
 
 from ntcore import NetworkTableInstance
 
@@ -34,6 +34,11 @@ class SwerveModule(Subsystem):
     def __init__(self, location: ModuleLocation):
         super().__init__()
         swerve_consts = constants
+
+        self.theoretial_max_vel = SwerveModule.rotations_to_meters(
+            DCMotor.krakenX60().freeSpeed / (2 * pi)
+        )
+        print(self.theoretial_max_vel)
 
         self.consts: ModuleConstants = None
         if location == ModuleLocation.FRONT_LEFT:
@@ -130,9 +135,10 @@ class SwerveModule(Subsystem):
             self.cancoder_sim = self.cancoder.sim_state
 
     def periodic(self):
-        self.setpoint.cosineScale(self.get_angle())
-        self.setpoint.optimize(self.get_angle())
-        if abs(self.setpoint.speed) < 0.025:
+        # self.setpoint.optimize(self.get_angle())
+        # self.setpoint.cosineScale(self.get_angle())
+        # if optimize breaks
+        if abs(self.setpoint.speed) < 0.005:
             self.drive_motor.set(0)
         else:
             self.drive_motor.set_control(
@@ -164,6 +170,9 @@ class SwerveModule(Subsystem):
             "State/Velocity Setpoint",
             self.drive_motor.get_closed_loop_reference().value,
         )
+        self.nettable.putNumber(
+            "State/velocity raw", -self.drive_motor.get_rotor_velocity().value
+        )
 
         self.nettable.putNumber(
             "State/turn error", self.turn_motor.get_closed_loop_error().value
@@ -171,10 +180,6 @@ class SwerveModule(Subsystem):
 
         self.nettable.putNumber(
             "State/turn reference", self.turn_motor.get_closed_loop_reference().value
-        )
-
-        self.nettable.putNumber(
-            "State/drive reference", self.drive_motor.get_closed_loop_reference().value
         )
 
         # return super().periodic()
@@ -206,12 +211,15 @@ class SwerveModule(Subsystem):
         return SwerveModule.rotations_to_meters(try_speed.value)
 
     def get_angle(self) -> Rotation2d:
-        try_angle = self.cancoder.get_absolute_position()  # .wait_for_update(0.1)
-        if try_angle.is_all_good():
-            self.last_good_angle = try_angle.value
-            return Rotation2d.fromRotations(self.turn_motor.get_position().value)
-        else:
-            return Rotation2d.fromRotations(self.last_good_angle)
+        return Rotation2d.fromRotations(
+            self.cancoder.get_absolute_position().value_as_double
+        )
+        # try_angle = self.cancoder.get_absolute_position()  # .wait_for_update(0.1)
+        # if try_angle.is_all_good():
+        #     self.last_good_angle = try_angle.value % 1
+        #     return Rotation2d.fromRotations(try_angle.value % 1)
+        # else:
+        #     return Rotation2d.fromRotations(self.last_good_angle % 1)
 
     def get_state(self) -> SwerveModuleState:
         return SwerveModuleState(self.get_speed(), self.get_angle())
@@ -223,8 +231,17 @@ class SwerveModule(Subsystem):
         return self.rotations_to_meters(self.drive_motor.get_position().value)
 
     def set_state(self, state: SwerveModuleState) -> None:
-        state.optimize(self.get_angle())
-        state.cosineScale(self.get_angle())
+        # angle_error = abs(state.angle.degrees() - self.get_angle().degrees()) % 360
+
+        # if angle_error > 180:
+        #     angle_error = 360 - angle_error
+        # if angle_error > 90:
+        #     state = SwerveModuleState(
+        #         -state.speed, state.angle + Rotation2d.fromDegrees(180)
+        #     )
+
+        # state.optimize(self.get_angle())
+        # state.cosineScale(self.get_angle())
 
         self.setpoint = state
         self.commanded_pub.set(state)

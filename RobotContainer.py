@@ -202,7 +202,7 @@ class RobotContainer:
         # self.wrist.setDefaultCommand(self.wrist.default_follow_ff().withName("Feed"))
         # self.wrist.setDefaultCommand(self.wrist.follow_angle())
 
-        self.invert = -1
+        self.invert = 1
 
     # def get_reef_score_command(self) -> WrapperCommand:
     #     return DeferredCommand(
@@ -269,7 +269,7 @@ class RobotContainer:
     def get_drive_x(self) -> float:
         return (
             self.invert
-            * applyDeadband(self.driver_controller.getX(), 0.05)
+            * applyDeadband(-self.driver_controller.getX(), 0.05)
             * abs(self.driver_controller.getX())
         )
 
