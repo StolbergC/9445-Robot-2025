@@ -101,6 +101,9 @@
         }
       },
       "Drivetrain": {
+        "ChassisSpeeds##v_/Drivetrain/Actual Speeds": {
+          "open": true
+        },
         "ChassisSpeeds##v_/Drivetrain/Setpoint": {
           "open": true
         },
@@ -108,6 +111,15 @@
           "Rotation2d##v_rotation": {
             "open": true
           },
+          "Translation2d##v_translation": {
+            "open": true
+          },
+          "open": true
+        },
+        "SwerveModuleState[]##v_/Drivetrain/Swerve Setpoints": {
+          "open": true
+        },
+        "SwerveModuleState[]##v_/Drivetrain/SwerveStates": {
           "open": true
         },
         "config": {

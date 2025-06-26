@@ -8,7 +8,7 @@ isolated = true
 [tool.robotpy]
 
 # Version of robotpy this project depends on
-robotpy_version = "2025.3.2.1"
+robotpy_version = "2025.3.2.2"
 
 
 # Which extra RobotPy components should be installed
