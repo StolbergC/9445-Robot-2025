@@ -1,3 +1,4 @@
+"""
 from subsystems.claw import Claw
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
@@ -63,3 +64,5 @@ def test_working():
     assert (
         wrist.nettable.getBoolean("Safety/Waiting on Claw", False) == False
     )  # False because this will not drive into the elevator with the claw
+
+"""

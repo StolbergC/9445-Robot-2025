@@ -284,6 +284,9 @@ class Elevator(Subsystem):
     def set_state(
         self, position: feet, max_down: float = -7, max_up: float = 11
     ) -> None:
+        self.encoder.setPosition(position)
+        self.encoder2.setPosition(position)
+        return
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
         if abs(self.get_wrist_angle().degrees() - 10) > 30:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)

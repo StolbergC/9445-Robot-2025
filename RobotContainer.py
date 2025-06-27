@@ -21,7 +21,7 @@ from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 
-from pathplannerlib.auto import AutoBuilder, PathPlannerAuto
+# from pathplannerlib.auto import AutoBuilder, PathPlannerAuto
 
 from commands import smack_algae
 from subsystems.drivetrain import Drivetrain
@@ -97,11 +97,11 @@ class RobotContainer:
         self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
         self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
         self.wrist.safe_claw_distance = 10
-        self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
+        # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
 
-        self.auto_chooser = AutoBuilder.buildAutoChooser()
-        self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
+        # self.auto_chooser = AutoBuilder.buildAutoChooser()
+        # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
         # )
@@ -162,7 +162,7 @@ class RobotContainer:
 
         # self.auto_chooser.onChange(pick_alliance)
 
-        SmartDashboard.putData(self.auto_chooser)
+        # SmartDashboard.putData(self.auto_chooser)
 
         self.driver_controller = CommandJoystick(0)
         self.operator_controller = CommandJoystick(1)
@@ -180,18 +180,18 @@ class RobotContainer:
         self.grabbing_coral = True
 
         # this sets the motors to idle on disable
-        Trigger(DriverStation.isEnabled).onTrue(
-            self.drivetrain.set_drive_idle_command(False).andThen(
-                InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
-            )
-        ).onFalse(
-            (
-                WaitCommand(5)
-                .andThen(self.drivetrain.set_drive_idle_command(True))
-                .andThen(self.drivetrain.set_turn_idle_command(True))
-                .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
-            ).ignoringDisable(True)
-        )
+        # Trigger(DriverStation.isEnabled).onTrue(
+        #     self.drivetrain.set_drive_idle_command(False).andThen(
+        #         InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
+        #     )
+        # ).onFalse(
+        #     (
+        #         WaitCommand(5)
+        #         .andThen(self.drivetrain.set_drive_idle_command(True))
+        #         .andThen(self.drivetrain.set_turn_idle_command(True))
+        #         .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
+        #     ).ignoringDisable(True)
+        # )
 
         # self.claw.stop().schedule()
         # wpilib.cameraserver.CameraServer().launch()
@@ -338,20 +338,20 @@ class RobotContainer:
 
         """actual bindings"""
         """defaults"""
-        self.drivetrain.setDefaultCommand(
-            DriveJoystick(
-                self.drivetrain,
-                self.get_drive_x,
-                self.get_drive_y,
-                self.get_drive_t,
-                lambda: self.field_oriented,
-            )
-        )
+        # self.drivetrain.setDefaultCommand(
+        #     DriveJoystick(
+        #         self.drivetrain,
+        #         self.get_drive_x,
+        #         self.get_drive_y,
+        #         self.get_drive_t,
+        #         lambda: self.field_oriented,
+        #     )
+        # )
 
         # """driver"""
-        self.driver_controller.button(button_b).onTrue(
-            self.drivetrain.reset_gyro_command(Rotation2d())
-        )
+        # self.driver_controller.button(button_b).onTrue(
+        #     self.drivetrain.reset_gyro_command(Rotation2d())
+        # )
 
         def toggle_field_oriented():
             self.field_oriented = not self.field_oriented
@@ -565,8 +565,8 @@ class RobotContainer:
         return self.alliance
 
     def get_auto_command(self) -> Command:
-        # return commands2.cmd.none()
+        return commands2.cmd.none()
 
-        return self.auto_chooser.getSelected()
+        # return self.auto_chooser.getSelected()
 
     # return blue_left_two_coral.get_auto(self.drivetrain)

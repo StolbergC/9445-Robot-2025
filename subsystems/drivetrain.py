@@ -21,9 +21,9 @@ from ntcore.util import ntproperty
 
 from navx import AHRS
 
-from pathplannerlib.auto import AutoBuilder, RobotConfig
-from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
-from pathplannerlib.logging import PathPlannerLogging
+# from pathplannerlib.auto import AutoBuilder, RobotConfig
+# from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
+# from pathplannerlib.logging import PathPlannerLogging
 
 
 class Drivetrain(Subsystem):
@@ -88,28 +88,28 @@ class Drivetrain(Subsystem):
             "Swerve Setpoints", SwerveModuleState
         ).publish()
 
-        robot_cfg = RobotConfig.fromGUISettings()
-        self.auto_builder = AutoBuilder.configure(
-            self.get_pose,
-            self.reset_pose,
-            self.get_speeds,
-            lambda speeds, _feedforward: self.run_chassis_speeds(
-                speeds
-                # ChassisSpeeds.fromRobotRelativeSpeeds(speeds, self.get_angle())
-            ),
-            (
-                PPHolonomicDriveController(
-                    PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
-                )
-                if RobotBase.isReal()
-                else PPHolonomicDriveController(
-                    PIDConstants(0.75), PIDConstants(2.0, 0, 0.0)
-                )
-            ),
-            robot_cfg,
-            self.should_flip,
-            self,
-        )
+        # robot_cfg = RobotConfig.fromGUISettings()
+        # self.auto_builder = AutoBuilder.configure(
+        #     self.get_pose,
+        #     self.reset_pose,
+        #     self.get_speeds,
+        #     lambda speeds, _feedforward: self.run_chassis_speeds(
+        #         speeds
+        #         # ChassisSpeeds.fromRobotRelativeSpeeds(speeds, self.get_angle())
+        #     ),
+        #     (
+        #         PPHolonomicDriveController(
+        #             PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
+        #         )
+        #         if RobotBase.isReal()
+        #         else PPHolonomicDriveController(
+        #             PIDConstants(0.75), PIDConstants(2.0, 0, 0.0)
+        #         )
+        #     ),
+        #     robot_cfg,
+        #     self.should_flip,
+        #     self,
+        # )
 
         # SmartDashboard.putData(self.gyro)
 
