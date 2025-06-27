@@ -254,7 +254,7 @@ class Elevator(Subsystem):
         self.motor.set(power)
         self.motor2.set(power)
 
-    def stop(self) -> InstantCommand:
+    def stop(self) -> WrapperCommand:
         return InstantCommand(lambda: self.set_motor(0), self).withInterruptBehavior(
             Command.InterruptionBehavior.kCancelSelf
         )

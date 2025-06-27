@@ -28,10 +28,15 @@
       "Pos": "60,60",
       "Size": "169,167"
     },
+    "###/SmartDashboard/Drivetrain": {
+      "Collapsed": "0",
+      "Pos": "141,193",
+      "Size": "289,98"
+    },
     "###/SmartDashboard/ElevatorMech": {
       "Collapsed": "0",
-      "Pos": "2794,190",
-      "Size": "673,1651"
+      "Pos": "115,110",
+      "Size": "305,888"
     },
     "###/SmartDashboard/Field": {
       "Collapsed": "0",
@@ -44,18 +49,18 @@
       "Size": "354,60"
     },
     "###FMS": {
-      "Collapsed": "0",
-      "Pos": "5,540",
-      "Size": "451,424"
+      "Collapsed": "1",
+      "Pos": "2,600",
+      "Size": "216,214"
     },
     "###Joysticks": {
-      "Collapsed": "0",
-      "Pos": "49,643",
-      "Size": "976,82"
+      "Collapsed": "1",
+      "Pos": "5,635",
+      "Size": "976,278"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "823,103",
+      "Pos": "616,-7",
       "Size": "1405,1642"
     },
     "###NetworkTables Info": {
@@ -74,8 +79,8 @@
       "Size": "1390,732"
     },
     "###System Joysticks": {
-      "Collapsed": "0",
-      "Pos": "186,972",
+      "Collapsed": "1",
+      "Pos": "-2,579",
       "Size": "240,254"
     },
     "###Timing": {

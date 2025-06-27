@@ -27,8 +27,10 @@ from pathplannerlib.logging import PathPlannerLogging
 
 
 class Drivetrain(Subsystem):
-    max_speed = ntproperty("max_speed", feetToMeters(3))
-    max_angular_speed = ntproperty("max_angular_speed", degreesToRadians(180))
+    max_speed = ntproperty("000Drivetrain/max_speed", feetToMeters(6))
+    max_angular_speed = ntproperty(
+        "000Drivetrain/max_angular_speed", degreesToRadians(180)
+    )
 
     def __init__(
         self,
@@ -67,7 +69,7 @@ class Drivetrain(Subsystem):
 
         self.setpoint = ChassisSpeeds()
 
-        self.nettable = NetworkTableInstance.getDefault().getTable("/Drivetrain")
+        self.nettable = NetworkTableInstance.getDefault().getTable("/000Drivetrain")
 
         self.swerve_pub = self.nettable.getStructArrayTopic(
             "SwerveStates", SwerveModuleState
@@ -125,14 +127,15 @@ class Drivetrain(Subsystem):
         self.swerve_setpoint_pub.set(
             [self.fl.setpoint, self.fr.setpoint, self.bl.setpoint, self.br.setpoint]
         )
-        self.nettable.putString(
-            "Running Command",
-            (
-                "None"
-                if self.getCurrentCommand() is None
-                else self.getCurrentCommand().getName()
-            ),
-        )
+        # self.nettable.putString(
+        #     "Running Command",
+        #     (
+        #         "None"
+        #         if self.getCurrentCommand() is None
+        #         else self.getCurrentCommand().getName()
+        #     ),
+        # )
+        SmartDashboard.putData("Drivetrain", self)
         return super().periodic()
 
     def simulationPeriodic(self):

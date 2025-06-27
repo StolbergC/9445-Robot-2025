@@ -31,6 +31,8 @@ class ModuleLocation(Enum):
 
 
 class SwerveModule(Subsystem):
+    consts: ModuleConstants
+
     def __init__(self, location: ModuleLocation):
         super().__init__()
         swerve_consts = constants
@@ -40,7 +42,6 @@ class SwerveModule(Subsystem):
         )
         print(self.theoretial_max_vel)
 
-        self.consts: ModuleConstants = None
         if location == ModuleLocation.FRONT_LEFT:
             self.consts = swerve_consts.front_left
             self.setName("Swerve Module FL")
@@ -185,13 +186,15 @@ class SwerveModule(Subsystem):
         # return super().periodic()
 
     def simulationPeriodic(self):
+        max_revs_per_second = DCMotor.krakenX60().freeSpeed / (2 * pi)
+
         # Drive Motor Position and Velocity
-        driveRps = 100 * self.drive_motor.get()
+        driveRps = max_revs_per_second * self.drive_motor.get()
         self.drive_motor.sim_state.set_rotor_velocity(driveRps)
         self.drive_motor.sim_state.add_rotor_position(driveRps * 0.02)
 
         # Turn Motor Position and Velocity
-        turnRps = 100 * self.turn_motor.get()
+        turnRps = max_revs_per_second * self.turn_motor.get()
         self.turn_motor.sim_state.set_rotor_velocity(turnRps)
         self.turn_motor.sim_state.add_rotor_position(turnRps * 0.02)
 
@@ -240,7 +243,7 @@ class SwerveModule(Subsystem):
         #         -state.speed, state.angle + Rotation2d.fromDegrees(180)
         #     )
 
-        # state.optimize(self.get_angle())
+        state.optimize(self.get_angle())
         # state.cosineScale(self.get_angle())
 
         self.setpoint = state

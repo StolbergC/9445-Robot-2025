@@ -87,18 +87,18 @@ class RobotContainer:
         else:
             self.alliance = a
         self.drivetrain = Drivetrain()
-        # self.wrist = Wrist()
-        # self.climber = Climber()
-        # self.claw = Claw(
-        #     lambda: Rotation2d.fromDegrees(0),
-        #     Rotation2d.fromDegrees(68),
-        #     Rotation2d.fromDegrees(55),
-        # )
-        # self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
-        # self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
-        # self.wrist.safe_claw_distance = 10
-        # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
-        # self.fingers = Fingers()
+        self.wrist = Wrist()
+        self.climber = Climber()
+        self.claw = Claw(
+            lambda: Rotation2d.fromDegrees(0),
+            Rotation2d.fromDegrees(68),
+            Rotation2d.fromDegrees(55),
+        )
+        self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
+        self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
+        self.wrist.safe_claw_distance = 10
+        self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
+        self.fingers = Fingers()
 
         self.auto_chooser = AutoBuilder.buildAutoChooser()
         self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
@@ -149,7 +149,7 @@ class RobotContainer:
 
         # self.auto_chooser.addOption("Red Drive", red_drive.get_auto(self.drivetrain))
 
-        # self.level = 1
+        self.level = 1
         self.field_oriented = True
 
         # def pick_alliance(new_auto: Command):
@@ -162,7 +162,6 @@ class RobotContainer:
 
         # self.auto_chooser.onChange(pick_alliance)
 
-        # have to read from elastic
         SmartDashboard.putData(self.auto_chooser)
 
         self.driver_controller = CommandJoystick(0)
@@ -180,19 +179,19 @@ class RobotContainer:
 
         self.grabbing_coral = True
 
-        # # this sets the motors to idle on disable
-        # Trigger(DriverStation.isEnabled).onTrue(
-        #     self.drivetrain.set_drive_idle_command(False).andThen(
-        #         InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
-        #     )
-        # ).onFalse(
-        #     (
-        #         WaitCommand(5)
-        #         .andThen(self.drivetrain.set_drive_idle_command(True))
-        #         .andThen(self.drivetrain.set_turn_idle_command(True))
-        #         .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
-        #     ).ignoringDisable(True)
-        # )
+        # this sets the motors to idle on disable
+        Trigger(DriverStation.isEnabled).onTrue(
+            self.drivetrain.set_drive_idle_command(False).andThen(
+                InstantCommand(lambda: self.pdh.setSwitchableChannel(False))
+            )
+        ).onFalse(
+            (
+                WaitCommand(5)
+                .andThen(self.drivetrain.set_drive_idle_command(True))
+                .andThen(self.drivetrain.set_turn_idle_command(True))
+                .andThen(InstantCommand(lambda: self.pdh.setSwitchableChannel(True)))
+            ).ignoringDisable(True)
+        )
 
         # self.claw.stop().schedule()
         # wpilib.cameraserver.CameraServer().launch()
@@ -204,67 +203,67 @@ class RobotContainer:
 
         self.invert = 1
 
-    # def get_reef_score_command(self) -> WrapperCommand:
-    #     return DeferredCommand(
-    #         lambda: (
-    #             score_l1_on_true(self.elevator, self.wrist)
-    #             if self.level == 1
-    #             else (
-    #                 score_l2_on_true(self.elevator, self.wrist)
-    #                 if self.level == 2
-    #                 else score_l3_on_true(self.elevator, self.wrist)
-    #             )
-    #         ),
-    #         self.elevator,
-    #         self.wrist,
-    #     ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+    def get_reef_score_command(self) -> WrapperCommand:
+        return DeferredCommand(
+            lambda: (
+                score_l1_on_true(self.elevator, self.wrist)
+                if self.level == 1
+                else (
+                    score_l2_on_true(self.elevator, self.wrist)
+                    if self.level == 2
+                    else score_l3_on_true(self.elevator, self.wrist)
+                )
+            ),
+            self.elevator,
+            self.wrist,
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    # def get_algae_intake_command(self) -> WrapperCommand:
-    #     return DeferredCommand(
-    #         lambda: (
-    #             intake_algae_ground(self.elevator, self.wrist, self.claw)
-    #             if self.level == 1
-    #             else (
-    #                 intake_algae_low(self.elevator, self.wrist, self.claw)
-    #                 if self.level == 2
-    #                 else intake_algae_high(self.elevator, self.wrist, self.claw)
-    #             )
-    #         ),
-    #         self.elevator,
-    #         self.wrist,
-    #         self.claw,
-    #     ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+    def get_algae_intake_command(self) -> WrapperCommand:
+        return DeferredCommand(
+            lambda: (
+                intake_algae_ground(self.elevator, self.wrist, self.claw)
+                if self.level == 1
+                else (
+                    intake_algae_low(self.elevator, self.wrist, self.claw)
+                    if self.level == 2
+                    else intake_algae_high(self.elevator, self.wrist, self.claw)
+                )
+            ),
+            self.elevator,
+            self.wrist,
+            self.claw,
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    # def get_score_command(self) -> WrapperCommand:
-    #     return DeferredCommand(
-    #         lambda: (
-    #             self.get_reef_score_command()
-    #             if self.grabbing_coral
-    #             else self.wrist.angle_zero().andThen(self.elevator.command_processor())
-    #         ),
-    #         self.elevator,
-    #         self.wrist,
-    #         self.claw,
-    #     ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+    def get_score_command(self) -> WrapperCommand:
+        return DeferredCommand(
+            lambda: (
+                self.get_reef_score_command()
+                if self.grabbing_coral
+                else self.wrist.angle_zero().andThen(self.elevator.command_processor())
+            ),
+            self.elevator,
+            self.wrist,
+            self.claw,
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    # def get_intake_command(self) -> DeferredCommand:
-    #     return DeferredCommand(
-    #         lambda: (
-    #             intake_coral(self.elevator, self.wrist, self.claw, self.fingers)
-    #             if self.grabbing_coral
-    #             else self.get_algae_intake_command()
-    #         ),
-    #         self.elevator,
-    #         self.wrist,
-    #         self.claw,
-    #     )  # .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+    def get_intake_command(self) -> DeferredCommand:
+        return DeferredCommand(
+            lambda: (
+                intake_coral(self.elevator, self.wrist, self.claw, self.fingers)
+                if self.grabbing_coral
+                else self.get_algae_intake_command()
+            ),
+            self.elevator,
+            self.wrist,
+            self.claw,
+        )  # .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    # def get_intake_on_false(self) -> WrapperCommand:
-    #     # return self.claw.coral()
-    #     return DeferredCommand(
-    #         lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
-    #         self.claw,
-    #     ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+    def get_intake_on_false(self) -> WrapperCommand:
+        # return self.claw.coral()
+        return DeferredCommand(
+            lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
+            self.claw,
+        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_drive_x(self) -> float:
         return (
@@ -313,31 +312,32 @@ class RobotContainer:
         #     )
         # )
 
-        # self.elevator.setDefaultCommand(
-        #     InstantCommand(
-        #         lambda: self.elevator.manual_control(
-        #             applyDeadband(self.operator_controller.getX(), 0.1) / 2
-        #         ),
-        #         self.elevator,
-        #     ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf),
-        # )
+        self.elevator.setDefaultCommand(
+            InstantCommand(
+                lambda: self.elevator.manual_control(
+                    applyDeadband(self.operator_controller.getX(), 0.1) / 2
+                ),
+                self.elevator,
+            ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf),
+        )
 
         # self.elevator.setDefaultCommand(self.elevator.stop())
 
-        # Trigger(lambda: abs(self.operator_controller.getX()) > 0.1).whileTrue(
-        #     RunCommand(
-        #         lambda: self.elevator.manual_control(
-        #             applyDeadband(self.operator_controller.getX(), 0.05) / 2
-        #         ),
-        #         self.elevator,
-        #     )
-        # ).onFalse(self.elevator.stop())
+        # enable manual control of the elevator
+        Trigger(lambda: abs(self.operator_controller.getX()) > 0.1).whileTrue(
+            RunCommand(
+                lambda: self.elevator.manual_control(
+                    applyDeadband(self.operator_controller.getX(), 0.05) / 2
+                ),
+                self.elevator,
+            )
+        ).onFalse(self.elevator.stop())
 
-        # self.claw.setDefaultCommand(self.claw.stop())
-        # self.operator_controller.button(button_x).onTrue(self.elevator.reset())
+        self.claw.setDefaultCommand(self.claw.stop())
+        self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
-        # # """actual bindings"""
-        # # """defaults"""
+        """actual bindings"""
+        """defaults"""
         self.drivetrain.setDefaultCommand(
             DriveJoystick(
                 self.drivetrain,
@@ -440,7 +440,6 @@ class RobotContainer:
         )
 
         """operator controls"""
-        """
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
             self.get_score_command()
         ).onFalse(
@@ -556,7 +555,6 @@ class RobotContainer:
             # .andThen(self.elevator.command_intake())
             .andThen(self.wrist.angle_intake_slow())
         ).onFalse(self.wrist.stop().andThen(self.claw.coral()))
-    """
 
     def periodic(self) -> None:
         # self.nettable.putNumber("Elevator Level", self.level)

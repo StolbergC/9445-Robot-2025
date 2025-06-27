@@ -23,6 +23,7 @@
       "/FMSInfo": "FMSInfo",
       "/SmartDashboard/Drive Diag+Turn": "Command",
       "/SmartDashboard/Drive+Turn": "Command",
+      "/SmartDashboard/Drivetrain": "Subsystem",
       "/SmartDashboard/ElevatorMech": "Mechanism2d",
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/Just Drive": "Command",
@@ -32,6 +33,16 @@
       "/SmartDashboard/navX-Sensor[2]": "Gyro"
     },
     "windows": {
+      "/SmartDashboard/Drivetrain": {
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/ElevatorMech": {
+        "window": {
+          "visible": true
+        }
+      },
       "/SmartDashboard/Field": {
         "Robot": {
           "length": 0.7111999988555908,
@@ -59,16 +70,14 @@
       "open": false
     },
     "transitory": {
-      "0000DriverInfo": {
-        "open": true
-      },
       "000Claw": {
         "PID": {
           "open": true
         },
         "State": {
           "open": true
-        }
+        },
+        "open": true
       },
       "000Drivetrain": {
         "state": {
@@ -90,7 +99,8 @@
         },
         "State": {
           "open": true
-        }
+        },
+        "open": true
       },
       "000Wrist": {
         "PID": {
@@ -101,27 +111,6 @@
         }
       },
       "Drivetrain": {
-        "ChassisSpeeds##v_/Drivetrain/Actual Speeds": {
-          "open": true
-        },
-        "ChassisSpeeds##v_/Drivetrain/Setpoint": {
-          "open": true
-        },
-        "Pose2d##v_/Drivetrain/Pose": {
-          "Rotation2d##v_rotation": {
-            "open": true
-          },
-          "Translation2d##v_translation": {
-            "open": true
-          },
-          "open": true
-        },
-        "SwerveModuleState[]##v_/Drivetrain/Swerve Setpoints": {
-          "open": true
-        },
-        "SwerveModuleState[]##v_/Drivetrain/SwerveStates": {
-          "open": true
-        },
         "config": {
           "max_angular_velocity_deg": {
             "open": true
