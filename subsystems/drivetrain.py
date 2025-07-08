@@ -1,4 +1,5 @@
 from subsystems.swerve_module import SwerveModule, ModuleLocation
+from subsystems.vision import Vision
 
 from typing import Callable
 
@@ -6,6 +7,7 @@ from commands2 import DeferredCommand, InstantCommand, Subsystem
 
 from wpimath.kinematics import (
     SwerveDrive4Kinematics,
+    SwerveDrive4Odometry,
     SwerveModulePosition,
     ChassisSpeeds,
     SwerveModuleState,
@@ -13,6 +15,7 @@ from wpimath.kinematics import (
 from wpimath.estimator import SwerveDrive4PoseEstimator
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters, degreesToRadians
+import wpilib
 
 from wpilib import Field2d, DriverStation, RobotBase, SmartDashboard
 
@@ -53,7 +56,16 @@ class Drivetrain(Subsystem):
             self.br.get_from_center(),
         )
 
+        self.vision = Vision()
+
         self.odometry = SwerveDrive4PoseEstimator(
+            self.kinematics,
+            self.gyro.getRotation2d(),
+            self.get_module_positions(),
+            Pose2d(),
+        )
+
+        self.visionless_odometry = SwerveDrive4Odometry(
             self.kinematics,
             self.gyro.getRotation2d(),
             self.get_module_positions(),
@@ -62,9 +74,10 @@ class Drivetrain(Subsystem):
 
         self.should_flip = should_flip
 
-        # self.field = Field2d()
-        # SmartDashboard.putData(self.field)
-        # SmartDashboard.putData(self)
+        self.field = Field2d()
+        self.visionless_field_pose = self.field.getObject("Visionless Pose")
+        SmartDashboard.putData(self.field)
+        SmartDashboard.putData(self)
         # SmartDashboard.putData(self.gyro)
 
         self.setpoint = ChassisSpeeds()
@@ -115,11 +128,23 @@ class Drivetrain(Subsystem):
 
     def periodic(self):
         self.run_chassis_speeds(self.setpoint)
+        # self.odometry = self.vision.update_position(self.odometry)
+        self.vision.update_position(self.odometry)
         new_pose = self.odometry.update(
             Rotation2d.fromDegrees(self.gyro.getAngle()),
             self.get_module_positions(),
         )
-        # self.field.setRobotPose(new_pose)
+        self.visionless_field_pose.setPose(
+            self.visionless_odometry.update(
+                Rotation2d.fromDegrees(self.gyro.getAngle()),
+                self.get_module_positions(),
+            )
+        )
+        # self.odometry.addVisionMeasurement(
+        #         Pose2d(), wpilib.Timer.getFPGATimestamp(),
+        #     (5, 1, 10)
+        # )
+        self.field.setRobotPose(new_pose)
         self.swerve_pub.set(list(self.get_states()))
         self.pose_pub.set(new_pose)
         self.setpoint_pub.set(self.setpoint)
@@ -135,12 +160,13 @@ class Drivetrain(Subsystem):
         #         else self.getCurrentCommand().getName()
         #     ),
         # )
-        SmartDashboard.putData("Drivetrain", self)
+        # SmartDashboard.putData("Drivetrain", self)
         return super().periodic()
 
     def simulationPeriodic(self):
         speeds = self.get_speeds()
         self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * -0.02)
+        _ = self.vision.sim_update(self.visionless_odometry.getPose())
         return super().simulationPeriodic()
 
     def get_module_positions(

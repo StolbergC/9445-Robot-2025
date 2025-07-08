@@ -28,17 +28,14 @@
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/Just Drive": "Command",
       "/SmartDashboard/Just Turn": "Command",
+      "/SmartDashboard/PhotonAlerts": "Alerts",
       "/SmartDashboard/SendableChooser[0]": "String Chooser",
+      "/SmartDashboard/VisionSystemSim-Vision Sim/Sim Field": "Field2d",
       "/SmartDashboard/Wrist": "Subsystem",
       "/SmartDashboard/navX-Sensor[2]": "Gyro"
     },
     "windows": {
       "/SmartDashboard/Drivetrain": {
-        "window": {
-          "visible": true
-        }
-      },
-      "/SmartDashboard/ElevatorMech": {
         "window": {
           "visible": true
         }
@@ -58,7 +55,49 @@
           "visible": true
         }
       },
-      "/SmartDashboard/SendableChooser[0]": {
+      "/SmartDashboard/VisionSystemSim-Vision Sim/Sim Field": {
+        "Robot": {
+          "color": [
+            97.49996948242188,
+            0.0,
+            255.0,
+            255.0
+          ]
+        },
+        "apriltag": {
+          "color": [
+            165.0,
+            255.0,
+            0.0,
+            255.0
+          ]
+        },
+        "builtin": "",
+        "cameras": {
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ],
+          "style": "Box/Image"
+        },
+        "height": 8.229599952697754,
+        "visibleTargetPoses": {
+          "arrowColor": [
+            0.20045176148414612,
+            0.2329689860343933,
+            0.4215686321258545,
+            255.0
+          ],
+          "color": [
+            0.0,
+            255.0,
+            142.4999542236328,
+            255.0
+          ]
+        },
+        "width": 16.459199905395508,
         "window": {
           "visible": true
         }
@@ -76,10 +115,16 @@
         },
         "State": {
           "open": true
-        },
-        "open": true
+        }
       },
       "000Drivetrain": {
+        "Pose2d##v_/000Drivetrain/Pose": {
+          "Translation2d##v_translation": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true,
         "state": {
           "open": true
         }
@@ -99,8 +144,7 @@
         },
         "State": {
           "open": true
-        },
-        "open": true
+        }
       },
       "000Wrist": {
         "PID": {
@@ -129,6 +173,14 @@
           }
         }
       },
+      "Vision": {
+        "open": true
+      },
+      "photonvision": {
+        "Arducam_BL": {
+          "open": true
+        }
+      },
       "swerve": {
         "fl": {
           "Commanded": {
@@ -152,6 +204,15 @@
     }
   },
   "NetworkTables Info": {
+    "Clients": {
+      "open": true
+    },
+    "Connections": {
+      "open": true
+    },
+    "Server": {
+      "open": true
+    },
     "visible": true
   },
   "Plot": {

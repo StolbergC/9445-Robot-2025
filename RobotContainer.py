@@ -338,15 +338,15 @@ class RobotContainer:
 
         """actual bindings"""
         """defaults"""
-        # self.drivetrain.setDefaultCommand(
-        #     DriveJoystick(
-        #         self.drivetrain,
-        #         self.get_drive_x,
-        #         self.get_drive_y,
-        #         self.get_drive_t,
-        #         lambda: self.field_oriented,
-        #     )
-        # )
+        self.drivetrain.setDefaultCommand(
+            DriveJoystick(
+                self.drivetrain,
+                self.get_drive_x,
+                self.get_drive_y,
+                self.get_drive_t,
+                lambda: self.field_oriented,
+            )
+        )
 
         # """driver"""
         # self.driver_controller.button(button_b).onTrue(
