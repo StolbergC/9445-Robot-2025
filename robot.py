@@ -1,16 +1,23 @@
 from commands2 import Command, CommandScheduler
 from ntcore import NetworkTableInstance
+import pathplannerlib.auto
 from wpilib import SmartDashboard, TimedRobot, Watchdog, run, DataLogManager
+from wpimath.geometry import Pose2d, Rotation2d
+
 
 from RobotContainer import RobotContainer, button_lb
 from subsystems.climber import Climber
 
 from util import elastic
 
+import pathplannerlib
+
 
 class Robot(TimedRobot):
     m_autonomousCommand: Command | None = None
     m_robotContainer: RobotContainer | None = None
+    curr_auto: str = ""
+    prev_auto: str = ""
 
     # Initialize Robot
     def robotInit(self):
@@ -22,7 +29,8 @@ class Robot(TimedRobot):
         if self.m_robotContainer:
             self.m_robotContainer.periodic()
 
-    # Autonomous Robot Functions
+        # Autonomous Robot Functions
+
     def autonomousInit(self):
         elastic.select_tab("Autonomous")
         if self.m_robotContainer is not None:
@@ -59,29 +67,10 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self):
-        self.nettable = NetworkTableInstance.getDefault().getTable("0000Pit Rest")
-        elastic.select_tab("Test")
-        if self.m_robotContainer is not None:
-            self.nettable.putBoolean("Zero Claw", False)
-            self.nettable.putBoolean("Return Wrist", False)
-            self.nettable.putBoolean("Home Elevator", False)
+        pass
 
     def testPeriodic(self):
-        # if self.m_robotContainer:
-        #     if self.nettable.getBoolean("Zero Claw", False):
-        #         self.m_robotContainer.wrist.angle_zero().andThen(
-        #             self.m_robotContainer.claw.cage()
-        #         ).schedule()
-        #         # self.nettable.putBoolean("Zero Claw", False)
-        #     if self.nettable.getBoolean("Zero Claw", True) == False:
-        #         self.m_robotContainer.claw.stop().schedule()
-        #     if self.nettable.getBoolean("Return Wrist", False):
-        #         self.m_robotContainer.wrist.angle_full_up().schedule()
-        #     if self.nettable.getBoolean("Return Wrist", True) == False:
-        #         self.m_robotContainer.wrist.stop().schedule()
-        #     if self.nettable.getBoolean("Home Elevator", True) == False:
-        #         self.m_robotContainer.elevator.stop().schedule()
-        ...
+        pass
 
     def testExit(self):
         pass
@@ -90,14 +79,11 @@ class Robot(TimedRobot):
     def disabledInit(self):
         pass
 
-    def disabledPeriodic(self):
+    def disabledPeriodic(self) -> None:
         pass
 
     def disabledExit(self):
         pass
-
-    # def SimulationPeriodic(self) -> None:
-    #     CommandScheduler.getInstance().run()
 
 
 # Start the Robot when Executing Code

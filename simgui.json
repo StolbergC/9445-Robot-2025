@@ -21,6 +21,7 @@
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
+      "/SmartDashboard/Auto Chooser": "String Chooser",
       "/SmartDashboard/Drive Diag+Turn": "Command",
       "/SmartDashboard/Drive+Turn": "Command",
       "/SmartDashboard/Drivetrain": "Subsystem",
@@ -35,6 +36,11 @@
       "/SmartDashboard/navX-Sensor[2]": "Gyro"
     },
     "windows": {
+      "/SmartDashboard/Auto Chooser": {
+        "window": {
+          "visible": true
+        }
+      },
       "/SmartDashboard/Drivetrain": {
         "window": {
           "visible": true
@@ -45,9 +51,23 @@
           "length": 0.7111999988555908,
           "width": 0.7111999988555908
         },
+        "Visionless Pose": {
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            255.0
+          ]
+        },
         "bottom": 1638,
         "height": 8.051901817321777,
         "left": 534,
+        "path": {
+          "arrowSize": 35,
+          "arrowWeight": 1.0,
+          "selectable": false,
+          "style": "Hidden"
+        },
         "right": 3466,
         "top": 291,
         "width": 17.54825210571289,
@@ -72,7 +92,7 @@
             255.0
           ]
         },
-        "builtin": "",
+        "bottom": 1638,
         "cameras": {
           "color": [
             1.0,
@@ -82,7 +102,10 @@
           ],
           "style": "Box/Image"
         },
-        "height": 8.229599952697754,
+        "height": 8.051901817321777,
+        "left": 534,
+        "right": 3466,
+        "top": 291,
         "visibleTargetPoses": {
           "arrowColor": [
             0.20045176148414612,
@@ -97,7 +120,7 @@
             255.0
           ]
         },
-        "width": 16.459199905395508,
+        "width": 17.54825210571289,
         "window": {
           "visible": true
         }
@@ -118,6 +141,12 @@
         }
       },
       "000Drivetrain": {
+        "Pathplanner": {
+          "Rotation": {
+            "open": true
+          },
+          "open": true
+        },
         "Pose2d##v_/000Drivetrain/Pose": {
           "Translation2d##v_translation": {
             "open": true
@@ -165,6 +194,9 @@
         "velocity": {
           "open": true
         }
+      },
+      "PathPlanner": {
+        "open": true
       },
       "SmartDashboard": {
         "SendableChooser[0]": {
@@ -247,7 +279,10 @@
             }
           ]
         }
-      ]
+      ],
+      "window": {
+        "visible": false
+      }
     }
   }
 }

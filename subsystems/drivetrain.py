@@ -1,3 +1,4 @@
+import pathplannerlib.auto
 from subsystems.swerve_module import SwerveModule, ModuleLocation
 from subsystems.vision import Vision
 
@@ -14,6 +15,7 @@ from wpimath.kinematics import (
 )
 from wpimath.estimator import SwerveDrive4PoseEstimator
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
+from wpimath.trajectory import Trajectory
 from wpimath.units import feetToMeters, degreesToRadians
 import wpilib
 
@@ -24,9 +26,10 @@ from ntcore.util import ntproperty
 
 from navx import AHRS
 
-# from pathplannerlib.auto import AutoBuilder, RobotConfig
-# from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
-# from pathplannerlib.logging import PathPlannerLogging
+from pathplannerlib.auto import AutoBuilder, RobotConfig
+from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
+from pathplannerlib.logging import PathPlannerLogging
+import pathplannerlib
 
 
 class Drivetrain(Subsystem):
@@ -34,6 +37,8 @@ class Drivetrain(Subsystem):
     max_angular_speed = ntproperty(
         "000Drivetrain/max_angular_speed", degreesToRadians(180)
     )
+
+    use_vision = ntproperty("000Drivetrain/use_vision", True)
 
     def __init__(
         self,
@@ -101,30 +106,28 @@ class Drivetrain(Subsystem):
             "Swerve Setpoints", SwerveModuleState
         ).publish()
 
-        # robot_cfg = RobotConfig.fromGUISettings()
-        # self.auto_builder = AutoBuilder.configure(
-        #     self.get_pose,
-        #     self.reset_pose,
-        #     self.get_speeds,
-        #     lambda speeds, _feedforward: self.run_chassis_speeds(
-        #         speeds
-        #         # ChassisSpeeds.fromRobotRelativeSpeeds(speeds, self.get_angle())
-        #     ),
-        #     (
-        #         PPHolonomicDriveController(
-        #             PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
-        #         )
-        #         if RobotBase.isReal()
-        #         else PPHolonomicDriveController(
-        #             PIDConstants(0.75), PIDConstants(2.0, 0, 0.0)
-        #         )
-        #     ),
-        #     robot_cfg,
-        #     self.should_flip,
-        #     self,
-        # )
-
-        # SmartDashboard.putData(self.gyro)
+        robot_cfg = RobotConfig.fromGUISettings()
+        self.auto_builder = AutoBuilder.configure(
+            self.get_pose,
+            self.reset_pose,
+            self.get_speeds,
+            lambda speeds, _feedforward: self.run_chassis_speeds(
+                ChassisSpeeds(speeds.vx, speeds.vy, -speeds.omega)
+            ),
+            (
+                PPHolonomicDriveController(
+                    PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
+                )
+                if RobotBase.isReal()
+                else PPHolonomicDriveController(
+                    PIDConstants(7.0), PIDConstants(7.0, 0, 0.0)
+                )
+            ),
+            robot_cfg,
+            self.should_flip,
+            self,
+        )
+        PathPlannerLogging.setLogActivePathCallback(self.set_path)
 
     def periodic(self):
         self.run_chassis_speeds(self.setpoint)
@@ -140,6 +143,12 @@ class Drivetrain(Subsystem):
                 self.get_module_positions(),
             )
         )
+
+        speeds = self.get_speeds()
+        self.nettable.putNumber("speeds/x", speeds.vx)
+        self.nettable.putNumber("speeds/y", speeds.vy)
+        self.nettable.putNumber("speeds/t (deg)", speeds.omega_dps)
+
         # self.odometry.addVisionMeasurement(
         #         Pose2d(), wpilib.Timer.getFPGATimestamp(),
         #     (5, 1, 10)
@@ -211,7 +220,10 @@ class Drivetrain(Subsystem):
         return self.kinematics.toChassisSpeeds(self.get_states())
 
     def get_pose(self) -> Pose2d:
-        return self.odometry.getEstimatedPosition()
+        if self.use_vision:
+            return self.odometry.getEstimatedPosition()
+        else:
+            return self.visionless_odometry.getPose()
 
     def stop(self) -> None:
         self.run_chassis_speeds(ChassisSpeeds())
@@ -253,7 +265,15 @@ class Drivetrain(Subsystem):
         self.run_chassis_speeds(speeds)
 
     def reset_pose(self, new_pose: Pose2d) -> None:
-        self.odometry.resetPose(new_pose)
+        print("RESETSAETSETEJTKLSDFJLKDSFJ")
+        self.reset_gyro(new_pose.rotation())
+        self.odometry.resetPosition(
+            self.gyro.getRotation2d(), self.get_module_positions(), new_pose
+        )
+        # self.odometry.resetPose(new_pose)
+        self.visionless_odometry.resetPosition(
+            self.gyro.getRotation2d(), self.get_module_positions(), new_pose
+        )
 
     def reset_gyro(self, new_angle: Rotation2d) -> None:
         # if new_angle == Rotation2d() and not RobotBase.isSimulation():
@@ -283,3 +303,7 @@ class Drivetrain(Subsystem):
 
     def set_turn_idle_command(self, coast: bool) -> InstantCommand:
         return InstantCommand(lambda: self.set_turn_idle(coast))
+
+    def set_path(self, points: list[Pose2d]) -> None:
+        """This function only draws on the field2d and does nothing to control the robot"""
+        self.field.getObject("path").setPoses(points)

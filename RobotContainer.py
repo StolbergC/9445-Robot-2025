@@ -21,7 +21,7 @@ from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 
-# from pathplannerlib.auto import AutoBuilder, PathPlannerAuto
+from pathplannerlib.auto import AutoBuilder, PathPlannerAuto
 
 from commands import smack_algae
 from subsystems.drivetrain import Drivetrain
@@ -100,7 +100,8 @@ class RobotContainer:
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
 
-        # self.auto_chooser = AutoBuilder.buildAutoChooser()
+        self.auto_chooser = AutoBuilder.buildAutoChooser()
+        SmartDashboard.putData("Auto Chooser", self.auto_chooser)
         # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
@@ -565,8 +566,9 @@ class RobotContainer:
         return self.alliance
 
     def get_auto_command(self) -> Command:
-        return commands2.cmd.none()
+        # return commands2.cmd.none()
+        return self.auto_chooser.getSelected()
+        # return blue_left_two_coral.get_auto(self.drivetrain)
 
-        # return self.auto_chooser.getSelected()
-
-    # return blue_left_two_coral.get_auto(self.drivetrain)
+    def get_auto_name(self) -> str:
+        return self.auto_chooser.getSelected().getName()
