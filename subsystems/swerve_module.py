@@ -22,6 +22,8 @@ from constants import ModuleConstants
 import constants
 from errors import Error
 
+from pathplannerlib.util import DriveFeedforwards
+
 
 class ModuleLocation(Enum):
     FRONT_LEFT = (0,)
@@ -37,9 +39,10 @@ class SwerveModule(Subsystem):
         super().__init__()
         swerve_consts = constants
 
-        self.theoretial_max_vel = SwerveModule.rotations_to_meters(
-            DCMotor.krakenX60().freeSpeed / (2 * pi)
-        )
+        # self.theoretial_max_vel = SwerveModule.rotations_to_meters(
+        #     DCMotor.krakenX60().freeSpeed / (2 * pi)
+        # )
+        self.theoretial_max_vel = 13
         print(self.theoretial_max_vel)
 
         if location == ModuleLocation.FRONT_LEFT:
@@ -109,6 +112,8 @@ class SwerveModule(Subsystem):
         self.cancoder.set_position(self.cancoder.get_absolute_position().value)
 
         self.setpoint = SwerveModuleState()
+        self.feedforwardsNewtons = 0
+        self.feedforwardsAcceleration = 0
         try_angle = self.turn_motor.get_position()
         try_speed = self.drive_motor.get_velocity()
         i = 0
@@ -145,6 +150,9 @@ class SwerveModule(Subsystem):
             self.drive_motor.set_control(
                 VelocityDutyCycle(
                     SwerveModule.meters_to_rotations(-self.setpoint.speed)
+                    + (self.feedforwardsNewtons / constants.wheel_radius / (7.09 / 366))
+                    / 12,
+                    acceleration=self.feedforwardsAcceleration,
                 )
             )
 
@@ -233,7 +241,13 @@ class SwerveModule(Subsystem):
     def get_distance(self) -> meters:
         return self.rotations_to_meters(self.drive_motor.get_position().value)
 
-    def set_state(self, state: SwerveModuleState) -> None:
+    def set_state(
+        self,
+        state: SwerveModuleState,
+        *,
+        feedforwardsForce: float = 0.0,
+        feedforwardsAcceleration: float = 0.0,
+    ) -> None:
         # angle_error = abs(state.angle.degrees() - self.get_angle().degrees()) % 360
 
         # if angle_error > 180:
@@ -246,6 +260,8 @@ class SwerveModule(Subsystem):
         state.optimize(self.get_angle())
         # state.cosineScale(self.get_angle())
 
+        self.feedforwardsNewtons = feedforwardsForce
+        self.feedforwardsAcceleration = feedforwardsAcceleration
         self.setpoint = state
         self.commanded_pub.set(state)
 

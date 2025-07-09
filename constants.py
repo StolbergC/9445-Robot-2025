@@ -98,10 +98,11 @@ drive_config: TalonFXConfiguration = (
         .with_k_a(0.0)
         if RobotBase.isReal()
         else Slot0Configs()
-        .with_k_p(0.00)
-        .with_k_i(0.00001)
+        .with_k_p(0.0003)
+        .with_k_i(0.0)
         .with_k_d(0.00)
-        .with_k_v(0.010)
+        .with_k_v(0.015)
+        .with_k_a(0.05)
     )
     # .with_feedback(
     # FeedbackConfigs().with_sensor_to_mechanism_ratio(

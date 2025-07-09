@@ -1,3 +1,4 @@
+import typing
 import pathplannerlib.auto
 from subsystems.swerve_module import SwerveModule, ModuleLocation
 from subsystems.vision import Vision
@@ -33,9 +34,9 @@ import pathplannerlib
 
 
 class Drivetrain(Subsystem):
-    max_speed = ntproperty("000Drivetrain/max_speed", feetToMeters(6))
+    max_speed = ntproperty("000Drivetrain/max_speed", 2.25)  # feetToMeters(6))
     max_angular_speed = ntproperty(
-        "000Drivetrain/max_angular_speed", degreesToRadians(180)
+        "000Drivetrain/max_angular_speed", degreesToRadians(360)
     )
 
     use_vision = ntproperty("000Drivetrain/use_vision", True)
@@ -110,9 +111,11 @@ class Drivetrain(Subsystem):
         self.auto_builder = AutoBuilder.configure(
             self.get_pose,
             self.reset_pose,
-            self.get_speeds,
-            lambda speeds, _feedforward: self.run_chassis_speeds(
-                ChassisSpeeds(speeds.vx, speeds.vy, -speeds.omega)
+            lambda: ChassisSpeeds(
+                (speeds := self.get_speeds()).vx, speeds.vy, -speeds.omega_dps
+            ),
+            lambda speeds, feedforward: self.run_chassis_speeds(
+                ChassisSpeeds(speeds.vx, speeds.vy, -speeds.omega), feedforward
             ),
             (
                 PPHolonomicDriveController(
@@ -120,7 +123,7 @@ class Drivetrain(Subsystem):
                 )
                 if RobotBase.isReal()
                 else PPHolonomicDriveController(
-                    PIDConstants(7.0), PIDConstants(7.0, 0, 0.0)
+                    PIDConstants(8, 0, 0.1), PIDConstants(7.0, 5.5, 0.0)
                 )
             ),
             robot_cfg,
@@ -231,19 +234,40 @@ class Drivetrain(Subsystem):
     def stop_command(self) -> InstantCommand:
         return InstantCommand(self.stop)
 
-    def run_chassis_speeds(self, speeds: ChassisSpeeds) -> None:
-        # speeds = ChassisSpeeds.discretize(speeds, 0.02)
+    def run_chassis_speeds(
+        self,
+        speeds: ChassisSpeeds,
+        feedforwards: pathplannerlib.auto.DriveFeedforwards | None = None,
+    ) -> None:
+        if feedforwards is not None:
+            print(feedforwards)
+        speeds = ChassisSpeeds.discretize(speeds, 0.02)
         fl, fr, bl, br = self.kinematics.toSwerveModuleStates(
             speeds, Translation2d(0, 0)
         )
         fl, fr, bl, br = self.kinematics.desaturateWheelSpeeds(
             (fl, fr, bl, br), self.fl.theoretial_max_vel
         )
+
+        accs: list[float] = [0.0, 0.0, 0.0, 0.0]
+        forc: list[float] = [0.0, 0.0, 0.0, 0.0]
+        if feedforwards is not None:
+            accs = feedforwards.accelerationsMPS
+            forc = feedforwards.forcesNewtons
+
         self.setpoint = speeds
-        self.fl.set_state(fl)
-        self.fr.set_state(fr)
-        self.bl.set_state(bl)
-        self.br.set_state(br)
+        self.fl.set_state(
+            fl, feedforwardsForce=forc[0], feedforwardsAcceleration=accs[0]
+        )
+        self.fr.set_state(
+            fr, feedforwardsForce=forc[1], feedforwardsAcceleration=accs[1]
+        )
+        self.bl.set_state(
+            bl, feedforwardsForce=forc[2], feedforwardsAcceleration=accs[2]
+        )
+        self.br.set_state(
+            br, feedforwardsForce=forc[3], feedforwardsAcceleration=accs[3]
+        )
 
     def run_percent(
         self, tx: float, ty: float, omega: float, field_relative: bool

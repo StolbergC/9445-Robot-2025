@@ -3,29 +3,29 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 4.1237704918032785,
-        "y": 7.0
+        "x": 1.6183401639344261,
+        "y": 7.435502049180327
       },
       "prevControl": null,
       "nextControl": {
-        "x": 4.1237704918032785,
-        "y": 5.614119470658297
+        "x": 2.6802263233906727,
+        "y": 6.37361588972408
       },
       "isLocked": false,
-      "linkedName": "short_end"
+      "linkedName": "LeftIntake"
     },
     {
       "anchor": {
-        "x": 4.1237704918032785,
-        "y": 4.0
+        "x": 5.2455,
+        "y": 4.999999999999999
       },
       "prevControl": {
-        "x": 4.1237704918032785,
-        "y": 5.687011975700713
+        "x": 6.357,
+        "y": 6.920749999999999
       },
       "nextControl": null,
       "isLocked": false,
-      "linkedName": null
+      "linkedName": "i"
     }
   ],
   "rotationTargets": [],
@@ -35,20 +35,20 @@
   "globalConstraints": {
     "maxVelocity": 1.5,
     "maxAcceleration": 3.0,
-    "maxAngularVelocity": 720.0,
+    "maxAngularVelocity": 180.0,
     "maxAngularAcceleration": 720.0,
     "nominalVoltage": 12.0,
     "unlimited": false
   },
   "goalEndState": {
     "velocity": 0,
-    "rotation": 0.0
+    "rotation": -119.99999999999999
   },
   "reversed": false,
   "folder": null,
   "idealStartingState": {
     "velocity": 0,
-    "rotation": 180.0
+    "rotation": 125.00000000000001
   },
   "useDefaultConstraints": true
 }

@@ -154,6 +154,9 @@
           "open": true
         },
         "open": true,
+        "speeds": {
+          "open": true
+        },
         "state": {
           "open": true
         }
@@ -196,6 +199,12 @@
         }
       },
       "PathPlanner": {
+        "Pose2d##v_/PathPlanner/currentPose": {
+          "open": true
+        },
+        "Pose2d##v_/PathPlanner/targetPose": {
+          "open": true
+        },
         "open": true
       },
       "SmartDashboard": {

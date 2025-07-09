@@ -6,13 +6,13 @@
     "GLOBAL": {
       "font": "Fira Code Retina",
       "fps": "120",
-      "height": "2093",
-      "maximized": "1",
+      "height": "981",
+      "maximized": "0",
       "style": "0",
       "userScale": "2",
-      "width": "3840",
-      "xpos": "-898",
-      "ypos": "-2093"
+      "width": "958",
+      "xpos": "1",
+      "ypos": "38"
     }
   },
   "Table": {
@@ -41,13 +41,13 @@
     },
     "###/SmartDashboard/Auto Chooser": {
       "Collapsed": "0",
-      "Pos": "297,99",
-      "Size": "686,102"
+      "Pos": "302,101",
+      "Size": "308,60"
     },
     "###/SmartDashboard/Drivetrain": {
       "Collapsed": "0",
-      "Pos": "1048,164",
-      "Size": "636,182"
+      "Pos": "898,164",
+      "Size": "289,98"
     },
     "###/SmartDashboard/ElevatorMech": {
       "Collapsed": "0",
@@ -56,8 +56,8 @@
     },
     "###/SmartDashboard/Field": {
       "Collapsed": "0",
-      "Pos": "1662,100",
-      "Size": "2060,1033"
+      "Pos": "741,187",
+      "Size": "1050,524"
     },
     "###/SmartDashboard/SendableChooser[0]": {
       "Collapsed": "0",
@@ -66,27 +66,27 @@
     },
     "###/SmartDashboard/VisionSystemSim-Vision Sim/Sim Field": {
       "Collapsed": "0",
-      "Pos": "2257,1268",
+      "Pos": "898,893",
       "Size": "1386,725"
     },
     "###FMS": {
       "Collapsed": "0",
-      "Pos": "43,1242",
-      "Size": "718,284"
+      "Pos": "21,663",
+      "Size": "208,214"
     },
     "###Joysticks": {
       "Collapsed": "0",
-      "Pos": "5,522",
-      "Size": "2236,544"
+      "Pos": "4,523",
+      "Size": "952,278"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "201,1104",
+      "Pos": "167,319",
       "Size": "2172,1002"
     },
     "###NetworkTables Info": {
       "Collapsed": "0",
-      "Pos": "692,25",
+      "Pos": "458,15",
       "Size": "998,240"
     },
     "###Other Devices": {
@@ -102,7 +102,7 @@
     "###System Joysticks": {
       "Collapsed": "1",
       "Pos": "-38,522",
-      "Size": "535,506"
+      "Size": "240,254"
     },
     "###Timing": {
       "Collapsed": "0",
@@ -117,7 +117,7 @@
     "Robot State": {
       "Collapsed": "0",
       "Pos": "-2,35",
-      "Size": "258,260"
+      "Size": "121,134"
     }
   }
 }
