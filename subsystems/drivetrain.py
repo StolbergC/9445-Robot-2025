@@ -239,8 +239,6 @@ class Drivetrain(Subsystem):
         speeds: ChassisSpeeds,
         feedforwards: pathplannerlib.auto.DriveFeedforwards | None = None,
     ) -> None:
-        if feedforwards is not None:
-            print(feedforwards)
         speeds = ChassisSpeeds.discretize(speeds, 0.02)
         fl, fr, bl, br = self.kinematics.toSwerveModuleStates(
             speeds, Translation2d(0, 0)
@@ -289,14 +287,17 @@ class Drivetrain(Subsystem):
         self.run_chassis_speeds(speeds)
 
     def reset_pose(self, new_pose: Pose2d) -> None:
-        print("RESETSAETSETEJTKLSDFJLKDSFJ")
-        self.reset_gyro(new_pose.rotation())
+        # self.reset_gyro(new_pose.rotation())
         self.odometry.resetPosition(
-            self.gyro.getRotation2d(), self.get_module_positions(), new_pose
+            Rotation2d.fromDegrees(self.gyro.getAngle()),
+            self.get_module_positions(),
+            new_pose,
         )
         # self.odometry.resetPose(new_pose)
         self.visionless_odometry.resetPosition(
-            self.gyro.getRotation2d(), self.get_module_positions(), new_pose
+            Rotation2d.fromDegrees(self.gyro.getAngle()),
+            self.get_module_positions(),
+            new_pose,
         )
 
     def reset_gyro(self, new_angle: Rotation2d) -> None:

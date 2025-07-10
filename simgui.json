@@ -128,6 +128,9 @@
     }
   },
   "NetworkTables": {
+    "Persistent Values": {
+      "open": false
+    },
     "Retained Values": {
       "open": false
     },
@@ -141,6 +144,9 @@
         }
       },
       "000Drivetrain": {
+        "ChassisSpeeds##v_/000Drivetrain/Actual Speeds": {
+          "open": true
+        },
         "Pathplanner": {
           "Rotation": {
             "open": true
@@ -199,13 +205,15 @@
         }
       },
       "PathPlanner": {
+        "HotReload": {
+          "open": true
+        },
         "Pose2d##v_/PathPlanner/currentPose": {
           "open": true
         },
         "Pose2d##v_/PathPlanner/targetPose": {
           "open": true
-        },
-        "open": true
+        }
       },
       "SmartDashboard": {
         "SendableChooser[0]": {
@@ -213,9 +221,6 @@
             "open": true
           }
         }
-      },
-      "Vision": {
-        "open": true
       },
       "photonvision": {
         "Arducam_BL": {
@@ -231,7 +236,14 @@
             "open": true
           },
           "open": true
-        }
+        },
+        "modules": {
+          "Swerve Module BL": {
+            "open": true
+          },
+          "open": true
+        },
+        "open": true
       },
       "wrist": {
         "PID": {
@@ -245,13 +257,7 @@
     }
   },
   "NetworkTables Info": {
-    "Clients": {
-      "open": true
-    },
     "Connections": {
-      "open": true
-    },
-    "Server": {
       "open": true
     },
     "visible": true

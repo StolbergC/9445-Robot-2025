@@ -14,6 +14,8 @@ from commands2.button import Trigger, CommandJoystick
 
 from cscore import CameraServer
 from ntcore import NetworkTableInstance
+import pathplannerlib
+import pathplannerlib.pathfinders
 from wpilib import DriverStation, RobotBase
 from wpilib import SmartDashboard, SendableChooser, PowerDistribution
 
@@ -21,7 +23,7 @@ from wpimath import applyDeadband
 from wpimath.geometry import Pose2d, Rotation2d, Translation2d
 from wpimath.units import feetToMeters
 
-from pathplannerlib.auto import AutoBuilder, PathPlannerAuto
+from pathplannerlib.auto import AutoBuilder, PathConstraints
 
 from commands import smack_algae
 from subsystems.drivetrain import Drivetrain
@@ -55,8 +57,6 @@ from commands.drive_joystick import DriveJoystick
 #     red_left_two_coral,
 #     red_right_two_coral,
 # )
-
-import wpilib.cameraserver
 
 button_a = 1
 button_b = 2
@@ -287,6 +287,28 @@ class RobotContainer:
 
     def set_teleop_bindings(self) -> None:
         """testing"""
+
+        def make_pathfind() -> Command:
+            out = AutoBuilder.pathfindToPose(
+                Pose2d(0, 6, Rotation2d(0)),
+                PathConstraints(
+                    v := self.drivetrain.max_speed,
+                    30 * v,
+                    t := self.drivetrain.max_angular_speed,
+                    30 * t,
+                    # unlimited=True,
+                ),
+            )
+            out.addRequirements(self.drivetrain)
+            return out
+
+        Trigger(lambda: self.driver_controller.getThrottle() > 0.5).onTrue(
+            DeferredCommand(
+                make_pathfind,
+                self.drivetrain,
+            )
+        )
+
         # self.wrist.setDefaultCommand(
         #     RepeatCommand(
         #         self.wrist.angle_score()

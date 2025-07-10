@@ -74,7 +74,7 @@ back_right: ModuleConstants = ModuleConstants(
     8, 9, 10, 0.520, Translation2d.fromFeet(-12 / 12, -12 / 12), False
 )
 
-drive_ratio: float = 1 / 8.14 if RobotBase.isReal() else 1
+drive_ratio: float = 1 / 8.14 if RobotBase.isReal() else 8.14
 turn_ratio: float = 7 / 150
 
 drivebase_width: meters = inchesToMeters(28)
@@ -101,7 +101,7 @@ drive_config: TalonFXConfiguration = (
         .with_k_p(0.0003)
         .with_k_i(0.0)
         .with_k_d(0.00)
-        .with_k_v(0.015)
+        .with_k_v(0.0098296)
         .with_k_a(0.05)
     )
     # .with_feedback(

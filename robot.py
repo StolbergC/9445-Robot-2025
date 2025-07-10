@@ -41,7 +41,9 @@ class Robot(TimedRobot):
                 CommandScheduler.getInstance().schedule(self.m_autonomousCommand)
 
     def autonomousPeriodic(self):
-        pass
+        if self.m_autonomousCommand is not None:
+            if not self.m_autonomousCommand.isScheduled():
+                self.m_autonomousCommand.schedule()
 
     def autonomousExit(self):
         if self.m_autonomousCommand:

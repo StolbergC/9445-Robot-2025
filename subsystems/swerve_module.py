@@ -152,7 +152,9 @@ class SwerveModule(Subsystem):
                     SwerveModule.meters_to_rotations(-self.setpoint.speed)
                     + (self.feedforwardsNewtons / constants.wheel_radius / (7.09 / 366))
                     / 12,
-                    acceleration=self.feedforwardsAcceleration,
+                    acceleration=SwerveModule.meters_to_rotations(
+                        self.feedforwardsAcceleration
+                    ),
                 )
             )
 
@@ -197,7 +199,9 @@ class SwerveModule(Subsystem):
         max_revs_per_second = DCMotor.krakenX60().freeSpeed / (2 * pi)
 
         # Drive Motor Position and Velocity
-        driveRps = max_revs_per_second * self.drive_motor.get()
+        driveRps = (
+            max_revs_per_second * self.drive_motor.get()
+        )  # / constants.drive_ratio
         self.drive_motor.sim_state.set_rotor_velocity(driveRps)
         self.drive_motor.sim_state.add_rotor_position(driveRps * 0.02)
 
@@ -239,7 +243,7 @@ class SwerveModule(Subsystem):
         return SwerveModulePosition(self.get_distance(), self.get_angle())
 
     def get_distance(self) -> meters:
-        return self.rotations_to_meters(self.drive_motor.get_position().value)
+        return self.rotations_to_meters(self.drive_motor.get_rotor_position().value)
 
     def set_state(
         self,
