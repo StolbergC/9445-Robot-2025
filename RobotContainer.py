@@ -28,6 +28,7 @@ from pathplannerlib.auto import AutoBuilder, PathConstraints
 from commands import smack_algae
 from subsystems.drivetrain import Drivetrain
 from subsystems.elevator import Elevator
+from subsystems.leds import Leds
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
 from subsystems.claw import Claw
@@ -99,6 +100,8 @@ class RobotContainer:
         self.wrist.safe_claw_distance = 10
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
         self.fingers = Fingers()
+
+        self.leds = Leds()
 
         self.auto_chooser = AutoBuilder.buildAutoChooser()
         SmartDashboard.putData("Auto Chooser", self.auto_chooser)

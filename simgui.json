@@ -1,5 +1,10 @@
 {
   "HALProvider": {
+    "Addressable LEDs": {
+      "window": {
+        "visible": true
+      }
+    },
     "Other Devices": {
       "SPARK MAX [30]": {
         "header": {
@@ -29,6 +34,7 @@
       "/SmartDashboard/Field": "Field2d",
       "/SmartDashboard/Just Drive": "Command",
       "/SmartDashboard/Just Turn": "Command",
+      "/SmartDashboard/Leds": "Subsystem",
       "/SmartDashboard/PhotonAlerts": "Alerts",
       "/SmartDashboard/SendableChooser[0]": "String Chooser",
       "/SmartDashboard/VisionSystemSim-Vision Sim/Sim Field": "Field2d",
@@ -65,12 +71,18 @@
         "path": {
           "arrowSize": 35,
           "arrowWeight": 1.0,
+          "arrows": false,
           "selectable": false,
-          "style": "Hidden"
+          "style": "Line"
         },
         "right": 3466,
         "top": 291,
         "width": 17.54825210571289,
+        "window": {
+          "visible": true
+        }
+      },
+      "/SmartDashboard/Leds": {
         "window": {
           "visible": true
         }
@@ -159,7 +171,6 @@
           },
           "open": true
         },
-        "open": true,
         "speeds": {
           "open": true
         },
@@ -220,7 +231,8 @@
           "string[]##v_/SmartDashboard/SendableChooser[0]/options": {
             "open": true
           }
-        }
+        },
+        "open": true
       },
       "photonvision": {
         "Arducam_BL": {
@@ -242,8 +254,7 @@
             "open": true
           },
           "open": true
-        },
-        "open": true
+        }
       },
       "wrist": {
         "PID": {

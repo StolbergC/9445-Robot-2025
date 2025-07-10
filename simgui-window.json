@@ -59,6 +59,11 @@
       "Pos": "741,187",
       "Size": "1050,524"
     },
+    "###/SmartDashboard/Leds": {
+      "Collapsed": "0",
+      "Pos": "60,60",
+      "Size": "241,98"
+    },
     "###/SmartDashboard/SendableChooser[0]": {
       "Collapsed": "0",
       "Pos": "223,68",
@@ -69,19 +74,24 @@
       "Pos": "898,893",
       "Size": "1386,725"
     },
+    "###Addressable LEDs": {
+      "Collapsed": "0",
+      "Pos": "42,182",
+      "Size": "201,327"
+    },
     "###FMS": {
       "Collapsed": "0",
       "Pos": "-4,252",
-      "Size": "216,214"
+      "Size": "340,158"
     },
     "###Joysticks": {
       "Collapsed": "0",
       "Pos": "4,523",
-      "Size": "976,278"
+      "Size": "976,82"
     },
     "###NetworkTables": {
       "Collapsed": "0",
-      "Pos": "216,265",
+      "Pos": "278,293",
       "Size": "2172,1093"
     },
     "###NetworkTables Info": {
