@@ -260,25 +260,28 @@ class Elevator(Subsystem):
         )
 
     def simulationPeriodic(self) -> None:
-        self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
-        self.elevator_sim.setInput(
-            [self.motor.getAppliedOutput() * RoboRioSim.getVInVoltage()]
+        # self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
+        # self.elevator_sim.setInput(
+        #     [self.motor.getAppliedOutput() * RoboRioSim.getVInVoltage()]
+        # )
+        # self.elevator_sim.update(0.02)
+        # self.nettable.putNumber(
+        #     "Sim/Position (in)", self.elevator_sim.getPositionInches()
+        # )
+        # self.nettable.putNumber("Sim/output (%)", self.elevator_sim.getOutput()[0])
+        # self.nettable.putNumber(
+        #     "Sim/Velocity (fps)", self.elevator_sim.getVelocityFps()
+        # )
+        # self.motor_sim.iterate(
+        #     self.elevator_sim.getVelocity(), RoboRioSim.getVInVoltage(), 0.2
+        # )
+        # RoboRioSim.setVInVoltage(
+        #     BatterySim.calculate([self.elevator_sim.getCurrentDraw()])
+        # )
+        self.mech_elevator_mutable.setLength(
+            (inchesToMeters(self.spool_diameter))
+            * ((self.encoder.getPosition() + self.encoder2.getPosition()) * pi)
         )
-        self.elevator_sim.update(0.02)
-        self.nettable.putNumber(
-            "Sim/Position (in)", self.elevator_sim.getPositionInches()
-        )
-        self.nettable.putNumber("Sim/output (%)", self.elevator_sim.getOutput()[0])
-        self.nettable.putNumber(
-            "Sim/Velocity (fps)", self.elevator_sim.getVelocityFps()
-        )
-        self.motor_sim.iterate(
-            self.elevator_sim.getVelocity(), RoboRioSim.getVInVoltage(), 0.2
-        )
-        RoboRioSim.setVInVoltage(
-            BatterySim.calculate([self.elevator_sim.getCurrentDraw()])
-        )
-        self.mech_elevator_mutable.setLength(self.elevator_sim.getPosition())
         return super().simulationPeriodic()
 
     def set_state(
@@ -370,6 +373,9 @@ class Elevator(Subsystem):
         return self.command_position(1.5).withName("Processor")  # this is a guess
 
     def manual_control(self, power: float) -> None:
+        if RobotBase.isSimulation():
+            self.set_state(self.encoder.getPosition() - power * 0.02)
+            return
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
         self.set_motor(-power)
 

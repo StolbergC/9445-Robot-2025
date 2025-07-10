@@ -292,6 +292,10 @@ class RobotContainer:
         """testing"""
 
         def make_pathfind() -> Command:
+            pose = self.drivetrain.get_pose()
+            # outside of field
+            if pose.X() < 0 or pose.X() > 17.76 or pose.Y() < 0 or pose.Y() > 8.06:
+                return commands2.cmd.none()
             out = AutoBuilder.pathfindToPose(
                 Pose2d(0, 6, Rotation2d(0)),
                 PathConstraints(
@@ -305,11 +309,13 @@ class RobotContainer:
             out.addRequirements(self.drivetrain)
             return out
 
-        Trigger(lambda: self.driver_controller.getThrottle() > 0.5).onTrue(
+        Trigger(lambda: self.driver_controller.getThrottle() > 0.5).whileTrue(
             DeferredCommand(
                 make_pathfind,
                 self.drivetrain,
             )
+            .withName("path")
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
 
         # self.wrist.setDefaultCommand(
@@ -380,6 +386,7 @@ class RobotContainer:
         # )
 
         def toggle_field_oriented():
+            print("Toggling field oriented")
             self.field_oriented = not self.field_oriented
 
         self.driver_controller.button(button_y).onTrue(
@@ -586,6 +593,7 @@ class RobotContainer:
         # self.nettable.putNumber("Elevator Level", self.level)
         self.nettable.putBoolean("Coral", self.grabbing_coral)
         self.nettable.putNumber("Invert", self.invert)
+        self.nettable.putBoolean("Field Oriented", self.field_oriented)
 
     def get_alliance(self) -> DriverStation.Alliance:
         return self.alliance

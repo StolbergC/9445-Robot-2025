@@ -6,6 +6,13 @@ import typing
 from math import sin
 
 
+"""Reactions
+>50(?) frames of vision targets seen before enable -> ready to start, change lights
+In a scoring position -> Change lights
+In an intake position -> Change lights
+"""
+
+
 class Leds(Subsystem):
     # made up
     len: int = 100

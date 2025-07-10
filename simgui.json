@@ -52,6 +52,11 @@
           "visible": true
         }
       },
+      "/SmartDashboard/ElevatorMech": {
+        "window": {
+          "visible": true
+        }
+      },
       "/SmartDashboard/Field": {
         "Robot": {
           "length": 0.7111999988555908,
@@ -171,6 +176,7 @@
           },
           "open": true
         },
+        "open": true,
         "speeds": {
           "open": true
         },
