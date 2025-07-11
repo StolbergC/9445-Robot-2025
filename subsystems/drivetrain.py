@@ -268,11 +268,12 @@ class Drivetrain(Subsystem):
         )
 
     def run_percent(
-        self, tx: float, ty: float, omega: float, field_relative: bool
+        self,
+        tx: float,
+        ty: float,
+        omega: float,
+        field_relative: bool,
     ) -> None:
-        # self.nettable.putNumber("tx", tx)
-        # self.nettable.putNumber("ty", ty)
-        # self.nettable.putNumber("omega", omega)
         if field_relative:
             speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                 tx * self.max_speed,

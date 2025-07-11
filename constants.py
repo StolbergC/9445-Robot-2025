@@ -120,7 +120,7 @@ turn_config: TalonFXConfiguration = (
     .with_slot0(
         # simulation
         Slot0Configs()
-        .with_k_p(0.6)
+        .with_k_p(0.8)
         .with_k_i(0.0)
         .with_k_d(0.0)
         .with_k_v(0.0)

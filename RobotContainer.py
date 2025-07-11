@@ -272,14 +272,14 @@ class RobotContainer:
     def get_drive_x(self) -> float:
         return (
             self.invert
-            * applyDeadband(-self.driver_controller.getX(), 0.05)
+            * applyDeadband(-self.driver_controller.getX(), 0.5)
             * abs(self.driver_controller.getX())
         )
 
     def get_drive_y(self) -> float:
         return (
             self.invert
-            * applyDeadband(-self.driver_controller.getY(), 0.05)
+            * applyDeadband(-self.driver_controller.getY(), 0.5)
             * abs(self.driver_controller.getY())
         )
 
