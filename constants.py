@@ -57,17 +57,17 @@ class ModuleConstants:
         self.cancoder_id = cancoder
         self.cancoder_offset = cancoder_offset
         self.translation_from_center = translation
-        self.drive_inverted = drive_inverted
+        self.drive_inverted = drive_inverted if RobotBase.isReal() else False
 
 
 front_left: ModuleConstants = ModuleConstants(
     14, 15, 16, -0.416, Translation2d.fromFeet(12 / 12, 12 / 12), False
 )
 front_right: ModuleConstants = ModuleConstants(
-    11, 12, 13, 0.951, Translation2d.fromFeet(12 / 12, -12 / 12), False
+    11, 12, 13, 0.951, Translation2d.fromFeet(12 / 12, -12 / 12), True
 )
 back_left: ModuleConstants = ModuleConstants(
-    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), not True
+    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), True
 )
 back_right: ModuleConstants = ModuleConstants(
     8, 9, 10, 0.520, Translation2d.fromFeet(-12 / 12, -12 / 12), False

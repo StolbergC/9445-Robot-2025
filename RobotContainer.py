@@ -272,14 +272,14 @@ class RobotContainer:
     def get_drive_x(self) -> float:
         return (
             self.invert
-            * applyDeadband(self.driver_controller.getX(), 0.1)
+            * applyDeadband(-self.driver_controller.getX(), 0.1)
             * abs(self.driver_controller.getX())
         )
 
     def get_drive_y(self) -> float:
         return (
             self.invert
-            * applyDeadband(self.driver_controller.getY(), 0.1)
+            * applyDeadband(-self.driver_controller.getY(), 0.1)
             * abs(self.driver_controller.getY())
         )
 
@@ -300,9 +300,9 @@ class RobotContainer:
                 Pose2d(0, 6, Rotation2d(0)),
                 PathConstraints(
                     v := self.drivetrain.max_speed,
-                    30 * v,
+                    10 * v,
                     t := self.drivetrain.max_angular_speed,
-                    30 * t,
+                    10 * t,
                     # unlimited=True,
                 ),
             )
