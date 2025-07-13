@@ -1,3 +1,4 @@
+import time
 import typing
 import pathplannerlib.auto
 from subsystems.swerve_module import SwerveModule, ModuleLocation
@@ -32,6 +33,8 @@ from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
 from pathplannerlib.logging import PathPlannerLogging
 import pathplannerlib
 
+import constants
+
 
 class Drivetrain(Subsystem):
     max_speed = ntproperty("000Drivetrain/max_speed", 2.25)  # feetToMeters(6))
@@ -53,7 +56,7 @@ class Drivetrain(Subsystem):
         self.bl = SwerveModule(ModuleLocation.BACK_LEFT)
         self.br = SwerveModule(ModuleLocation.BACK_RIGHT)
 
-        self.gyro = AHRS(AHRS.NavXComType.kUSB1)
+        self.gyro = AHRS(AHRS.NavXComType.kUSB2)
 
         self.kinematics = SwerveDrive4Kinematics(
             self.fl.get_from_center(),

@@ -1,7 +1,14 @@
+from wpilib import RobotBase
 from math import e, pi
 from ntcore import NetworkTableInstance
 from photonlibpy import photonCamera, photonPoseEstimator
-from photonlibpy.simulation import visionSystemSim, SimCameraProperties, PhotonCameraSim
+
+if RobotBase.isSimulation():
+    from photonlibpy.simulation import (
+        visionSystemSim,
+        simCameraProperties,
+        photonCameraSim,
+    )
 from robotpy_apriltag import AprilTagFieldLayout, AprilTagField
 from wpimath.units import inchesToMeters
 from wpimath.geometry import (
@@ -71,16 +78,18 @@ class Vision:
         )
 
         if RobotBase.isSimulation():
+            # There are errors here in type checking because of conditional import.
+            # Do not worry about them
             self.nettable = NetworkTableInstance.getDefault().getTable("Vision")
             self.vision_sim = visionSystemSim.VisionSystemSim("Vision Sim")
             self.vision_sim.addAprilTags(self.field_layout)
             # TODO: Determine based on our cameras
-            camera_properties = SimCameraProperties()
+            camera_properties = simCameraProperties.SimCameraProperties()
 
-            fl_sim = PhotonCameraSim(self.fl, camera_properties)
-            fr_sim = PhotonCameraSim(self.fr, camera_properties)
-            bl_sim = PhotonCameraSim(self.bl, camera_properties)
-            br_sim = PhotonCameraSim(self.br, camera_properties)
+            fl_sim = photonCameraSim.PhotonCameraSim(self.fl, camera_properties)
+            fr_sim = photonCameraSim.PhotonCameraSim(self.fr, camera_properties)
+            bl_sim = photonCameraSim.PhotonCameraSim(self.bl, camera_properties)
+            br_sim = photonCameraSim.PhotonCameraSim(self.br, camera_properties)
 
             self.vision_sim.addCamera(fl_sim, self.to_fl)
             self.vision_sim.addCamera(fr_sim, self.to_fr)

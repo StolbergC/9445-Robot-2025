@@ -1,3 +1,4 @@
+from copy import copy
 from enum import Enum
 from math import cos, pi
 
@@ -37,25 +38,22 @@ class SwerveModule(Subsystem):
 
     def __init__(self, location: ModuleLocation):
         super().__init__()
-        swerve_consts = constants
-
         # self.theoretial_max_vel = SwerveModule.rotations_to_meters(
         #     DCMotor.krakenX60().freeSpeed / (2 * pi)
         # )
         self.theoretial_max_vel = 13
-        print(self.theoretial_max_vel)
 
         if location == ModuleLocation.FRONT_LEFT:
-            self.consts = swerve_consts.front_left
+            self.consts = constants.front_left
             self.setName("Swerve Module FL")
         elif location == ModuleLocation.FRONT_RIGHT:
-            self.consts = swerve_consts.front_right
+            self.consts = constants.front_right
             self.setName("Swerve Module FR")
         elif location == ModuleLocation.BACK_LEFT:
-            self.consts = swerve_consts.back_left
+            self.consts = constants.back_left
             self.setName("Swerve Module BL")
         elif location == ModuleLocation.BACK_RIGHT:
-            self.consts = swerve_consts.back_right
+            self.consts = constants.back_right
             self.setName("Swerve Module BR")
         else:
             Error(
@@ -64,47 +62,32 @@ class SwerveModule(Subsystem):
                 )
             )
             # this may be bad. If in a real match, the code will report an error, then keep running. What is the consts value there?
-            self.consts = swerve_consts.front_left
+            self.consts = constants.front_left
             self.setName("Swerve Module ERROR")
 
         self.nettable = NetworkTableInstance.getDefault().getTable(
             f"/swerve/modules/{self.getName()}"
         )
 
-        consts = self.consts
-
-        self.drive_motor = TalonFX(consts.drive_id, constants.canbus)
-        self.turn_motor = TalonFX(consts.turn_id, constants.canbus)
-        self.cancoder = CANcoder(consts.cancoder_id, constants.canbus)
+        self.drive_motor = TalonFX(self.consts.drive_id, constants.canbus)
+        self.turn_motor = TalonFX(self.consts.turn_id, constants.canbus)
+        self.cancoder = CANcoder(self.consts.cancoder_id, constants.canbus)
 
         # if RobotBase.isSimulation():
         # self.cancoder.configurator.apply(swerve_consts.cancoder_config)
         # else:
         self.cancoder.configurator.apply(
-            swerve_consts.cancoder_config.with_magnet_sensor(
-                MagnetSensorConfigs().with_magnet_offset(consts.cancoder_offset)
+            constants.cancoder_config.with_magnet_sensor(
+                MagnetSensorConfigs().with_magnet_offset(self.consts.cancoder_offset)
             )
         )
-        if not consts.drive_inverted or RobotBase.isSimulation():
-            self.drive_motor.configurator.apply(swerve_consts.drive_config)
-        else:
-            if (
-                swerve_consts.drive_config.motor_output.inverted
-                == InvertedValue.CLOCKWISE_POSITIVE
-            ):
-                new_inversion = InvertedValue.COUNTER_CLOCKWISE_POSITIVE
-            else:
-                new_inversion = InvertedValue.CLOCKWISE_POSITIVE
-            self.drive_motor.configurator.apply(
-                swerve_consts.drive_config.with_motor_output(
-                    swerve_consts.drive_config.motor_output.with_inverted(new_inversion)
-                )
-            )
+
+        self.drive_motor.configurator.apply(constants.drive_config)
 
         self.turn_motor.configurator.apply(
-            swerve_consts.turn_config.with_feedback(
+            constants.turn_config.with_feedback(
                 FeedbackConfigs()
-                .with_feedback_remote_sensor_id(consts.cancoder_id)
+                .with_feedback_remote_sensor_id(self.consts.cancoder_id)
                 .with_feedback_sensor_source(FeedbackSensorSourceValue.FUSED_CANCODER)
             )
         )
@@ -149,7 +132,9 @@ class SwerveModule(Subsystem):
         else:
             self.drive_motor.set_control(
                 VelocityDutyCycle(
-                    SwerveModule.meters_to_rotations(-self.setpoint.speed)
+                    SwerveModule.meters_to_rotations(
+                        -self.setpoint.speed * (-1 if self.consts.drive_inverted else 1)
+                    )
                     + (self.feedforwardsNewtons / constants.wheel_radius / (7.09 / 366))
                     / 12,
                     acceleration=SwerveModule.meters_to_rotations(

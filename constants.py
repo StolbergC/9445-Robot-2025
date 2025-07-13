@@ -1,5 +1,4 @@
 from math import pi
-from tkinter import W
 
 from wpilib import RobotBase
 from wpimath.units import (
@@ -65,10 +64,10 @@ front_left: ModuleConstants = ModuleConstants(
     14, 15, 16, -0.416, Translation2d.fromFeet(12 / 12, 12 / 12), False
 )
 front_right: ModuleConstants = ModuleConstants(
-    11, 12, 13, 0.555, Translation2d.fromFeet(12 / 12, -12 / 12), True
+    11, 12, 13, 0.951, Translation2d.fromFeet(12 / 12, -12 / 12), False
 )
 back_left: ModuleConstants = ModuleConstants(
-    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), True
+    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), not True
 )
 back_right: ModuleConstants = ModuleConstants(
     8, 9, 10, 0.520, Translation2d.fromFeet(-12 / 12, -12 / 12), False
@@ -92,9 +91,9 @@ drive_config: TalonFXConfiguration = (
     .with_slot0(
         Slot0Configs()
         .with_k_p(0.00)
-        .with_k_i(2.0)
+        .with_k_i(0.0)
         .with_k_d(0.00)
-        .with_k_v(0.0)
+        .with_k_v(0.01)
         .with_k_a(0.0)
         if RobotBase.isReal()
         else Slot0Configs()
@@ -120,7 +119,7 @@ turn_config: TalonFXConfiguration = (
     .with_slot0(
         # simulation
         Slot0Configs()
-        .with_k_p(0.8)
+        .with_k_p(0.6)
         .with_k_i(0.0)
         .with_k_d(0.0)
         .with_k_v(0.0)

@@ -1,4 +1,3 @@
-from tkinter import W
 from commands2 import Command, RepeatCommand, Subsystem, WaitCommand
 from wpilib import AddressableLED, Color, SmartDashboard, Timer
 import typing
