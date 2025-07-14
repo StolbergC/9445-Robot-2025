@@ -1,16 +1,10 @@
 from commands2 import Command, CommandScheduler
-from ntcore import NetworkTableInstance
-import pathplannerlib.auto
-from wpilib import SmartDashboard, TimedRobot, Watchdog, run, DataLogManager
-from wpimath.geometry import Pose2d, Rotation2d
+from wpilib import TimedRobot, run, DataLogManager
 
 
-from RobotContainer import RobotContainer, button_lb
-from subsystems.climber import Climber
+from RobotContainer import RobotContainer
 
 from util import elastic
-
-import pathplannerlib
 
 
 class Robot(TimedRobot):

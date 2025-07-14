@@ -200,15 +200,14 @@ class Drivetrain(Subsystem):
         )
 
     def get_angle(self) -> Rotation2d:
-        if self.should_flip():
-            return (
-                self.odometry.getEstimatedPosition().rotation()
-                + Rotation2d.fromDegrees(180)
-            )
-            # return self.gyro.getRotation2d() + Rotation2d.fromDegrees(180)
+        if self.use_vision:
+            get_pose = self.odometry.getEstimatedPosition
         else:
-            # return self.gyro.getRotation2d()
-            return self.odometry.getEstimatedPosition().rotation()
+            get_pose = self.visionless_odometry.getPose
+        if self.should_flip():
+            return get_pose().rotation() + Rotation2d.fromDegrees(180)
+        else:
+            return get_pose().rotation()
 
     def get_states(
         self,
