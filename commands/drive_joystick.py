@@ -29,13 +29,17 @@ class DriveJoystick(Command):
         self.get_field_oriented = get_field_oriented
         self.addRequirements(self.drivetrain)
         self.angle_hold: Rotation2d = self.drivetrain.get_angle()
-        self.omega_compensator = PIDController(0.5, 0, 0)
+        self.omega_compensator = PIDController(0.4, 0, 0)
         self.omega_compensator.enableContinuousInput(-pi, pi)
-        self.prev_used_omega = False
+        self.prev_used_omega = True
         self.spin_compensation_timer = Timer()
         super().__init__()
 
     def initialize(self):
+        self.angle_hold = self.drivetrain.get_angle()
+        self.omega_compensator.reset()
+        self.prev_used_omega = True
+        self.spin_compensation_timer.reset()
         return super().initialize()
 
     def execute(self):
