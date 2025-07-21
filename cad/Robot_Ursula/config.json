@@ -1,0 +1,26 @@
+{
+    "name": "Ursula",
+    "isFTC": "true",
+    "disableSimplification": false,
+    "rotations": [
+        {
+            "axis": "x",
+            "degrees": 90
+        },
+        {
+            "axis": "y",
+            "degrees": 0
+        },
+        {
+            "axis": "z",
+            "degrees": 90
+        }
+    ],
+    "position": [
+        0,
+        0,
+        0.262
+    ],
+    "cameras": [],
+    "components": []
+}
