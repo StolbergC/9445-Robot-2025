@@ -1,5 +1,9 @@
 from commands2 import Command, CommandScheduler
+from ntcore import NetworkTableInstance
 from wpilib import TimedRobot, run, DataLogManager
+
+from wpimath.geometry import Pose3d, Translation3d, Rotation3d
+from wpimath.units import inchesToMeters
 
 
 from RobotContainer import RobotContainer
@@ -80,6 +84,39 @@ class Robot(TimedRobot):
 
     def disabledExit(self):
         pass
+
+    def _simulationInit(self) -> None:
+        self.nettable = NetworkTableInstance.getDefault().getTable("Mechanism3dPoses")
+        self.zero_posepub = self.nettable.getStructArrayTopic(
+            "ZeroPoses", Pose3d
+        ).publish()
+        self.final_posepub = self.nettable.getStructArrayTopic(
+            "FinalPoses", Pose3d
+        ).publish()
+        return super()._simulationInit()
+
+    def _simulationPeriodic(self) -> None:
+        self.zero_posepub.set([Pose3d(), Pose3d()])
+        if self.m_robotContainer is not None:
+            if hasattr(self.m_robotContainer, "elevator"):
+                self.final_posepub.set(
+                    [
+                        Pose3d(
+                            Translation3d(
+                                0.245,
+                                0,
+                                self.m_robotContainer.elevator.get_position_m()
+                                + inchesToMeters(9.384),
+                            ),
+                            Rotation3d(
+                                0,
+                                0,
+                                0,
+                            ),
+                        ),
+                    ]
+                )
+        return super()._simulationPeriodic()
 
 
 # Start the Robot when Executing Code

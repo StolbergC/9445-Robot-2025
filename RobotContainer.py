@@ -367,6 +367,9 @@ class RobotContainer:
 
         self.claw.setDefaultCommand(self.claw.stop())
         self.operator_controller.button(button_x).onTrue(self.elevator.reset())
+        self.operator_controller.button(button_b).onTrue(
+            self.elevator.reset(self.elevator.top_height)
+        )
 
         """actual bindings"""
         """defaults"""

@@ -1,7 +1,7 @@
 {
     "name": "Ursula",
-    "isFTC": "true",
-    "disableSimplification": false,
+    "isFTC": "false",
+    "disableSimplification": true,
     "rotations": [
         {
             "axis": "x",
@@ -22,5 +22,27 @@
         0.262
     ],
     "cameras": [],
-    "components": []
+    "components": [
+        {
+            "zeroedRotations": [
+                {
+                    "axis": "x",
+                    "degrees": 180
+                },
+                {
+                    "axis": "y",
+                    "degrees": 0
+                },
+                {
+                    "axis": "z",
+                    "degrees": 90
+                }
+            ],
+            "zeroedPosition": [
+                -0.245,
+                0,
+                0
+            ]
+        }
+    ]
 }

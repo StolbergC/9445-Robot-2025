@@ -1,3 +1,4 @@
+from fileinput import isstdin
 from time import time
 from typing import Callable
 from math import floor, pi
@@ -14,6 +15,8 @@ from rev import (
 from wpilib import DigitalInput, RobotBase, RobotController, Mechanism2d, SmartDashboard
 from wpilib.simulation import ElevatorSim, RoboRioSim, BatterySim
 from wpimath.system.plant import DCMotor
+
+from wpimath.units import meters
 
 
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData, NetworkTable
@@ -79,8 +82,9 @@ class Elevator(Subsystem):
             .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
         )
         self.motor_config.encoder.positionConversionFactor(
-            1 / 12  # TODO: Find what the conversion factor needs to be
-        ).velocityConversionFactor(1 / (12 * 60))
+            1
+            # 1 / 12  # TODO: Find what the conversion factor needs to be
+        ).velocityConversionFactor(3)
         self.encoder.setPosition(0)
 
         self.motor.configure(
@@ -97,9 +101,9 @@ class Elevator(Subsystem):
             .inverted(True)
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
-        self.motor2_config.encoder.positionConversionFactor(
-            1 / 12
-        ).velocityConversionFactor(1 / (12 * 60))
+        self.motor2_config.encoder.positionConversionFactor(1).velocityConversionFactor(
+            3
+        )
 
         self.motor2.configure(
             self.motor2_config,
@@ -228,21 +232,28 @@ class Elevator(Subsystem):
             "State/Current Draw2 (amp)", self.motor2.getOutputCurrent()
         )
 
+        self.nettable.putNumber("State/Position (rotations)", self.get_position())
+
+        self.nettable.putNumber("State/Position (m)", self.get_position_m())
+
         if (
             max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) > 45
             and min(self.encoder.getVelocity(), self.encoder2.getVelocity()) < 0.25
         ) and not self.is_stalling:
             self.is_stalling = True
+            self.stall_start_time = time()
 
-        if (
-            self.is_stalling
-            and max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) < 40
+        if self.is_stalling and (
+            max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) < 40
             or min(self.encoder.getVelocity(), self.encoder2.getVelocity()) > 0.5
         ):
             self.is_stalling = False
 
         self.nettable.putBoolean("State/Stalling", self.is_stalling)
-        self.nettable.putNumber("State/stall time", time() - self.stall_start_time)
+        self.nettable.putNumber(
+            "State/stall time",
+            (time() - self.stall_start_time) if self.is_stalling else 0,
+        )
 
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
@@ -379,9 +390,24 @@ class Elevator(Subsystem):
         power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
         self.set_motor(-power)
 
-    def reset(self) -> InstantCommand:
+    def reset(self, position: float = 0) -> InstantCommand:
         def go() -> None:
-            self.encoder.setPosition(0)
-            self.encoder2.setPosition(0)
+            self.encoder.setPosition(position)
+            self.encoder2.setPosition(position)
 
         return InstantCommand(go)
+
+    def get_position(self) -> float:
+        """returns in rotations"""
+        a = (self.encoder.getPosition() + self.encoder2.getPosition()) / 2
+        if RobotBase.isSimulation():
+            if a > self.top_height:
+                return self.top_height
+            if a < self.bottom_height:
+                return self.bottom_height
+        return a
+
+    def get_position_m(self) -> meters:
+        return (
+            self.get_position() * inchesToMeters(self.spool_diameter) * 2 * pi * 0.595
+        )
