@@ -8,8 +8,10 @@ from wpimath.controller import ProfiledPIDController
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 from wpimath.units import feet
+from wpimath.system.plant import DCMotor
 
-from wpilib import DigitalInput
+from wpilib import RobotBase
+from wpilib.simulation import RoboRioSim
 
 from commands2 import (
     Command,
@@ -21,7 +23,7 @@ from commands2 import (
     WaitCommand,
     WrapperCommand,
 )
-from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase
+from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase, SparkMaxSim
 
 
 class Claw(Subsystem):
@@ -65,7 +67,7 @@ class Claw(Subsystem):
         self.stall_timer = time()
         self.is_stalling = True
 
-        self.has_homed = False
+        self.has_homed = False if RobotBase.isReal() else True
 
         def nettable_listener(_nt: NetworkTable, key: str, ev: Event):
             if isinstance(v := ev.data, ValueEventData):
@@ -91,6 +93,9 @@ class Claw(Subsystem):
         self.nettable.putNumber(
             "Config/Velocity (ft/s)", self.pid.getConstraints().maxVelocity
         )
+
+        if RobotBase.isSimulation():
+            self.sim_spark = SparkMaxSim(self.motor, DCMotor.NEO())
 
     def at_center(self) -> bool:
         return (
@@ -129,12 +134,42 @@ class Claw(Subsystem):
             "State/Current draw (amps)", self.motor.getOutputCurrent()
         )
         self.nettable.putBoolean("State/has homed", self.has_homed)
+        self.nettable.putBoolean("State/stalling", self.is_stalling)
+        self.nettable.putNumber(
+            "State/stall time", (time() - self.stall_timer) if self.is_stalling else 0
+        )
         if (c := self.getCurrentCommand()) is not None:
             self.nettable.putString("Running Command", c.getName())
         else:
             self.nettable.putString("Running Command", "None")
 
         return super().periodic()
+
+    def simulationPeriodic(self) -> None:
+        self.encoder.setPosition(
+            self.encoder.getPosition()
+            + self.motor.get()
+            * 0.02
+            * RoboRioSim.getVInVoltage()
+            * DCMotor.NEO().freeSpeed
+            / (2 * pi)
+        )
+
+        # inside
+        if self.encoder.getPosition() >= -2.125 / 2:
+            # really big, just trigger the inside current spike
+            self.sim_spark.setMotorCurrent(500)
+            self.sim_spark.setVelocity(0)
+            self.encoder.setPosition(-2.125 / 2)
+        # outside
+        elif self.encoder.getPosition() <= -8.75:
+            # really big, just trigger the outside current spike
+            self.sim_spark.setMotorCurrent(500)
+            self.sim_spark.setVelocity(0)
+            self.encoder.setPosition(-8.75)
+        else:
+            self.sim_spark.setMotorCurrent(0)
+            self.sim_spark.setVelocity(self.motor.get() * DCMotor.NEO().freeSpeed)
 
     def get_dist(self) -> float:
         """the distance in inches"""
@@ -188,7 +223,7 @@ class Claw(Subsystem):
             .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
         )
 
-    def stop(self) -> InstantCommand:
+    def stop(self) -> WrapperCommand:
         return InstantCommand(lambda: self.motor.set(0), self).withInterruptBehavior(
             Command.InterruptionBehavior.kCancelSelf
         )
@@ -225,7 +260,7 @@ class Claw(Subsystem):
 
     def cage(self) -> WrapperCommand:
         return (
-            (self.set_position(10).andThen(self.stop()))
+            ((self.set_position(10).until(self.at_outside)).andThen(self.stop()))
             .withName("Inside of Cage")
             .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )

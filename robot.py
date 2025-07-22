@@ -96,23 +96,70 @@ class Robot(TimedRobot):
         return super()._simulationInit()
 
     def _simulationPeriodic(self) -> None:
-        self.zero_posepub.set([Pose3d(), Pose3d()])
+        self.zero_posepub.set([a := Pose3d(5, 5, 5, Rotation3d()), a, a, Pose3d()])
         if self.m_robotContainer is not None:
             if hasattr(self.m_robotContainer, "elevator"):
+                ele_pose = Translation3d(
+                    0.245,
+                    0,
+                    self.m_robotContainer.elevator.get_position_m()
+                    + inchesToMeters(9.384),
+                )
+                wrist_pose = ele_pose + Translation3d(0, 0, 0.1924304)
+                wrist_angle = Rotation3d(
+                    0,
+                    -self.m_robotContainer.wrist.get_angle().radians(),
+                    0,
+                )
                 self.final_posepub.set(
                     [
                         Pose3d(
-                            Translation3d(
-                                0.245,
-                                0,
-                                self.m_robotContainer.elevator.get_position_m()
-                                + inchesToMeters(9.384),
-                            ),
+                            ele_pose,
                             Rotation3d(
                                 0,
                                 0,
                                 0,
                             ),
+                        ),
+                        (
+                            Pose3d(
+                                wrist_pose,
+                                wrist_angle,
+                            )
+                            if hasattr(self.m_robotContainer, "wrist")
+                            else None
+                        ),
+                        (
+                            Pose3d(
+                                wrist_pose
+                                + Translation3d(
+                                    0,
+                                    inchesToMeters(
+                                        self.m_robotContainer.claw.get_dist()
+                                    )
+                                    / 2,
+                                    0,
+                                ),
+                                wrist_angle,
+                            )
+                            if hasattr(self.m_robotContainer, "claw")
+                            else None
+                        ),
+                        (
+                            Pose3d(
+                                wrist_pose
+                                - Translation3d(
+                                    0,
+                                    inchesToMeters(
+                                        self.m_robotContainer.claw.get_dist()
+                                    )
+                                    / 2,
+                                    0,
+                                ),
+                                wrist_angle,
+                            )
+                            if hasattr(self.m_robotContainer, "claw")
+                            else None
                         ),
                     ]
                 )

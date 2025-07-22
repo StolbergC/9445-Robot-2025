@@ -1,8 +1,9 @@
 from math import pi
 from typing import Callable
-from rev import SparkMax, SparkMaxConfig, SparkBase, EncoderConfig
+from rev import SparkMax, SparkMaxConfig, SparkBase, EncoderConfig, SparkSim
 
-from wpilib import SmartDashboard
+from wpilib import RobotBase, SmartDashboard
+from wpilib.simulation import SingleJointedArmSim, RoboRioSim, BatterySim
 
 from commands2 import (
     Command,
@@ -22,7 +23,8 @@ from wpimath.controller import ProfiledPIDController, ArmFeedforward
 from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
 
-from wpilib import DutyCycleEncoder
+from wpimath.system.plant import DCMotor
+from wpimath.units import degreesToRadians, radiansPerSecondToRotationsPerMinute
 
 
 class Wrist(Subsystem):
@@ -52,6 +54,21 @@ class Wrist(Subsystem):
             SparkBase.ResetMode.kResetSafeParameters,
             SparkBase.PersistMode.kNoPersistParameters,
         )
+
+        if RobotBase.isSimulation():
+            gearbox = DCMotor.NEO(1)
+            self.spark_sim = SparkSim(self.motor, gearbox)
+            self.arm_sim = SingleJointedArmSim(
+                gearbox,
+                9,
+                2.5,
+                0.5,
+                degreesToRadians(-15),
+                degreesToRadians(90),
+                True,
+                0,
+            )
+            self.sim_encoder_offset: float = 0
 
         self.pid = ProfiledPIDController(
             8, 0, 0, TrapezoidProfile.Constraints(pi, 3 * pi)
@@ -147,11 +164,37 @@ class Wrist(Subsystem):
             self.nettable.putString("Running Command", "None")
         return super().periodic()
 
+    def simulationPeriodic(self) -> None:
+        self.arm_sim.setInput(
+            [self.spark_sim.getAppliedOutput() * RoboRioSim.getVInVoltage()]
+        )
+        self.arm_sim.update(0.02)
+
+        self.spark_sim.iterate(
+            radiansPerSecondToRotationsPerMinute(self.arm_sim.getVelocity()),
+            RoboRioSim.getVInVoltage(),
+            0.02,
+        )
+
+        RoboRioSim.setVInVoltage(BatterySim.calculate([self.arm_sim.getCurrentDraw()]))
+
+        self.sim_encoder_offset += self.motor.getAppliedOutput() * 0.02
+        self.nettable.putNumber(
+            "Simulation/encoder offset (rotations)", self.sim_encoder_offset
+        )
+        self.nettable.putNumber(
+            "Simulation/Applied Output ", self.motor.getAppliedOutput()
+        )
+        return super().simulationPeriodic()
+
     def stop(self) -> InstantCommand:
         return InstantCommand(lambda: self.motor.set(0))
 
     def get_angle(self) -> Rotation2d:
-        return Rotation2d.fromDegrees(self.encoder.getPosition())
+        return Rotation2d.fromDegrees(
+            self.encoder.getPosition()
+            + (self.sim_encoder_offset * 360 if RobotBase.isSimulation() else 0)
+        )
 
     def get_velocity(self) -> Rotation2d:
         """rotation2d/s"""

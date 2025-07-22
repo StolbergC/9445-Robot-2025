@@ -16,7 +16,7 @@ from wpilib import DigitalInput, RobotBase, RobotController, Mechanism2d, SmartD
 from wpilib.simulation import ElevatorSim, RoboRioSim, BatterySim
 from wpimath.system.plant import DCMotor
 
-from wpimath.units import meters
+from wpimath.units import meters, radiansPerSecondToRotationsPerMinute
 
 
 from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData, NetworkTable
@@ -97,7 +97,7 @@ class Elevator(Subsystem):
         self.encoder2 = self.motor2.getEncoder()
         self.motor2_config = (
             SparkMaxConfig()
-            .smartCurrentLimit(35)
+            .smartCurrentLimit(35 if RobotBase.isReal() else 100000)
             .inverted(True)
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
@@ -113,12 +113,22 @@ class Elevator(Subsystem):
 
         self.encoder2.setPosition(0)
 
-        self.pid = PIDController(8.5, 0, 0)
-        self.pid2 = PIDController(8.5, 0, 0)
+        self.pid = (
+            PIDController(8.5, 0, 0) if RobotBase.isReal() else PIDController(2.5, 0, 0)
+        )
+        self.pid2 = (
+            PIDController(8.5, 0, 0) if RobotBase.isReal() else PIDController(2.5, 0, 0)
+        )
         # self.pid = ProfiledPIDController(
         #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
         # )
-        self.feedforward = ElevatorFeedforward(0, 0.4, 0, 0)
+        self.feedforward = (
+            ElevatorFeedforward(0, 0.4, 0, 0)
+            if RobotBase.isReal()
+            else ElevatorFeedforward(
+                0, 0, 0, 0
+            )  # gravity isn't real. It can't hurt you
+        )
 
         self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
 
@@ -189,19 +199,20 @@ class Elevator(Subsystem):
         self.bottom_height: float = 0
         self.top_height: float = 9
 
-        if not RobotBase.isReal():
-            self.gearbox = DCMotor.NEO(1)
+        if RobotBase.isSimulation():
+            self.gearbox = DCMotor.NEO(2)
             self.motor_sim = SparkMaxSim(self.motor, self.gearbox)
             self.elevator_sim = ElevatorSim(
                 self.gearbox,
-                15,
-                6.80,
+                9,
+                0.1,
                 inchesToMeters(self.spool_diameter / 2),
-                inchesToMeters(self.bottom_height),
+                0,
                 inchesToMeters(self.top_height),
-                True,
-                inchesToMeters(self.bottom_height),
+                not True,
+                0,
             )
+            self.sim_encoder_offset = 0
         self.mech = Mechanism2d(0.5, 2.5)
         self.root = self.mech.getRoot("elevator", 0.25, 0.25)
         self.mech_base = self.root.appendLigament("ElevatorBase", 0.25, 90)
@@ -237,9 +248,13 @@ class Elevator(Subsystem):
         self.nettable.putNumber("State/Position (m)", self.get_position_m())
 
         if (
-            max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) > 45
-            and min(self.encoder.getVelocity(), self.encoder2.getVelocity()) < 0.25
-        ) and not self.is_stalling:
+            (
+                max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) > 45
+                and min(self.encoder.getVelocity(), self.encoder2.getVelocity()) < 0.25
+            )
+            and not self.is_stalling
+            and RobotBase.isReal()
+        ):
             self.is_stalling = True
             self.stall_start_time = time()
 
@@ -271,24 +286,18 @@ class Elevator(Subsystem):
         )
 
     def simulationPeriodic(self) -> None:
-        # self.motor_sim.setBusVoltage(RobotController.getBatteryVoltage())
-        # self.elevator_sim.setInput(
-        #     [self.motor.getAppliedOutput() * RoboRioSim.getVInVoltage()]
-        # )
-        # self.elevator_sim.update(0.02)
-        # self.nettable.putNumber(
-        #     "Sim/Position (in)", self.elevator_sim.getPositionInches()
-        # )
-        # self.nettable.putNumber("Sim/output (%)", self.elevator_sim.getOutput()[0])
-        # self.nettable.putNumber(
-        #     "Sim/Velocity (fps)", self.elevator_sim.getVelocityFps()
-        # )
-        # self.motor_sim.iterate(
-        #     self.elevator_sim.getVelocity(), RoboRioSim.getVInVoltage(), 0.2
-        # )
-        # RoboRioSim.setVInVoltage(
-        #     BatterySim.calculate([self.elevator_sim.getCurrentDraw()])
-        # )
+
+        self.encoder.setPosition(
+            self.encoder.getPosition()
+            + self.motor.get() * 0.02 * DCMotor.NEO().freeSpeed / (2 * pi)
+        )
+        self.encoder2.setPosition(
+            self.encoder2.getPosition()
+            + self.motor2.get() * 0.02 * DCMotor.NEO().freeSpeed / (2 * pi)
+        )
+
+        self.nettable.putNumber("Sim/Encoder Offset", self.sim_encoder_offset)
+
         self.mech_elevator_mutable.setLength(
             (inchesToMeters(self.spool_diameter))
             * ((self.encoder.getPosition() + self.encoder2.getPosition()) * pi)
@@ -298,9 +307,9 @@ class Elevator(Subsystem):
     def set_state(
         self, position: feet, max_down: float = -7, max_up: float = 11
     ) -> None:
-        self.encoder.setPosition(position)
-        self.encoder2.setPosition(position)
-        return
+        # self.encoder.setPosition(position)
+        # self.encoder2.setPosition(position)
+        # return
         # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
         if abs(self.get_wrist_angle().degrees() - 10) > 30:
             self.nettable.putBoolean("Safety/Waiting on Wrist", True)
@@ -313,13 +322,15 @@ class Elevator(Subsystem):
         elif position > self.top_height:
             position = self.top_height
         volts = self.pid.calculate(
-            self.encoder.getPosition(), position
+            self.encoder.getPosition(),
+            position,
         ) + self.feedforward.calculate(0, 0)
         self.nettable.putNumber("State/Out Power (V)", volts)
         volts = max_down if volts < max_down else max_up if volts > max_up else volts
         self.motor.setVoltage(volts)
         volts2 = self.pid2.calculate(
-            self.encoder2.getPosition(), position
+            self.encoder2.getPosition(),
+            position,
         ) + self.feedforward.calculate(0, 0)
         volts2 = (
             max_down if volts2 < max_down else max_up if volts2 > max_up else volts2
