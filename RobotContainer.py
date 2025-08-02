@@ -396,6 +396,11 @@ class RobotContainer:
             DeferredCommand(lambda: InstantCommand(toggle_field_oriented))
         )
 
+        self.driver_controller.button(button_b).onTrue(
+            self.drivetrain.reset_gyro_command(Rotation2d())
+            # InstantCommand(lambda: self.drivetrain.reset_pose(Pose2d()))
+        )
+
         # self.driver_controller.button(button_a).whileTrue(
         #     self.drivetrain.drive_near_coral_station().alongWith(
         #         intake_coral(self.elevator, self.wrist, self.claw, self.fingers)

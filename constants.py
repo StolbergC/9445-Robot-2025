@@ -64,10 +64,10 @@ front_left: ModuleConstants = ModuleConstants(
     14, 15, 16, -0.416, Translation2d.fromFeet(12 / 12, 12 / 12), False
 )
 front_right: ModuleConstants = ModuleConstants(
-    11, 12, 13, 0.951, Translation2d.fromFeet(12 / 12, -12 / 12), True
+    11, 12, 13, 0.951, Translation2d.fromFeet(12 / 12, -12 / 12), False
 )
 back_left: ModuleConstants = ModuleConstants(
-    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), True
+    5, 6, 7, -0.519, Translation2d.fromFeet(-12 / 12, 12 / 12), False
 )
 back_right: ModuleConstants = ModuleConstants(
     8, 9, 10, 0.520, Translation2d.fromFeet(-12 / 12, -12 / 12), False
@@ -87,7 +87,7 @@ canbus: str = "canivore1"
 # should not need to modify much beyond here
 drive_config: TalonFXConfiguration = (
     TalonFXConfiguration()
-    .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(60))
+    .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(30))
     .with_slot0(
         Slot0Configs()
         .with_k_p(0.00)

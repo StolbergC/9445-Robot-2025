@@ -140,12 +140,12 @@ class Drivetrain(Subsystem):
         # self.odometry = self.vision.update_position(self.odometry)
         self.vision.update_position(self.odometry)
         new_pose = self.odometry.update(
-            Rotation2d.fromDegrees(self.gyro.getAngle()),
+            Rotation2d.fromDegrees(-self.gyro.getAngle()),
             self.get_module_positions(),
         )
         self.visionless_field_pose.setPose(
             self.visionless_odometry.update(
-                Rotation2d.fromDegrees(self.gyro.getAngle()),
+                Rotation2d.fromDegrees(-self.gyro.getAngle()),
                 self.get_module_positions(),
             )
         )
@@ -180,7 +180,7 @@ class Drivetrain(Subsystem):
 
     def simulationPeriodic(self):
         speeds = self.get_speeds()
-        self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * -0.02)
+        self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * 0.02)
         _ = self.vision.sim_update(self.visionless_odometry.getPose())
         return super().simulationPeriodic()
 
@@ -307,11 +307,13 @@ class Drivetrain(Subsystem):
         # if new_angle == Rotation2d() and not RobotBase.isSimulation():
         #     self.gyro.reset()
         # else:
+        self.odometry.resetRotation(new_angle)
+        self.visionless_odometry.resetRotation(new_angle)
         self.gyro.setAngleAdjustment(new_angle.degrees())
 
     def reset_gyro_command(self, new_angle: Rotation2d) -> DeferredCommand:
         return DeferredCommand(
-            lambda: InstantCommand(lambda: self.reset_gyro(new_angle))
+            lambda: InstantCommand(lambda: self.reset_gyro(new_angle), self), self
         )
 
     def set_drive_idle(self, coast: bool) -> None:
