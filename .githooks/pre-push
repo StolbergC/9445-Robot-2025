@@ -52,10 +52,10 @@ done
 
 python3 -m robotpy test || exit 1
 if [$? -ne 0]; then
-	echo "python3 not found or tests failed, trying py3"
-	py3 -m robotpy test || exit 1
+	echo "python3 not found or tests failed, trying py"
+	py -m robotpy test || exit 1
 	if [ $? -ne 0 ]; then
-		echo "py3 not found or tests failed"
+		echo "py not found or tests failed"
 		exit 1
 	fi
 fi
