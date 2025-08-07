@@ -302,3 +302,6 @@ class Wrist(Subsystem):
     def manual_control(self, power: Callable[[], float]) -> RunCommand:
         """This should only be used in test mode for the pit to reset the robot"""
         return RunCommand(lambda: self.motor.set(power()), self)
+
+    def _stop(self) -> None:
+        self.motor.set(0)

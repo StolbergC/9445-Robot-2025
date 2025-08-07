@@ -3,58 +3,44 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 7.324487704918032,
-        "y": 4.00701844262295
-      },
-      "prevControl": null,
-      "nextControl": {
-        "x": 6.341495901639342,
-        "y": 4.00701844262295
-      },
-      "isLocked": false,
-      "linkedName": "StartCenter"
-    },
-    {
-      "anchor": {
         "x": 5.71813524590164,
         "y": 4.150870901639344
       },
-      "prevControl": {
+      "prevControl": null,
+      "nextControl": {
         "x": 6.71813524590164,
         "y": 4.150870901639344
       },
-      "nextControl": null,
       "isLocked": false,
       "linkedName": "h"
+    },
+    {
+      "anchor": {
+        "x": 7.324487704918032,
+        "y": 4.00701844262295
+      },
+      "prevControl": {
+        "x": 6.324487704918032,
+        "y": 4.00701844262295
+      },
+      "nextControl": null,
+      "isLocked": false,
+      "linkedName": "StartCenter"
     }
   ],
   "rotationTargets": [],
-  "constraintZones": [
-    {
-      "name": "Constraints Zone",
-      "minWaypointRelativePos": 0,
-      "maxWaypointRelativePos": 0.40251572327043195,
-      "constraints": {
-        "maxVelocity": 0.5,
-        "maxAcceleration": 1.0,
-        "maxAngularVelocity": 180.0,
-        "maxAngularAcceleration": 720.0,
-        "nominalVoltage": 12.0,
-        "unlimited": false
-      }
-    }
-  ],
+  "constraintZones": [],
   "pointTowardsZones": [],
   "eventMarkers": [
     {
-      "name": "PinchCoral",
-      "waypointRelativePos": 0.0,
+      "name": "Stow",
+      "waypointRelativePos": 0.2014888337468947,
       "endWaypointRelativePos": null,
       "command": null
     },
     {
-      "name": "ReadyL2",
-      "waypointRelativePos": 0.25310173697269955,
+      "name": "WristAnglePreload",
+      "waypointRelativePos": 1.0,
       "endWaypointRelativePos": null,
       "command": null
     }

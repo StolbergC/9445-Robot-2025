@@ -115,7 +115,7 @@ class Drivetrain(Subsystem):
             self.get_pose,
             self.reset_pose,
             lambda: ChassisSpeeds(
-                (speeds := self.get_speeds()).vx, speeds.vy, -speeds.omega_dps
+                (speeds := self.get_speeds()).vx, speeds.vy, -speeds.omega
             ),
             lambda speeds, feedforward: self.run_chassis_speeds(
                 ChassisSpeeds(speeds.vx, speeds.vy, -speeds.omega), feedforward
@@ -126,7 +126,7 @@ class Drivetrain(Subsystem):
                 )
                 if RobotBase.isReal()
                 else PPHolonomicDriveController(
-                    PIDConstants(8, 0, 0.1), PIDConstants(7.0, 5.5, 0.0)
+                    PIDConstants(7, 0, 0.0), PIDConstants(7.0, 5.5, 0.0)
                 )
             ),
             robot_cfg,
@@ -309,7 +309,7 @@ class Drivetrain(Subsystem):
         # else:
         self.odometry.resetRotation(new_angle)
         self.visionless_odometry.resetRotation(new_angle)
-        self.gyro.setAngleAdjustment(new_angle.degrees())
+        # self.gyro.setAngleAdjustment(new_angle.degrees())
 
     def reset_gyro_command(self, new_angle: Rotation2d) -> DeferredCommand:
         return DeferredCommand(

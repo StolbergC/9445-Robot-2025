@@ -14,6 +14,7 @@ from commands2.button import Trigger, CommandJoystick
 
 from cscore import CameraServer
 from ntcore import NetworkTableInstance
+from pathplannerlib.auto import NamedCommands, EventTrigger
 import pathplannerlib
 import pathplannerlib.pathfinders
 from wpilib import DriverStation, RobotBase
@@ -45,6 +46,7 @@ from commands.intake import (
     intake_algae_ground,
 )
 from commands.drive_joystick import DriveJoystick
+from commands.wrist_angle_slow import WristAngleSlow
 
 # from auto import (
 #     blue_center_two_algae,
@@ -103,8 +105,23 @@ class RobotContainer:
 
         self.leds = Leds()
 
+        NamedCommands.registerCommand("FinishScore", score_coral(self.fingers, 2))
+        # I forget the safe angle
+        EventTrigger("StartPinchCoral").onTrue(
+            WristAngleSlow(self.wrist, Rotation2d.fromDegrees(60)).andThen(
+                self.claw.coral()
+            )
+        )
+
+        EventTrigger("ReadyL2").onTrue(score_l3_on_true(self.elevator, self.wrist))
+        EventTrigger("Stow").onTrue(self.get_stow())
+        EventTrigger("WristAnglePreload").onTrue(
+            self.wrist.run_angle(Rotation2d.fromDegrees(90))
+        )
+
         self.auto_chooser = AutoBuilder.buildAutoChooser()
         SmartDashboard.putData("Auto Chooser", self.auto_chooser)
+
         # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
@@ -268,6 +285,15 @@ class RobotContainer:
             lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
             self.claw,
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+
+    def get_stow(self) -> Command:
+        return (
+            self.wrist.angle_zero()
+            .andThen(self.claw.cage())
+            .andThen(self.elevator.command_bottom())
+            .andThen(self.wrist.angle_intake())
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+        )
 
     def get_drive_x(self) -> float:
         return (

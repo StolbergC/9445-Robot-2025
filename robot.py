@@ -1,6 +1,8 @@
 from commands2 import Command, CommandScheduler
 from ntcore import NetworkTableInstance
-from wpilib import TimedRobot, run, DataLogManager
+import pathplannerlib
+import pathplannerlib.auto
+from wpilib import RobotBase, TimedRobot, run, DataLogManager
 
 from wpimath.geometry import Pose3d, Translation3d, Rotation3d
 from wpimath.units import inchesToMeters
@@ -39,9 +41,10 @@ class Robot(TimedRobot):
                 CommandScheduler.getInstance().schedule(self.m_autonomousCommand)
 
     def autonomousPeriodic(self):
-        if self.m_autonomousCommand is not None:
-            if not self.m_autonomousCommand.isScheduled():
-                self.m_autonomousCommand.schedule()
+        # if self.m_autonomousCommand is not None:
+        #     if not self.m_autonomousCommand.isScheduled():
+        #         self.m_autonomousCommand.schedule()
+        pass
 
     def autonomousExit(self):
         if self.m_autonomousCommand:
@@ -67,6 +70,19 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self):
+        if RobotBase.isSimulation() and self.m_robotContainer is not None:
+            if (
+                self.m_robotContainer.elevator is not None
+                and self.m_robotContainer.wrist is not None
+                and self.m_robotContainer.claw is not None
+            ):
+                self.m_robotContainer.wrist.angle_zero().andThen(
+                    self.m_robotContainer.claw.cage()
+                ).andThen(self.m_robotContainer.elevator.command_bottom()).andThen(
+                    self.m_robotContainer.wrist.angle_intake()
+                ).withInterruptBehavior(
+                    Command.InterruptionBehavior.kCancelSelf
+                ).schedule()
         pass
 
     def testPeriodic(self):

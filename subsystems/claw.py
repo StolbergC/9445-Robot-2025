@@ -102,7 +102,7 @@ class Claw(Subsystem):
             self.is_stalling
             and time() - self.stall_timer > 0.25
             and abs(self.encoder.getVelocity()) < 0.25
-            and self.motor.getAppliedOutput() > 0
+            and self.motor.get() > 0
         )
 
     def at_outside(self) -> bool:
@@ -110,7 +110,7 @@ class Claw(Subsystem):
             self.is_stalling
             and time() - self.stall_timer > 0.25
             and abs(self.encoder.getVelocity()) < 0.25
-            and self.motor.getAppliedOutput() < 0
+            and self.motor.get() < 0
         )
 
     def periodic(self) -> None:
@@ -156,17 +156,17 @@ class Claw(Subsystem):
         )
 
         # inside
-        if self.encoder.getPosition() >= -2.125 / 2:
+        if self.get_dist() <= -2.125 / 2:
             # really big, just trigger the inside current spike
-            self.sim_spark.setMotorCurrent(500)
+            self.sim_spark.setMotorCurrent(50)
             self.sim_spark.setVelocity(0)
-            self.encoder.setPosition(-2.125 / 2)
+            self.encoder.setPosition(2.125 / 2)
         # outside
-        elif self.encoder.getPosition() <= -8.75:
+        elif self.get_dist() <= -8.75:
             # really big, just trigger the outside current spike
-            self.sim_spark.setMotorCurrent(500)
+            self.sim_spark.setMotorCurrent(50)
             self.sim_spark.setVelocity(0)
-            self.encoder.setPosition(-8.75)
+            self.encoder.setPosition(8.75)
         else:
             self.sim_spark.setMotorCurrent(0)
             self.sim_spark.setVelocity(self.motor.get() * DCMotor.NEO().freeSpeed)
@@ -262,7 +262,7 @@ class Claw(Subsystem):
         return (
             ((self.set_position(10).until(self.at_outside)).andThen(self.stop()))
             .withName("Inside of Cage")
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+            .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
         )
 
     def reset_position(self) -> None:

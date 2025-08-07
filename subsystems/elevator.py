@@ -377,7 +377,11 @@ class Elevator(Subsystem):
         return self.command_position(2).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
-        return self.command_position(7).withName("L2")
+        return (
+            self.command_position(7).withName("L2")
+            if RobotBase.isReal()
+            else self.command_position(4.5).withName("L2")
+        )
 
     def command_l3(self) -> WrapperCommand:
         return self.command_position(7.75).withName("L3")
@@ -420,5 +424,5 @@ class Elevator(Subsystem):
 
     def get_position_m(self) -> meters:
         return (
-            self.get_position() * inchesToMeters(self.spool_diameter) * 2 * pi * 0.595
+            self.get_position() * inchesToMeters(self.spool_diameter) * 2 * pi * 0.600
         )
