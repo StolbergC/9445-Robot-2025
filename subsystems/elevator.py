@@ -374,20 +374,20 @@ class Elevator(Subsystem):
         return self.command_position(0).withName("Bottom")
 
     def command_l1(self) -> WrapperCommand:
-        return self.command_position(2).withName("L1")
+        return self.command_position(4).withName("L1")
 
     def command_l2(self) -> WrapperCommand:
         return (
-            self.command_position(7).withName("L2")
+            self.command_position(13).withName("L2")
             if RobotBase.isReal()
             else self.command_position(4.5).withName("L2")
         )
 
     def command_l3(self) -> WrapperCommand:
-        return self.command_position(7.75).withName("L3")
+        return self.command_position(13.75).withName("L3")
 
     def command_intake(self) -> WrapperCommand:
-        return self.command_position(2.5).withName("Intake")  # 21.95 in
+        return self.command_position(5).withName("Intake")  # 21.95 in
 
     def algae_intake_low(self) -> WrapperCommand:
         return self.command_position(4).withName("Algae Low")

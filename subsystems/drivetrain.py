@@ -37,9 +37,9 @@ import constants
 
 
 class Drivetrain(Subsystem):
-    max_speed = ntproperty("000Drivetrain/max_speed", 2.25)  # feetToMeters(6))
+    max_speed = ntproperty("000Drivetrain/max_speed", 0.75)  # feetToMeters(6))
     max_angular_speed = ntproperty(
-        "000Drivetrain/max_angular_speed", degreesToRadians(360)
+        "000Drivetrain/max_angular_speed", degreesToRadians(90)
     )
 
     use_vision = ntproperty("000Drivetrain/use_vision", True)

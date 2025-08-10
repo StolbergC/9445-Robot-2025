@@ -87,7 +87,7 @@ canbus: str = "canivore1"
 # should not need to modify much beyond here
 drive_config: TalonFXConfiguration = (
     TalonFXConfiguration()
-    .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(30))
+    .with_current_limits(CurrentLimitsConfigs().with_stator_current_limit(15))
     .with_slot0(
         Slot0Configs()
         .with_k_p(0.00)

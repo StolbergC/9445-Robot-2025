@@ -536,7 +536,7 @@ class RobotContainer:
         Trigger(lambda: abs(self.operator_controller.getRawAxis(5)) > 0.1).whileTrue(
             RepeatCommand(
                 self.wrist.manual_control(
-                    lambda: self.operator_controller.getRawAxis(5) / -20
+                    lambda: self.operator_controller.getRawAxis(5) / -5
                 ),
             )
         ).onFalse(self.wrist.stop())
@@ -587,13 +587,13 @@ class RobotContainer:
 
         # self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
 
-        self.operator_controller.button(button_b).onTrue(
-            self.wrist.angle_zero()
-            .andThen(self.claw.cage())
-            .andThen(self.elevator.command_bottom())
-            .andThen(self.wrist.angle_intake())
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-        )
+        # self.operator_controller.button(button_b).onTrue(
+        #     self.wrist.angle_zero()
+        #     .andThen(self.claw.cage())
+        #     .andThen(self.elevator.command_bottom())
+        #     .andThen(self.wrist.angle_intake())
+        #     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+        # )
 
         self.operator_controller.button(button_lb).onTrue(
             DeferredCommand(
