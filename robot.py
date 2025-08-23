@@ -32,6 +32,7 @@ class Robot(TimedRobot):
         # Autonomous Robot Functions
 
     def autonomousInit(self):
+        return
         elastic.select_tab("Autonomous")
         if self.m_robotContainer is not None:
             self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
@@ -56,7 +57,11 @@ class Robot(TimedRobot):
     def teleopInit(self):
         elastic.select_tab("Teleoperated")
         if self.m_robotContainer is not None:
-            self.m_robotContainer.set_teleop_bindings()
+            self.m_robotContainer.elevator.enabled = True
+            # self.m_robotContainer.set_teleop_bindings()
+            self.m_robotContainer.elevator.set_setpoint(
+                self.m_robotContainer.elevator.max_height
+            )
         #     # self.m_robotContainer.wrist.angle_zero().schedule()
         #     self.m_robotContainer.elevator.stop().schedule()
         #     self.m_robotContainer.fingers.stop().schedule()
@@ -69,21 +74,27 @@ class Robot(TimedRobot):
         pass
 
     # Test Robot Functions
-    def testInit(self):
-        if RobotBase.isSimulation() and self.m_robotContainer is not None:
-            if (
-                self.m_robotContainer.elevator is not None
-                and self.m_robotContainer.wrist is not None
-                and self.m_robotContainer.claw is not None
-            ):
-                self.m_robotContainer.wrist.angle_zero().andThen(
-                    self.m_robotContainer.claw.cage()
-                ).andThen(self.m_robotContainer.elevator.command_bottom()).andThen(
-                    self.m_robotContainer.wrist.angle_intake()
-                ).withInterruptBehavior(
-                    Command.InterruptionBehavior.kCancelSelf
-                ).schedule()
-        pass
+    def testInit(self) -> None:
+        if self.m_robotContainer is not None:
+            self.m_robotContainer.elevator.enabled = True
+            self.m_robotContainer.elevator.set_setpoint(0)
+        return super().testInit()
+
+    # def testInit(self):
+    #     if RobotBase.isSimulation() and self.m_robotContainer is not None:
+    #         if (
+    #             self.m_robotContainer.elevator is not None
+    #             and self.m_robotContainer.wrist is not None
+    #             and self.m_robotContainer.claw is not None
+    #         ):
+    #             self.m_robotContainer.wrist.angle_zero().andThen(
+    #                 self.m_robotContainer.claw.cage()
+    #             ).andThen(self.m_robotContainer.elevator.command_bottom()).andThen(
+    #                 self.m_robotContainer.wrist.angle_intake()
+    #             ).withInterruptBehavior(
+    #                 Command.InterruptionBehavior.kCancelSelf
+    #             ).schedule()
+    #     pass
 
     def testPeriodic(self):
         pass
@@ -112,6 +123,7 @@ class Robot(TimedRobot):
         return super()._simulationInit()
 
     def _simulationPeriodic(self) -> None:
+        return
         self.zero_posepub.set([a := Pose3d(5, 5, 5, Rotation3d()), a, a, Pose3d()])
         if self.m_robotContainer is not None:
             if hasattr(self.m_robotContainer, "elevator"):

@@ -97,7 +97,8 @@ class RobotContainer:
             Rotation2d.fromDegrees(68),
             Rotation2d.fromDegrees(55),
         )
-        self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
+        # self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
+        self.elevator = Elevator()
         self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
         self.wrist.safe_claw_distance = 10
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
@@ -105,6 +106,7 @@ class RobotContainer:
 
         self.leds = Leds()
 
+        """
         NamedCommands.registerCommand("FinishScore", score_coral(self.fingers, 2))
         # I forget the safe angle
         EventTrigger("StartPinchCoral").onTrue(
@@ -169,6 +171,7 @@ class RobotContainer:
         # )
 
         # self.auto_chooser.addOption("Red Drive", red_drive.get_auto(self.drivetrain))
+        """
 
         self.level = 1
         self.field_oriented = True
