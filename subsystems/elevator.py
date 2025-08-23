@@ -1,428 +1,100 @@
-from fileinput import isstdin
-from time import time
-from typing import Callable
-from math import floor, pi
+from commands2 import Subsystem
 
-from rev import (
-    SparkBaseConfig,
-    SparkMax,
-    SparkLowLevel,
-    SparkMaxConfig,
-    SparkBase,
-    SparkMaxSim,
-)
+from ntcore import NetworkTableInstance
 
-from wpilib import DigitalInput, RobotBase, RobotController, Mechanism2d, SmartDashboard
-from wpilib.simulation import ElevatorSim, RoboRioSim, BatterySim
 from wpimath.system.plant import DCMotor
+from wpimath.controller import ElevatorFeedforward
+from wpimath.units import amperes
 
-from wpimath.units import meters, radiansPerSecondToRotationsPerMinute
-
-
-from ntcore import NetworkTableInstance, EventFlags, Event, ValueEventData, NetworkTable
-
-from wpimath.units import (
-    inchesToMeters,
-    feetToMeters,
-    feet,
-    inches,
-)
-from wpimath.controller import ProfiledPIDController, ElevatorFeedforward, PIDController
-from wpimath.trajectory import TrapezoidProfile
-from wpimath.geometry import Rotation2d
-
-from commands2 import (
-    Command,
-    DeferredCommand,
-    InstantCommand,
-    ParallelCommandGroup,
-    ParallelRaceGroup,
-    RepeatCommand,
-    RunCommand,
-    SequentialCommandGroup,
-    Subsystem,
-    WaitCommand,
-    WrapperCommand,
-)
-
-heights = {1: 1, 2: 2, 3: 3}
+from rev import SparkMax, SparkMaxConfig, SparkBaseConfig
 
 
 class Elevator(Subsystem):
-    def __init__(
-        self,
-        get_wrist_angle: Callable[[], Rotation2d],
-        wrist_length: feet = 1,
-    ):
+    kG: float = 0
+    kV: float = 0
+    kA: float = 0
+
+    kP: float = 0
+    kI: float = 0
+    kD: float = 0
+
+    current_limit: amperes = 60
+
+    """
+    this is meters/rotation
+    move the elevator manually to get n rotations, measure height from base of elevator
+    this value is (height in meters)/rotations
+    """
+    conversion_factor: float = 1.0
+
+    nettable_name: str = "000Elevator"
+
+    def __init__(self) -> None:
         super().__init__()
+        self.nettable = NetworkTableInstance.getDefault().getTable(self.nettable_name)
+        self.setName(self.nettable_name)
 
-        self.spool_diameter = 0.95  # inches
-        self.spool_depth = 0.61  # inches
-        self.rope_diameter = 0.12  # inches
-
-        self.rope_area_constant = (pi * ((r := self.rope_diameter / 2) * r)) / (
-            self.rope_diameter * self.rope_diameter
-        )
-
-        if RobotBase.isReal():
-            self.has_homed = False
-        else:
-            self.has_homed = True
-
-        self.get_wrist_angle = get_wrist_angle
-        self.wrist_length = wrist_length
-
-        self.motor = SparkMax(24, SparkLowLevel.MotorType.kBrushless)
-        self.encoder = self.motor.getEncoder()
-
-        self.motor_config = (
-            SparkMaxConfig()
-            .smartCurrentLimit(35)
-            .inverted(False)
-            .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
-        )
-        self.motor_config.encoder.positionConversionFactor(
-            1
-            # 1 / 12  # TODO: Find what the conversion factor needs to be
-        ).velocityConversionFactor(3)
-        self.encoder.setPosition(0)
-
-        self.motor.configure(
-            self.motor_config,
-            SparkBase.ResetMode.kResetSafeParameters,
-            SparkBase.PersistMode.kPersistParameters,
-        )
-
-        self.motor2 = SparkMax(25, SparkLowLevel.MotorType.kBrushless)
-        self.encoder2 = self.motor2.getEncoder()
-        self.motor2_config = (
-            SparkMaxConfig()
-            .smartCurrentLimit(35 if RobotBase.isReal() else 100000)
-            .inverted(True)
-            .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
-        )
-        self.motor2_config.encoder.positionConversionFactor(1).velocityConversionFactor(
-            3
-        )
-
-        self.motor2.configure(
-            self.motor2_config,
-            SparkBase.ResetMode.kResetSafeParameters,
-            SparkBase.PersistMode.kPersistParameters,
-        )
-
-        self.encoder2.setPosition(0)
-
-        self.pid = (
-            PIDController(8.5, 0, 0) if RobotBase.isReal() else PIDController(2.5, 0, 0)
-        )
-        self.pid2 = (
-            PIDController(8.5, 0, 0) if RobotBase.isReal() else PIDController(2.5, 0, 0)
-        )
-        # self.pid = ProfiledPIDController(
-        #     13, 0, 0, TrapezoidProfile.Constraints(v := feetToMeters(5), v * 4)
-        # )
-        self.feedforward = (
-            ElevatorFeedforward(0, 0.4, 0, 0)
-            if RobotBase.isReal()
-            else ElevatorFeedforward(
-                0, 0, 0, 0
-            )  # gravity isn't real. It can't hurt you
-        )
-
-        self.nettable = NetworkTableInstance.getDefault().getTable("000Elevator")
-
-        def nettable_updater(_nt: NetworkTable, key: str, ev: Event) -> None:
-            if isinstance(data := ev.data, ValueEventData):
-                if key == "PID/p":
-                    self.pid.setP(data.value.value())
-                    self.pid2.setP(data.value.value())
-                elif key == "PID/i":
-                    self.pid.setI(data.value.value())
-                    self.pid2.setI(data.value.value())
-                elif key == "PID/d":
-                    self.pid.setD(data.value.value())
-                    self.pid2.setD(data.value.value())
-                elif key == "Feedforward/kS":
-                    self.feedforward = ElevatorFeedforward(
-                        data.value.value(),
-                        self.feedforward.getKg(),
-                        self.feedforward.getKv(),
-                        self.feedforward.getKa(),
-                    )
-                elif key == "Feedforward/kG":
-                    self.feedforward = ElevatorFeedforward(
-                        self.feedforward.getKs(),
-                        data.value.value(),
-                        self.feedforward.getKv(),
-                        self.feedforward.getKa(),
-                    )
-                elif key == "Feedforward/kV":
-                    self.feedforward = ElevatorFeedforward(
-                        self.feedforward.getKs(),
-                        self.feedforward.getKg(),
-                        data.value.value(),
-                        self.feedforward.getKa(),
-                    )
-                elif key == "Feedforward/kA":
-                    self.feedforward = ElevatorFeedforward(
-                        self.feedforward.getKs(),
-                        self.feedforward.getKg(),
-                        self.feedforward.getKv(),
-                        data.value.value(),
-                    )
-
-        self.nettable.addListener("PID/p", EventFlags.kValueAll, nettable_updater)
-        self.nettable.addListener("PID/i", EventFlags.kValueAll, nettable_updater)
-        self.nettable.addListener("PID/d", EventFlags.kValueAll, nettable_updater)
-        self.nettable.addListener(
-            "Feedforward/kS", EventFlags.kValueAll, nettable_updater
-        )
-        self.nettable.addListener(
-            "Feedforward/kG", EventFlags.kValueAll, nettable_updater
-        )
-        self.nettable.addListener(
-            "Feedforward/kV", EventFlags.kValueAll, nettable_updater
-        )
-        self.nettable.addListener(
-            "Feedforward/kA", EventFlags.kValueAll, nettable_updater
-        )
-
-        self.nettable.putNumber("PID/p", self.pid.getP())
-        self.nettable.putNumber("PID/i", self.pid.getI())
-        self.nettable.putNumber("PID/d", self.pid.getD())
-        self.nettable.putNumber("Feedforward/kS", self.feedforward.getKs())
-        self.nettable.putNumber("Feedforward/kG", self.feedforward.getKg())
-        self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
-        self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
-
-        self.bottom_height: float = 0
-        self.top_height: float = 9
-
-        if RobotBase.isSimulation():
-            self.gearbox = DCMotor.NEO(2)
-            self.motor_sim = SparkMaxSim(self.motor, self.gearbox)
-            self.elevator_sim = ElevatorSim(
-                self.gearbox,
-                9,
-                0.1,
-                inchesToMeters(self.spool_diameter / 2),
-                0,
-                inchesToMeters(self.top_height),
-                not True,
-                0,
-            )
-            self.sim_encoder_offset = 0
-        self.mech = Mechanism2d(0.5, 2.5)
-        self.root = self.mech.getRoot("elevator", 0.25, 0.25)
-        self.mech_base = self.root.appendLigament("ElevatorBase", 0.25, 90)
-        self.mech_elevator = self.mech_base.appendLigament(
-            "Elevator Immutable", 0.25, 0
-        )
-        self.mech_elevator_mutable = self.mech_base.appendLigament(
-            "Elevator Mutable", 0, 0
-        )
-        SmartDashboard.putData("ElevatorMech", self.mech)
+        self.motor_l = SparkMax(24, SparkMax.MotorType.kBrushless)
+        self.motor_r = SparkMax(25, SparkMax.MotorType.kBrushless)
 
         self.setpoint = 0
 
-        self.stall_start_time = time()
-        self.is_stalling = False
+        self.master_motor_config = SparkMaxConfig()
+        self.master_motor_config.closedLoop.P(self.kP).I(self.kI).D(self.kD)
+        self.master_motor_config.smartCurrentLimit(self.current_limit)
+        self.master_motor_config.setIdleMode(SparkBaseConfig.IdleMode.kBrake)
+
+        self.master_motor_config.encoder.positionConversionFactor(
+            self.conversion_factor
+        )
+        self.master_motor_config.encoder.velocityConversionFactor(
+            self.conversion_factor / 60
+        )
+
+        self.slave_motor_config = (
+            SparkMaxConfig()
+            .follow(self.motor_l.getDeviceId(), True)
+            .setIdleMode(SparkBaseConfig.IdleMode.kBrake)
+            .smartCurrentLimit(self.current_limit)
+        )
+
+        self.motor_l.configure(
+            self.master_motor_config,
+            SparkMax.ResetMode.kResetSafeParameters,
+            SparkMax.PersistMode.kPersistParameters,
+        )
+
+        self.motor_r.configure(
+            self.slave_motor_config,
+            SparkMax.ResetMode.kResetSafeParameters,
+            SparkMax.PersistMode.kPersistParameters,
+        )
+
+        self.encoder = self.motor_l.getEncoder()
+
+        self.encoder.setPosition(0)
+
+        self.closed_loop = self.motor_l.getClosedLoopController()
+
+        self.feedforward = ElevatorFeedforward(0, self.kG, self.kV, self.kA)
 
     def periodic(self) -> None:
+        self.nettable.putNumber("setpoint (m)", self.setpoint)
+        self.nettable.putNumber("current_position (m)", self.encoder.getPosition())
         self.nettable.putNumber(
-            "State/raw_position1 (rotations)", self.encoder.getPosition()
-        )
-        self.nettable.putNumber(
-            "State/raw_position2 (rotations)", self.encoder2.getPosition()
-        )
-        self.nettable.putNumber(
-            "State/Current Draw (amp)", self.motor.getOutputCurrent()
-        )
-        self.nettable.putNumber(
-            "State/Current Draw2 (amp)", self.motor2.getOutputCurrent()
+            "current_velocity (mps)", velocity := self.encoder.getVelocity()
         )
 
-        self.nettable.putNumber("State/Position (rotations)", self.get_position())
-
-        self.nettable.putNumber("State/Position (m)", self.get_position_m())
-
-        if (
-            (
-                max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) > 45
-                and min(self.encoder.getVelocity(), self.encoder2.getVelocity()) < 0.25
-            )
-            and not self.is_stalling
-            and RobotBase.isReal()
-        ):
-            self.is_stalling = True
-            self.stall_start_time = time()
-
-        if self.is_stalling and (
-            max(self.motor.getOutputCurrent(), self.motor2.getOutputCurrent()) < 40
-            or min(self.encoder.getVelocity(), self.encoder2.getVelocity()) > 0.5
-        ):
-            self.is_stalling = False
-
-        self.nettable.putBoolean("State/Stalling", self.is_stalling)
-        self.nettable.putNumber(
-            "State/stall time",
-            (time() - self.stall_start_time) if self.is_stalling else 0,
+        ff = self.feedforward.calculate(velocity)
+        self.closed_loop.setReference(
+            self.setpoint,
+            SparkMax.ControlType.kPosition,
+            arbFeedforward=ff,
+            arbFFUnits=self.closed_loop.ArbFFUnits.kVoltage,
         )
 
-        if (c := self.getCurrentCommand()) is not None:
-            self.nettable.putString("Running Command", c.getName())
-        else:
-            self.nettable.putString("Running Command", "None")
+        self.nettable.putNumber("ArbFF", ff)
+        self.nettable.putNumber("Motor_l Output %", self.motor_l.get())
+        self.nettable.putNumber("Motor_r Output %", self.motor_r.get())
+
         return super().periodic()
-
-    def set_motor(self, power: float) -> None:
-        self.motor.set(power)
-        self.motor2.set(power)
-
-    def stop(self) -> WrapperCommand:
-        return InstantCommand(lambda: self.set_motor(0), self).withInterruptBehavior(
-            Command.InterruptionBehavior.kCancelSelf
-        )
-
-    def simulationPeriodic(self) -> None:
-
-        self.encoder.setPosition(
-            self.encoder.getPosition()
-            + self.motor.get() * 0.02 * DCMotor.NEO().freeSpeed / (2 * pi)
-        )
-        self.encoder2.setPosition(
-            self.encoder2.getPosition()
-            + self.motor2.get() * 0.02 * DCMotor.NEO().freeSpeed / (2 * pi)
-        )
-
-        self.nettable.putNumber("Sim/Encoder Offset", self.sim_encoder_offset)
-
-        self.mech_elevator_mutable.setLength(
-            (inchesToMeters(self.spool_diameter))
-            * ((self.encoder.getPosition() + self.encoder2.getPosition()) * pi)
-        )
-        return super().simulationPeriodic()
-
-    def set_state(
-        self, position: feet, max_down: float = -7, max_up: float = 11
-    ) -> None:
-        # self.encoder.setPosition(position)
-        # self.encoder2.setPosition(position)
-        # return
-        # This assumes that zero degrees is in the center, and that it decreases as the wrist looks closer to the ground
-        if abs(self.get_wrist_angle().degrees() - 10) > 30:
-            self.nettable.putBoolean("Safety/Waiting on Wrist", True)
-            self.motor.set(0)
-            return
-        self.nettable.putBoolean("Safety/Waiting on Wrist", False)
-        self.nettable.putNumber("Commanded/position (in)", position)
-        if position < self.bottom_height:
-            position = self.bottom_height
-        elif position > self.top_height:
-            position = self.top_height
-        volts = self.pid.calculate(
-            self.encoder.getPosition(),
-            position,
-        ) + self.feedforward.calculate(0, 0)
-        self.nettable.putNumber("State/Out Power (V)", volts)
-        volts = max_down if volts < max_down else max_up if volts > max_up else volts
-        self.motor.setVoltage(volts)
-        volts2 = self.pid2.calculate(
-            self.encoder2.getPosition(),
-            position,
-        ) + self.feedforward.calculate(0, 0)
-        volts2 = (
-            max_down if volts2 < max_down else max_up if volts2 > max_up else volts2
-        )
-        self.motor2.setVoltage(volts2)
-
-    def _make_position_safe(self, position: feet) -> feet:
-        """
-        This assumes that the wrist needs to point at the angle it is currently at
-        and makes it so that the elevator will not go boom
-        """
-        # - sin b/c + and - 90_deg are swapped
-        pointed_at = self.get_wrist_angle().sin() * self.wrist_length + position
-        if self.bottom_height < pointed_at and pointed_at < self.top_height:
-            self.nettable.putBoolean("Safety/Adjusting Position", False)
-            return position
-        if pointed_at > self.top_height:
-            self.nettable.putBoolean("Safety/Adjusting Position", True)
-            return self.top_height - self.get_wrist_angle().sin() * self.wrist_length
-        self.nettable.putBoolean("Safety/Adjusting Position", True)
-        return self.bottom_height - self.get_wrist_angle().sin() * self.wrist_length
-
-    def command_position(self, position: float) -> WrapperCommand:
-        # return WaitCommand(0.25)
-        return (
-            # self.set_setpoint(position)
-            # .andThen(
-            RunCommand(lambda: self.set_state(position), self)
-            # )
-            .until(
-                lambda: (
-                    abs(self.encoder.getPosition() - position) < 0.125
-                    and abs(self.encoder2.getPosition() - position) < 0.125
-                )
-            )
-            .andThen(self.stop())
-            .withName(f"Set Position to {position} ft")
-        )
-
-    def command_bottom(self) -> WrapperCommand:
-        return self.command_position(0).withName("Bottom")
-
-    def command_l1(self) -> WrapperCommand:
-        return self.command_position(4).withName("L1")
-
-    def command_l2(self) -> WrapperCommand:
-        return (
-            self.command_position(13).withName("L2")
-            if RobotBase.isReal()
-            else self.command_position(4.5).withName("L2")
-        )
-
-    def command_l3(self) -> WrapperCommand:
-        return self.command_position(13.75).withName("L3")
-
-    def command_intake(self) -> WrapperCommand:
-        return self.command_position(5).withName("Intake")  # 21.95 in
-
-    def algae_intake_low(self) -> WrapperCommand:
-        return self.command_position(4).withName("Algae Low")
-
-    def algae_intake_high(self) -> WrapperCommand:
-        return self.command_position(self.top_height - 0.5).withName("Algae high")
-
-    def command_processor(self) -> WrapperCommand:
-        return self.command_position(1.5).withName("Processor")  # this is a guess
-
-    def manual_control(self, power: float) -> None:
-        if RobotBase.isSimulation():
-            self.set_state(self.encoder.getPosition() - power * 0.02)
-            return
-        power = 0.5 if power > 0.5 else -0.5 if power < -0.5 else power
-        self.set_motor(-power)
-
-    def reset(self, position: float = 0) -> InstantCommand:
-        def go() -> None:
-            self.encoder.setPosition(position)
-            self.encoder2.setPosition(position)
-
-        return InstantCommand(go)
-
-    def get_position(self) -> float:
-        """returns in rotations"""
-        a = (self.encoder.getPosition() + self.encoder2.getPosition()) / 2
-        if RobotBase.isSimulation():
-            if a > self.top_height:
-                return self.top_height
-            if a < self.bottom_height:
-                return self.bottom_height
-        return a
-
-    def get_position_m(self) -> meters:
-        return (
-            self.get_position() * inchesToMeters(self.spool_diameter) * 2 * pi * 0.600
-        )
