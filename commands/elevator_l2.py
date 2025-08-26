@@ -6,3 +6,4 @@ class ElevatorL2(ElevatorHeight):
     def __init__(self, elevator: Elevator):
         super().__init__(elevator)
         self.height = 0.5
+        self.setName("Elevator L2")

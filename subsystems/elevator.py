@@ -12,7 +12,6 @@ from rev import SparkMax, SparkMaxConfig, SparkBaseConfig, SparkMaxSim
 
 
 class Elevator(Subsystem):
-    enabled: bool = False
     kG: float = 0
     kV: float = 0
     kA: float = 0
@@ -128,6 +127,7 @@ class Elevator(Subsystem):
         )
         self.nettable.putNumber("Closed Loop Error", self.setpoint - self.get_height())
 
+        # this allows for
         ff = self.feedforward.calculate(velocity)
         self.closed_loop.setReference(
             self.setpoint,
