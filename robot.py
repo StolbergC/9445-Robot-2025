@@ -32,6 +32,7 @@ class Robot(TimedRobot):
         # Autonomous Robot Functions
 
     def autonomousInit(self):
+        return
         elastic.select_tab("Autonomous")
         if self.m_robotContainer is not None:
             self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
@@ -69,21 +70,24 @@ class Robot(TimedRobot):
         pass
 
     # Test Robot Functions
-    def testInit(self):
-        if RobotBase.isSimulation() and self.m_robotContainer is not None:
-            if (
-                self.m_robotContainer.elevator is not None
-                and self.m_robotContainer.wrist is not None
-                and self.m_robotContainer.claw is not None
-            ):
-                self.m_robotContainer.wrist.angle_zero().andThen(
-                    self.m_robotContainer.claw.cage()
-                ).andThen(self.m_robotContainer.elevator.command_bottom()).andThen(
-                    self.m_robotContainer.wrist.angle_intake()
-                ).withInterruptBehavior(
-                    Command.InterruptionBehavior.kCancelSelf
-                ).schedule()
-        pass
+    def testInit(self) -> None:
+        return super().testInit()
+
+    # def testInit(self):
+    #     if RobotBase.isSimulation() and self.m_robotContainer is not None:
+    #         if (
+    #             self.m_robotContainer.elevator is not None
+    #             and self.m_robotContainer.wrist is not None
+    #             and self.m_robotContainer.claw is not None
+    #         ):
+    #             self.m_robotContainer.wrist.angle_zero().andThen(
+    #                 self.m_robotContainer.claw.cage()
+    #             ).andThen(self.m_robotContainer.elevator.command_bottom()).andThen(
+    #                 self.m_robotContainer.wrist.angle_intake()
+    #             ).withInterruptBehavior(
+    #                 Command.InterruptionBehavior.kCancelSelf
+    #             ).schedule()
+    #     pass
 
     def testPeriodic(self):
         pass
@@ -118,8 +122,7 @@ class Robot(TimedRobot):
                 ele_pose = Translation3d(
                     0.245,
                     0,
-                    self.m_robotContainer.elevator.get_position_m()
-                    + inchesToMeters(9.384),
+                    self.m_robotContainer.elevator.get_height() + inchesToMeters(9.384),
                 )
                 wrist_pose = ele_pose + Translation3d(0, 0, 0.1924304)
                 wrist_angle = Rotation3d(

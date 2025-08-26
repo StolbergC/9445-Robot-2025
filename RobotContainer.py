@@ -42,7 +42,8 @@ from wpimath.units import feetToMeters
 
 from pathplannerlib.auto import AutoBuilder, PathConstraints
 
-from commands import smack_algae
+from commands.elevator_manual import ElevatorManual
+from subsystems.drivetrain import Drivetrain
 from subsystems.elevator import Elevator
 from subsystems.leds import Leds
 from subsystems.wrist import Wrist
@@ -54,26 +55,11 @@ from commands.score import score_coral
 from commands.score_l1 import score_l1_on_true
 from commands.score_l2 import score_l2_on_true
 from commands.score_l3 import score_l3_on_true
-from commands.intake import (
-    intake_algae_low,
-    intake_algae_high,
-    intake_coral,
-    intake_algae_ground,
-)
-from commands.wrist_angle_slow import WristAngleSlow
 
-# from auto import (
-#     blue_center_two_algae,
-#     blue_drive,
-#     blue_left_two_coral,
-#     blue_right_two_coral,
-#     positions,
-#     blue_test,
-#     red_center_two_algae,
-#     red_drive,
-#     red_left_two_coral,
-#     red_right_two_coral,
-# )
+from commands.intake import intake_coral
+
+from commands.wrist_angle_slow import WristAngleSlow
+from commands.elevator_bottom import ElevatorBottom
 
 button_a = 1
 button_b = 2
@@ -131,7 +117,8 @@ class RobotContainer:
             Rotation2d.fromDegrees(68),
             Rotation2d.fromDegrees(55),
         )
-        self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
+        # self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
+        self.elevator = Elevator()
         self.wrist.get_claw_distance = lambda: 0  # self.claw.get_dist
         self.wrist.safe_claw_distance = 10
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
@@ -139,6 +126,7 @@ class RobotContainer:
 
         self.leds = Leds()
 
+        """
         NamedCommands.registerCommand("FinishScore", score_coral(self.fingers, 2))
         # I forget the safe angle
         EventTrigger("StartPinchCoral").onTrue(
@@ -203,6 +191,7 @@ class RobotContainer:
         # )
 
         # self.auto_chooser.addOption("Red Drive", red_drive.get_auto(self.drivetrain))
+        """
 
         self.level = 1
         self.field_oriented = True
@@ -273,58 +262,16 @@ class RobotContainer:
             self.wrist,
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
-    def get_algae_intake_command(self) -> WrapperCommand:
-        return DeferredCommand(
-            lambda: (
-                intake_algae_ground(self.elevator, self.wrist, self.claw)
-                if self.level == 1
-                else (
-                    intake_algae_low(self.elevator, self.wrist, self.claw)
-                    if self.level == 2
-                    else intake_algae_high(self.elevator, self.wrist, self.claw)
-                )
-            ),
-            self.elevator,
-            self.wrist,
-            self.claw,
-        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-
-    def get_score_command(self) -> WrapperCommand:
-        return DeferredCommand(
-            lambda: (
-                self.get_reef_score_command()
-                if self.grabbing_coral
-                else self.wrist.angle_zero().andThen(self.elevator.command_processor())
-            ),
-            self.elevator,
-            self.wrist,
-            self.claw,
-        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-
-    def get_intake_command(self) -> DeferredCommand:
-        return DeferredCommand(
-            lambda: (
-                intake_coral(self.elevator, self.wrist, self.claw, self.fingers)
-                if self.grabbing_coral
-                else self.get_algae_intake_command()
-            ),
-            self.elevator,
-            self.wrist,
-            self.claw,
-        )  # .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-
-    def get_intake_on_false(self) -> WrapperCommand:
-        # return self.claw.coral()
-        return DeferredCommand(
-            lambda: self.claw.coral() if self.grabbing_coral else self.claw.algae(),
-            self.claw,
-        ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
+    def get_intake_on_false(self) -> Command:
+        return self.claw.coral().withInterruptBehavior(
+            Command.InterruptionBehavior.kCancelSelf
+        )
 
     def get_stow(self) -> Command:
         return (
             self.wrist.angle_zero()
             .andThen(self.claw.cage())
-            .andThen(self.elevator.command_bottom())
+            .andThen(ElevatorBottom(self.elevator))
             .andThen(self.wrist.angle_intake())
             .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
@@ -427,52 +374,23 @@ class RobotContainer:
         #     )
         # )
 
-        self.elevator.setDefaultCommand(
-            InstantCommand(
-                lambda: self.elevator.manual_control(
-                    applyDeadband(self.operator_controller.getX(), 0.1) / 2
-                ),
-                self.elevator,
-            ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf),
-        )
-
         # self.elevator.setDefaultCommand(self.elevator.stop())
 
         # enable manual control of the elevator
         Trigger(lambda: abs(self.operator_controller.getX()) > 0.1).whileTrue(
-            RunCommand(
-                lambda: self.elevator.manual_control(
-                    applyDeadband(self.operator_controller.getX(), 0.05) / 2
-                ),
-                self.elevator,
-            )
-        ).onFalse(self.elevator.stop())
+            ElevatorManual(self.elevator, self.operator_controller.getX)
+        ).onFalse(InstantCommand(lambda: self.elevator.stop()))
 
         self.claw.setDefaultCommand(self.claw.stop())
-        self.operator_controller.button(button_x).onTrue(self.elevator.reset())
+        self.operator_controller.button(button_x).onTrue(
+            InstantCommand(lambda: self.elevator.reset_position(0))
+        )
         # self.operator_controller.button(button_b).onTrue(
         #     self.elevator.reset(self.elevator.top_height)
         # )
 
         """actual bindings"""
         """defaults"""
-        self.drivetrain.setDefaultCommand(
-            # Drivetrain will execute this command periodically
-            self.drivetrain.apply_request(
-                lambda: (
-                    self._drive.with_velocity_x(
-                        self.get_drive_x()
-                    )  # Drive forward with negative Y (forward)
-                    .with_velocity_y(
-                        self.get_drive_y()
-                    )  # Drive left with negative X (left)
-                    .with_rotational_rate(
-                        self.get_drive_t()
-                    )  # Drive counterclockwise with negative X (left)
-                )
-            )
-        )
-
         # """driver"""
         # self.driver_controller.button(button_b).onTrue(
         #     self.drivetrain.reset_gyro_command(Rotation2d())
@@ -573,7 +491,7 @@ class RobotContainer:
 
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
-            self.get_score_command()
+            self.get_reef_score_command()
         ).onFalse(
             self.claw.stop()
             .andThen(self.fingers.score())
@@ -582,21 +500,8 @@ class RobotContainer:
         )
 
         Trigger(lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
-            self.get_intake_command().andThen(
-                DeferredCommand(
-                    lambda: (
-                        self.wrist.angle_intake()
-                        if self.grabbing_coral
-                        else commands2.cmd.none()
-                    )
-                )
-            )
-        ).onFalse(
-            # self.claw.coral()
-            self.get_intake_on_false()
-            # .andThen(self.claw.stop())
-            # .andThen(WaitCommand(1)).andThen(self.fingers.stop())
-        )
+            intake_coral(self.elevator, self.wrist, self.claw)
+        ).onFalse(self.get_intake_on_false())
 
         Trigger(lambda: abs(self.operator_controller.getRawAxis(5)) > 0.1).whileTrue(
             RepeatCommand(
@@ -652,6 +557,7 @@ class RobotContainer:
 
         # self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
 
+        self.operator_controller.button(button_b).onTrue(self.get_stow())
         # self.operator_controller.button(button_b).onTrue(
         #     self.wrist.angle_zero()
         #     .andThen(self.claw.cage())
@@ -660,19 +566,9 @@ class RobotContainer:
         #     .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         # )
 
-        self.operator_controller.button(button_lb).onTrue(
-            DeferredCommand(
-                lambda: smack_algae.smack_algae_on_true(
-                    self.elevator, self.wrist, self.claw, self.level <= 2
-                )
-            )
-        ).onFalse(smack_algae.smack_alage_on_false(self.elevator, self.wrist))
-
         # self.operator_controller.button(button_rpush).whileTrue(
         #     self.wrist.angle_intake()
         # ).onFalse(self.wrist.stop())
-
-        self.operator_controller.button(button_x).onTrue(self.elevator.reset())
 
         self.operator_controller.button(button_right).whileTrue(
             self.climber.climb()
@@ -689,7 +585,7 @@ class RobotContainer:
         ).onFalse(self.wrist.stop().andThen(self.claw.coral()))
 
     def periodic(self) -> None:
-        # self.nettable.putNumber("Elevator Level", self.level)
+        self.nettable.putNumber("Elevator Level", self.level)
         self.nettable.putBoolean("Coral", self.grabbing_coral)
         self.nettable.putNumber("Invert", self.invert)
         self.nettable.putBoolean("Field Oriented", self.field_oriented)
@@ -704,4 +600,5 @@ class RobotContainer:
 
     def get_auto_name(self) -> str:
         return ""
+
         return self.auto_chooser.getSelected().getName()
