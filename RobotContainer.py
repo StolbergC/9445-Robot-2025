@@ -12,6 +12,22 @@ from commands2 import (
 import commands2
 from commands2.button import Trigger, CommandJoystick
 
+from ntcore.util import ntproperty
+
+import commands2
+import commands2.cmd
+from commands2.button import CommandXboxController, Trigger
+from commands2.sysid import SysIdRoutine
+
+from generated.tuner_constants import TunerConstants
+from telemetry import Telemetry
+
+from phoenix6 import swerve
+from wpilib import DriverStation
+from wpimath.geometry import Rotation2d
+from wpimath.units import rotationsToRadians
+
+
 from cscore import CameraServer
 from ntcore import NetworkTableInstance
 from pathplannerlib.auto import NamedCommands, EventTrigger
@@ -27,7 +43,6 @@ from wpimath.units import feetToMeters
 from pathplannerlib.auto import AutoBuilder, PathConstraints
 
 from commands import smack_algae
-from subsystems.drivetrain import Drivetrain
 from subsystems.elevator import Elevator
 from subsystems.leds import Leds
 from subsystems.wrist import Wrist
@@ -45,7 +60,6 @@ from commands.intake import (
     intake_coral,
     intake_algae_ground,
 )
-from commands.drive_joystick import DriveJoystick
 from commands.wrist_angle_slow import WristAngleSlow
 
 # from auto import (
@@ -79,6 +93,9 @@ class FakeSubsystem(Subsystem): ...
 
 
 class RobotContainer:
+    _max_speed = ntproperty("MaxVelocity", TunerConstants.speed_at_12_volts)
+    _max_angular_rate = ntproperty("MaxOmega", 0.75)
+
     def __init__(self) -> None:
         self._fake_subsystem = FakeSubsystem()
         self.pdh = PowerDistribution()
@@ -89,7 +106,24 @@ class RobotContainer:
             self.alliance = DriverStation.Alliance.kBlue
         else:
             self.alliance = a
-        self.drivetrain = Drivetrain()
+
+        # Setting up bindings for necessary control of the swerve drive platform
+        self._drive = (
+            swerve.requests.FieldCentric()
+            .with_deadband(self._max_speed * 0.1)
+            .with_rotational_deadband(
+                self._max_angular_rate * 0.1
+            )  # Add a 10% deadband
+            .with_drive_request_type(
+                swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
+            )  # Use open-loop control for drive motors
+        )
+        self._brake = swerve.requests.SwerveDriveBrake()
+        self._point = swerve.requests.PointWheelsAt()
+
+        self._logger = Telemetry(self._max_speed)
+
+        self.drivetrain = TunerConstants.create_drivetrain()
         self.wrist = Wrist()
         self.climber = Climber()
         self.claw = Claw(
@@ -119,8 +153,8 @@ class RobotContainer:
             self.wrist.run_angle(Rotation2d.fromDegrees(90))
         )
 
-        self.auto_chooser = AutoBuilder.buildAutoChooser()
-        SmartDashboard.putData("Auto Chooser", self.auto_chooser)
+        # self.auto_chooser = AutoBuilder.buildAutoChooser()
+        # SmartDashboard.putData("Auto Chooser", self.auto_chooser)
 
         # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         # self.auto_chooser.addOption(
@@ -298,25 +332,47 @@ class RobotContainer:
     def get_drive_x(self) -> float:
         return (
             self.invert
-            * applyDeadband(-self.driver_controller.getX(), 0.1)
+            * applyDeadband(self.driver_controller.getX(), 0.1)
             * abs(self.driver_controller.getX())
+            * self._max_speed
         )
 
     def get_drive_y(self) -> float:
         return (
             self.invert
-            * applyDeadband(-self.driver_controller.getY(), 0.1)
+            * applyDeadband(self.driver_controller.getY(), 0.1)
             * abs(self.driver_controller.getY())
+            * self._max_speed
         )
 
     def get_drive_t(self) -> float:
-        return applyDeadband(self.driver_controller.getTwist(), 0.1) * abs(
-            self.driver_controller.getTwist()
+        return (
+            applyDeadband(-self.driver_controller.getTwist(), 0.1)
+            * abs(self.driver_controller.getTwist())
+            * self._max_angular_rate
         )
 
     def set_teleop_bindings(self) -> None:
         """testing"""
 
+        (
+            self.driver_controller.button(button_left)
+            & self.driver_controller.button(button_y)
+        ).whileTrue(self.drivetrain.sys_id_dynamic(SysIdRoutine.Direction.kForward))
+        (
+            self.driver_controller.button(button_left)
+            & self.driver_controller.button(button_x)
+        ).whileTrue(self.drivetrain.sys_id_dynamic(SysIdRoutine.Direction.kReverse))
+        (
+            self.driver_controller.button(button_right)
+            & self.driver_controller.button(button_y)
+        ).whileTrue(self.drivetrain.sys_id_quasistatic(SysIdRoutine.Direction.kForward))
+        (
+            self.driver_controller.button(button_right)
+            & self.driver_controller.button(button_x)
+        ).whileTrue(self.drivetrain.sys_id_quasistatic(SysIdRoutine.Direction.kReverse))
+
+        """
         def make_pathfind() -> Command:
             pose = self.drivetrain.get_pose()
             # outside of field
@@ -343,6 +399,7 @@ class RobotContainer:
             .withName("path")
             .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         )
+        """
 
         # self.wrist.setDefaultCommand(
         #     RepeatCommand(
@@ -400,12 +457,19 @@ class RobotContainer:
         """actual bindings"""
         """defaults"""
         self.drivetrain.setDefaultCommand(
-            DriveJoystick(
-                self.drivetrain,
-                self.get_drive_x,
-                self.get_drive_y,
-                self.get_drive_t,
-                lambda: self.field_oriented,
+            # Drivetrain will execute this command periodically
+            self.drivetrain.apply_request(
+                lambda: (
+                    self._drive.with_velocity_x(
+                        self.get_drive_x()
+                    )  # Drive forward with negative Y (forward)
+                    .with_velocity_y(
+                        self.get_drive_y()
+                    )  # Drive left with negative X (left)
+                    .with_rotational_rate(
+                        self.get_drive_t()
+                    )  # Drive counterclockwise with negative X (left)
+                )
             )
         )
 
@@ -423,7 +487,8 @@ class RobotContainer:
         )
 
         self.driver_controller.button(button_b).onTrue(
-            self.drivetrain.reset_gyro_command(Rotation2d())
+            # self.drivetrain.reset_gyro_command(Rotation2d())
+            self.drivetrain.runOnce(self.drivetrain.seed_field_centric)
             # InstantCommand(lambda: self.drivetrain.reset_pose(Pose2d()))
         )
 
@@ -633,9 +698,10 @@ class RobotContainer:
         return self.alliance
 
     def get_auto_command(self) -> Command:
-        # return commands2.cmd.none()
-        return self.auto_chooser.getSelected()
+        return commands2.cmd.none()
+        # return self.auto_chooser.getSelected()
         # return blue_left_two_coral.get_auto(self.drivetrain)
 
     def get_auto_name(self) -> str:
+        return ""
         return self.auto_chooser.getSelected().getName()
