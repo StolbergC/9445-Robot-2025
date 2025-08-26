@@ -1,339 +1,337 @@
-import time
-import typing
-import pathplannerlib.auto
-from subsystems.swerve_module import SwerveModule, ModuleLocation
-from subsystems.vision import Vision
-
-from typing import Callable
-
-from commands2 import DeferredCommand, InstantCommand, Subsystem
-
-from wpimath.kinematics import (
-    SwerveDrive4Kinematics,
-    SwerveDrive4Odometry,
-    SwerveModulePosition,
-    ChassisSpeeds,
-    SwerveModuleState,
-)
-from wpimath.estimator import SwerveDrive4PoseEstimator
-from wpimath.geometry import Pose2d, Rotation2d, Translation2d
-from wpimath.trajectory import Trajectory
-from wpimath.units import feetToMeters, degreesToRadians
-import wpilib
-
-from wpilib import Field2d, DriverStation, RobotBase, SmartDashboard
-
-from ntcore import NetworkTableInstance
-from ntcore.util import ntproperty
-
-from navx import AHRS
-
-from pathplannerlib.auto import AutoBuilder, RobotConfig
-from pathplannerlib.controller import PPHolonomicDriveController, PIDConstants
-from pathplannerlib.logging import PathPlannerLogging
-import pathplannerlib
-
-import constants
+from commands2 import Command, Subsystem
+from commands2.sysid import SysIdRoutine
+import math
+from phoenix6 import SignalLogger, swerve, units, utils
+from typing import Callable, overload
+from wpilib import DriverStation, Notifier, RobotController
+from wpilib.sysid import SysIdRoutineLog
+from wpimath.geometry import Pose2d, Rotation2d
 
 
-class Drivetrain(Subsystem):
-    max_speed = ntproperty("000Drivetrain/max_speed", 0.75)  # feetToMeters(6))
-    max_angular_speed = ntproperty(
-        "000Drivetrain/max_angular_speed", degreesToRadians(90)
-    )
+class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
+    """
+    Class that extends the Phoenix 6 SwerveDrivetrain class and implements
+    Subsystem so it can easily be used in command-based projects.
+    """
 
-    use_vision = ntproperty("000Drivetrain/use_vision", True)
+    _SIM_LOOP_PERIOD: units.second = 0.005
+
+    _BLUE_ALLIANCE_PERSPECTIVE_ROTATION = Rotation2d.fromDegrees(0)
+    """Blue alliance sees forward as 0 degrees (toward red alliance wall)"""
+    _RED_ALLIANCE_PERSPECTIVE_ROTATION = Rotation2d.fromDegrees(180)
+    """Red alliance sees forward as 180 degrees (toward blue alliance wall)"""
+
+    @overload
+    def __init__(
+        self,
+        drive_motor_type: type,
+        steer_motor_type: type,
+        encoder_type: type,
+        drivetrain_constants: swerve.SwerveDrivetrainConstants,
+        modules: list[swerve.SwerveModuleConstants],
+    ) -> None:
+        """
+        Constructs a CTRE SwerveDrivetrain using the specified constants.
+
+        This constructs the underlying hardware devices, so users should not construct
+        the devices themselves. If they need the devices, they can access them through
+        getters in the classes.
+
+        :param drive_motor_type:     Type of the drive motor
+        :type drive_motor_type:      type
+        :param steer_motor_type:     Type of the steer motor
+        :type steer_motor_type:      type
+        :param encoder_type:         Type of the azimuth encoder
+        :type encoder_type:          type
+        :param drivetrain_constants: Drivetrain-wide constants for the swerve drive
+        :type drivetrain_constants:  swerve.SwerveDrivetrainConstants
+        :param modules:              Constants for each specific module
+        :type modules:               list[swerve.SwerveModuleConstants]
+        """
+        ...
+
+    @overload
+    def __init__(
+        self,
+        drive_motor_type: type,
+        steer_motor_type: type,
+        encoder_type: type,
+        drivetrain_constants: swerve.SwerveDrivetrainConstants,
+        odometry_update_frequency: units.hertz,
+        modules: list[swerve.SwerveModuleConstants],
+    ) -> None:
+        """
+        Constructs a CTRE SwerveDrivetrain using the specified constants.
+
+        This constructs the underlying hardware devices, so users should not construct
+        the devices themselves. If they need the devices, they can access them through
+        getters in the classes.
+
+        :param drive_motor_type:            Type of the drive motor
+        :type drive_motor_type:             type
+        :param steer_motor_type:            Type of the steer motor
+        :type steer_motor_type:             type
+        :param encoder_type:                Type of the azimuth encoder
+        :type encoder_type:                 type
+        :param drivetrain_constants:        Drivetrain-wide constants for the swerve drive
+        :type drivetrain_constants:         swerve.SwerveDrivetrainConstants
+        :param odometry_update_frequency:   The frequency to run the odometry loop. If
+                                            unspecified or set to 0 Hz, this is 250 Hz on
+                                            CAN FD, and 100 Hz on CAN 2.0.
+        :type odometry_update_frequency:    units.hertz
+        :param modules:                     Constants for each specific module
+        :type modules:                      list[swerve.SwerveModuleConstants]
+        """
+        ...
+
+    @overload
+    def __init__(
+        self,
+        drive_motor_type: type,
+        steer_motor_type: type,
+        encoder_type: type,
+        drivetrain_constants: swerve.SwerveDrivetrainConstants,
+        odometry_update_frequency: units.hertz,
+        odometry_standard_deviation: tuple[float, float, float],
+        vision_standard_deviation: tuple[float, float, float],
+        modules: list[swerve.SwerveModuleConstants],
+    ) -> None:
+        """
+        Constructs a CTRE SwerveDrivetrain using the specified constants.
+
+        This constructs the underlying hardware devices, so users should not construct
+        the devices themselves. If they need the devices, they can access them through
+        getters in the classes.
+
+        :param drive_motor_type:            Type of the drive motor
+        :type drive_motor_type:             type
+        :param steer_motor_type:            Type of the steer motor
+        :type steer_motor_type:             type
+        :param encoder_type:                Type of the azimuth encoder
+        :type encoder_type:                 type
+        :param drivetrain_constants:        Drivetrain-wide constants for the swerve drive
+        :type drivetrain_constants:         swerve.SwerveDrivetrainConstants
+        :param odometry_update_frequency:   The frequency to run the odometry loop. If
+                                            unspecified or set to 0 Hz, this is 250 Hz on
+                                            CAN FD, and 100 Hz on CAN 2.0.
+        :type odometry_update_frequency:    units.hertz
+        :param odometry_standard_deviation: The standard deviation for odometry calculation
+                                            in the form [x, y, theta]ᵀ, with units in meters
+                                            and radians
+        :type odometry_standard_deviation:  tuple[float, float, float]
+        :param vision_standard_deviation:   The standard deviation for vision calculation
+                                            in the form [x, y, theta]ᵀ, with units in meters
+                                            and radians
+        :type vision_standard_deviation:    tuple[float, float, float]
+        :param modules:                     Constants for each specific module
+        :type modules:                      list[swerve.SwerveModuleConstants]
+        """
+        ...
 
     def __init__(
         self,
-        should_flip: Callable[[], bool] = lambda: DriverStation.getAlliance()
-        == DriverStation.Alliance.kRed,
+        drive_motor_type: type,
+        steer_motor_type: type,
+        encoder_type: type,
+        drivetrain_constants: swerve.SwerveDrivetrainConstants,
+        arg0=None,
+        arg1=None,
+        arg2=None,
+        arg3=None,
     ):
-        super().__init__()
-
-        self.fl = SwerveModule(ModuleLocation.FRONT_LEFT)
-        self.fr = SwerveModule(ModuleLocation.FRONT_RIGHT)
-        self.bl = SwerveModule(ModuleLocation.BACK_LEFT)
-        self.br = SwerveModule(ModuleLocation.BACK_RIGHT)
-
-        self.gyro = AHRS(AHRS.NavXComType.kUSB2)
-
-        self.kinematics = SwerveDrive4Kinematics(
-            self.fl.get_from_center(),
-            self.fr.get_from_center(),
-            self.bl.get_from_center(),
-            self.br.get_from_center(),
-        )
-
-        self.vision = Vision()
-
-        self.odometry = SwerveDrive4PoseEstimator(
-            self.kinematics,
-            self.gyro.getRotation2d(),
-            self.get_module_positions(),
-            Pose2d(),
-        )
-
-        self.visionless_odometry = SwerveDrive4Odometry(
-            self.kinematics,
-            self.gyro.getRotation2d(),
-            self.get_module_positions(),
-            Pose2d(),
-        )
-
-        self.should_flip = should_flip
-
-        self.field = Field2d()
-        self.visionless_field_pose = self.field.getObject("Visionless Pose")
-        SmartDashboard.putData(self.field)
-        SmartDashboard.putData(self)
-        # SmartDashboard.putData(self.gyro)
-
-        self.setpoint = ChassisSpeeds()
-
-        self.nettable = NetworkTableInstance.getDefault().getTable("/000Drivetrain")
-
-        self.swerve_pub = self.nettable.getStructArrayTopic(
-            "SwerveStates", SwerveModuleState
-        ).publish()
-
-        self.pose_pub = self.nettable.getStructTopic("Pose", Pose2d).publish()
-        self.setpoint_pub = self.nettable.getStructTopic(
-            "Setpoint", ChassisSpeeds
-        ).publish()
-
-        self.speeds_pub = self.nettable.getStructTopic(
-            "Actual Speeds", ChassisSpeeds
-        ).publish()
-
-        self.swerve_setpoint_pub = self.nettable.getStructArrayTopic(
-            "Swerve Setpoints", SwerveModuleState
-        ).publish()
-
-        robot_cfg = RobotConfig.fromGUISettings()
-        self.auto_builder = AutoBuilder.configure(
-            self.get_pose,
-            self.reset_pose,
-            lambda: ChassisSpeeds(
-                (speeds := self.get_speeds()).vx, speeds.vy, -speeds.omega
-            ),
-            lambda speeds, feedforward: self.run_chassis_speeds(
-                ChassisSpeeds(speeds.vx, speeds.vy, -speeds.omega), feedforward
-            ),
-            (
-                PPHolonomicDriveController(
-                    PIDConstants(0, 0, 0, 0), PIDConstants(2, 0, 0, 0)
-                )
-                if RobotBase.isReal()
-                else PPHolonomicDriveController(
-                    PIDConstants(7, 0, 0.0), PIDConstants(7.0, 5.5, 0.0)
-                )
-            ),
-            robot_cfg,
-            self.should_flip,
+        Subsystem.__init__(self)
+        swerve.SwerveDrivetrain.__init__(
             self,
+            drive_motor_type,
+            steer_motor_type,
+            encoder_type,
+            drivetrain_constants,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
         )
-        PathPlannerLogging.setLogActivePathCallback(self.set_path)
+
+        self._sim_notifier: Notifier | None = None
+        self._last_sim_time: units.second = 0.0
+
+        self._has_applied_operator_perspective = False
+        """Keep track if we've ever applied the operator perspective before or not"""
+
+        # Swerve requests to apply during SysId characterization
+        self._translation_characterization = swerve.requests.SysIdSwerveTranslation()
+        self._steer_characterization = swerve.requests.SysIdSwerveSteerGains()
+        self._rotation_characterization = swerve.requests.SysIdSwerveRotation()
+
+        self._sys_id_routine_translation = SysIdRoutine(
+            SysIdRoutine.Config(
+                # Use default ramp rate (1 V/s) and timeout (10 s)
+                # Reduce dynamic voltage to 4 V to prevent brownout
+                stepVoltage=4.0,
+                # Log state with SignalLogger class
+                recordState=lambda state: SignalLogger.write_string(
+                    "SysIdTranslation_State", SysIdRoutineLog.stateEnumToString(state)
+                ),
+            ),
+            SysIdRoutine.Mechanism(
+                lambda output: self.set_control(
+                    self._translation_characterization.with_volts(output)
+                ),
+                lambda log: None,
+                self,
+            ),
+        )
+        """SysId routine for characterizing translation. This is used to find PID gains for the drive motors."""
+
+        self._sys_id_routine_steer = SysIdRoutine(
+            SysIdRoutine.Config(
+                # Use default ramp rate (1 V/s) and timeout (10 s)
+                # Use dynamic voltage of 7 V
+                stepVoltage=7.0,
+                # Log state with SignalLogger class
+                recordState=lambda state: SignalLogger.write_string(
+                    "SysIdSteer_State", SysIdRoutineLog.stateEnumToString(state)
+                ),
+            ),
+            SysIdRoutine.Mechanism(
+                lambda output: self.set_control(
+                    self._steer_characterization.with_volts(output)
+                ),
+                lambda log: None,
+                self,
+            ),
+        )
+        """SysId routine for characterizing steer. This is used to find PID gains for the steer motors."""
+
+        self._sys_id_routine_rotation = SysIdRoutine(
+            SysIdRoutine.Config(
+                # This is in radians per second², but SysId only supports "volts per second"
+                rampRate=math.pi / 6,
+                # Use dynamic voltage of 7 V
+                stepVoltage=7.0,
+                # Use default timeout (10 s)
+                # Log state with SignalLogger class
+                recordState=lambda state: SignalLogger.write_string(
+                    "SysIdSteer_State", SysIdRoutineLog.stateEnumToString(state)
+                ),
+            ),
+            SysIdRoutine.Mechanism(
+                lambda output: (
+                    # output is actually radians per second, but SysId only supports "volts"
+                    self.set_control(
+                        self._rotation_characterization.with_rotational_rate(output)
+                    ),
+                    # also log the requested output for SysId
+                    SignalLogger.write_double("Rotational_Rate", output),
+                ),
+                lambda log: None,
+                self,
+            ),
+        )
+        """
+        SysId routine for characterizing rotation.
+        This is used to find PID gains for the FieldCentricFacingAngle HeadingController.
+        See the documentation of swerve.requests.SysIdSwerveRotation for info on importing the log to SysId.
+        """
+
+        self._sys_id_routine_to_apply = self._sys_id_routine_translation
+        """The SysId routine to test"""
+
+        if utils.is_simulation():
+            self._start_sim_thread()
+
+    def apply_request(
+        self, request: Callable[[], swerve.requests.SwerveRequest]
+    ) -> Command:
+        """
+        Returns a command that applies the specified control request to this swerve drivetrain.
+
+        :param request: Lambda returning the request to apply
+        :type request: Callable[[], swerve.requests.SwerveRequest]
+        :returns: Command to run
+        :rtype: Command
+        """
+        return self.run(lambda: self.set_control(request()))
+
+    def sys_id_quasistatic(self, direction: SysIdRoutine.Direction) -> Command:
+        """
+        Runs the SysId Quasistatic test in the given direction for the routine
+        specified by self.sys_id_routine_to_apply.
+
+        :param direction: Direction of the SysId Quasistatic test
+        :type direction: SysIdRoutine.Direction
+        :returns: Command to run
+        :rtype: Command
+        """
+        return self._sys_id_routine_to_apply.quasistatic(direction)
+
+    def sys_id_dynamic(self, direction: SysIdRoutine.Direction) -> Command:
+        """
+        Runs the SysId Dynamic test in the given direction for the routine
+        specified by self.sys_id_routine_to_apply.
+
+        :param direction: Direction of the SysId Dynamic test
+        :type direction: SysIdRoutine.Direction
+        :returns: Command to run
+        :rtype: Command
+        """
+        return self._sys_id_routine_to_apply.dynamic(direction)
 
     def periodic(self):
-        self.run_chassis_speeds(self.setpoint)
-        # self.odometry = self.vision.update_position(self.odometry)
-        self.vision.update_position(self.odometry)
-        new_pose = self.odometry.update(
-            Rotation2d.fromDegrees(-self.gyro.getAngle()),
-            self.get_module_positions(),
-        )
-        self.visionless_field_pose.setPose(
-            self.visionless_odometry.update(
-                Rotation2d.fromDegrees(-self.gyro.getAngle()),
-                self.get_module_positions(),
-            )
-        )
+        # Periodically try to apply the operator perspective.
+        # If we haven't applied the operator perspective before, then we should apply it regardless of DS state.
+        # This allows us to correct the perspective in case the robot code restarts mid-match.
+        # Otherwise, only check and apply the operator perspective if the DS is disabled.
+        # This ensures driving behavior doesn't change until an explicit disable event occurs during testing.
+        if not self._has_applied_operator_perspective or DriverStation.isDisabled():
+            alliance_color = DriverStation.getAlliance()
+            if alliance_color is not None:
+                self.set_operator_perspective_forward(
+                    self._RED_ALLIANCE_PERSPECTIVE_ROTATION
+                    if alliance_color == DriverStation.Alliance.kRed
+                    else self._BLUE_ALLIANCE_PERSPECTIVE_ROTATION
+                )
+                self._has_applied_operator_perspective = True
 
-        speeds = self.get_speeds()
-        self.nettable.putNumber("speeds/x", speeds.vx)
-        self.nettable.putNumber("speeds/y", speeds.vy)
-        self.nettable.putNumber("speeds/t (deg)", speeds.omega_dps)
+    def _start_sim_thread(self):
+        def _sim_periodic():
+            current_time = utils.get_current_time_seconds()
+            delta_time = current_time - self._last_sim_time
+            self._last_sim_time = current_time
 
-        # self.odometry.addVisionMeasurement(
-        #         Pose2d(), wpilib.Timer.getFPGATimestamp(),
-        #     (5, 1, 10)
-        # )
-        self.field.setRobotPose(new_pose)
-        self.swerve_pub.set(list(self.get_states()))
-        self.pose_pub.set(new_pose)
-        self.setpoint_pub.set(self.setpoint)
-        self.speeds_pub.set(self.get_speeds())
-        self.swerve_setpoint_pub.set(
-            [self.fl.setpoint, self.fr.setpoint, self.bl.setpoint, self.br.setpoint]
-        )
-        # self.nettable.putString(
-        #     "Running Command",
-        #     (
-        #         "None"
-        #         if self.getCurrentCommand() is None
-        #         else self.getCurrentCommand().getName()
-        #     ),
-        # )
-        # SmartDashboard.putData("Drivetrain", self)
-        return super().periodic()
+            # use the measured time delta, get battery voltage from WPILib
+            self.update_sim_state(delta_time, RobotController.getBatteryVoltage())
 
-    def simulationPeriodic(self):
-        speeds = self.get_speeds()
-        self.gyro.setAngleAdjustment(self.gyro.getAngle() + speeds.omega_dps * 0.02)
-        _ = self.vision.sim_update(self.visionless_odometry.getPose())
-        return super().simulationPeriodic()
+        self._last_sim_time = utils.get_current_time_seconds()
+        self._sim_notifier = Notifier(_sim_periodic)
+        self._sim_notifier.startPeriodic(self._SIM_LOOP_PERIOD)
 
-    def get_module_positions(
+    def add_vision_measurement(
         self,
-    ) -> tuple[
-        SwerveModulePosition,
-        SwerveModulePosition,
-        SwerveModulePosition,
-        SwerveModulePosition,
-    ]:
-        return (
-            self.fl.get_position(),
-            self.fr.get_position(),
-            self.bl.get_position(),
-            self.br.get_position(),
+        vision_robot_pose: Pose2d,
+        timestamp: units.second,
+        vision_measurement_std_devs: tuple[float, float, float] | None = None,
+    ):
+        """
+        Adds a vision measurement to the Kalman Filter. This will correct the
+        odometry pose estimate while still accounting for measurement noise.
+
+        Note that the vision measurement standard deviations passed into this method
+        will continue to apply to future measurements until a subsequent call to
+        set_vision_measurement_std_devs or this method.
+
+        :param vision_robot_pose:           The pose of the robot as measured by the vision camera.
+        :type vision_robot_pose:            Pose2d
+        :param timestamp:                   The timestamp of the vision measurement in seconds.
+        :type timestamp:                    second
+        :param vision_measurement_std_devs: Standard deviations of the vision pose measurement
+                                            in the form [x, y, theta]ᵀ, with units in meters
+                                            and radians.
+        :type vision_measurement_std_devs:  tuple[float, float, float] | None
+        """
+        swerve.SwerveDrivetrain.add_vision_measurement(
+            self,
+            vision_robot_pose,
+            utils.fpga_to_current_time(timestamp),
+            vision_measurement_std_devs,
         )
-
-    def get_angle(self) -> Rotation2d:
-        if self.use_vision:
-            get_pose = self.odometry.getEstimatedPosition
-        else:
-            get_pose = self.visionless_odometry.getPose
-        if self.should_flip():
-            return get_pose().rotation() + Rotation2d.fromDegrees(180)
-        else:
-            return get_pose().rotation()
-
-    def get_states(
-        self,
-    ) -> tuple[
-        SwerveModuleState, SwerveModuleState, SwerveModuleState, SwerveModuleState
-    ]:
-        return (
-            self.fl.get_state(),
-            self.fr.get_state(),
-            self.bl.get_state(),
-            self.br.get_state(),
-        )
-
-    def get_speeds(self) -> ChassisSpeeds:
-        return self.kinematics.toChassisSpeeds(self.get_states())
-
-    def get_pose(self) -> Pose2d:
-        if self.use_vision:
-            return self.odometry.getEstimatedPosition()
-        else:
-            return self.visionless_odometry.getPose()
-
-    def stop(self) -> None:
-        self.run_chassis_speeds(ChassisSpeeds())
-
-    def stop_command(self) -> InstantCommand:
-        return InstantCommand(self.stop)
-
-    def run_chassis_speeds(
-        self,
-        speeds: ChassisSpeeds,
-        feedforwards: pathplannerlib.auto.DriveFeedforwards | None = None,
-    ) -> None:
-        speeds = ChassisSpeeds.discretize(speeds, 0.02)
-        fl, fr, bl, br = self.kinematics.toSwerveModuleStates(
-            speeds, Translation2d(0, 0)
-        )
-        fl, fr, bl, br = self.kinematics.desaturateWheelSpeeds(
-            (fl, fr, bl, br), self.fl.theoretial_max_vel
-        )
-
-        accs: list[float] = [0.0, 0.0, 0.0, 0.0]
-        forc: list[float] = [0.0, 0.0, 0.0, 0.0]
-        if feedforwards is not None:
-            accs = feedforwards.accelerationsMPS
-            forc = feedforwards.forcesNewtons
-
-        self.setpoint = speeds
-        self.fl.set_state(
-            fl, feedforwardsForce=forc[0], feedforwardsAcceleration=accs[0]
-        )
-        self.fr.set_state(
-            fr, feedforwardsForce=forc[1], feedforwardsAcceleration=accs[1]
-        )
-        self.bl.set_state(
-            bl, feedforwardsForce=forc[2], feedforwardsAcceleration=accs[2]
-        )
-        self.br.set_state(
-            br, feedforwardsForce=forc[3], feedforwardsAcceleration=accs[3]
-        )
-
-    def run_percent(
-        self,
-        tx: float,
-        ty: float,
-        omega: float,
-        field_relative: bool,
-    ) -> None:
-        if field_relative:
-            speeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-                tx * self.max_speed,
-                ty * self.max_speed,
-                omega * self.max_angular_speed,
-                self.get_angle(),
-            )
-        else:
-            speeds = ChassisSpeeds(
-                tx * self.max_speed, ty * self.max_speed, omega * self.max_speed
-            )
-        self.run_chassis_speeds(speeds)
-
-    def reset_pose(self, new_pose: Pose2d) -> None:
-        # self.reset_gyro(new_pose.rotation())
-        self.odometry.resetPosition(
-            Rotation2d.fromDegrees(self.gyro.getAngle()),
-            self.get_module_positions(),
-            new_pose,
-        )
-        # self.odometry.resetPose(new_pose)
-        self.visionless_odometry.resetPosition(
-            Rotation2d.fromDegrees(self.gyro.getAngle()),
-            self.get_module_positions(),
-            new_pose,
-        )
-
-    def reset_gyro(self, new_angle: Rotation2d) -> None:
-        # if new_angle == Rotation2d() and not RobotBase.isSimulation():
-        #     self.gyro.reset()
-        # else:
-        self.odometry.resetRotation(new_angle)
-        self.visionless_odometry.resetRotation(new_angle)
-        # self.gyro.setAngleAdjustment(new_angle.degrees())
-
-    def reset_gyro_command(self, new_angle: Rotation2d) -> DeferredCommand:
-        return DeferredCommand(
-            lambda: InstantCommand(lambda: self.reset_gyro(new_angle), self), self
-        )
-
-    def set_drive_idle(self, coast: bool) -> None:
-        self.fl.set_drive_idle(coast)
-        self.fr.set_drive_idle(coast)
-        self.bl.set_drive_idle(coast)
-        self.br.set_drive_idle(coast)
-
-    def set_turn_idle(self, coast: bool) -> None:
-        self.fl.set_turn_idle(coast)
-        self.fr.set_turn_idle(coast)
-        self.bl.set_turn_idle(coast)
-        self.br.set_turn_idle(coast)
-
-    def set_drive_idle_command(self, coast: bool) -> InstantCommand:
-        return InstantCommand(lambda: self.set_drive_idle(coast))
-
-    def set_turn_idle_command(self, coast: bool) -> InstantCommand:
-        return InstantCommand(lambda: self.set_turn_idle(coast))
-
-    def set_path(self, points: list[Pose2d]) -> None:
-        """This function only draws on the field2d and does nothing to control the robot"""
-        self.field.getObject("path").setPoses(points)

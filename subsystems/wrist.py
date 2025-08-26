@@ -46,7 +46,7 @@ class Wrist(Subsystem):
             .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
         )
 
-        self.motor_config.absoluteEncoder.zeroOffset(240 / 360).zeroCentered(
+        self.motor_config.absoluteEncoder.zeroOffset((360 - 115) / 360).zeroCentered(
             True
         ).positionConversionFactor(360).velocityConversionFactor(360)
         self.motor.configure(
