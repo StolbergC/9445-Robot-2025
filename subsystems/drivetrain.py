@@ -141,8 +141,15 @@ class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
     ):
         Subsystem.__init__(self)
         swerve.SwerveDrivetrain.__init__(
-            self, drive_motor_type, steer_motor_type, encoder_type,
-            drivetrain_constants, arg0, arg1, arg2, arg3
+            self,
+            drive_motor_type,
+            steer_motor_type,
+            encoder_type,
+            drivetrain_constants,
+            arg0,
+            arg1,
+            arg2,
+            arg3,
         )
 
         self._sim_notifier: Notifier | None = None
@@ -299,7 +306,12 @@ class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
         self._sim_notifier = Notifier(_sim_periodic)
         self._sim_notifier.startPeriodic(self._SIM_LOOP_PERIOD)
 
-    def add_vision_measurement(self, vision_robot_pose: Pose2d, timestamp: units.second, vision_measurement_std_devs: tuple[float, float, float] | None = None):
+    def add_vision_measurement(
+        self,
+        vision_robot_pose: Pose2d,
+        timestamp: units.second,
+        vision_measurement_std_devs: tuple[float, float, float] | None = None,
+    ):
         """
         Adds a vision measurement to the Kalman Filter. This will correct the
         odometry pose estimate while still accounting for measurement noise.
@@ -317,4 +329,9 @@ class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
                                             and radians.
         :type vision_measurement_std_devs:  tuple[float, float, float] | None
         """
-        swerve.SwerveDrivetrain.add_vision_measurement(self, vision_robot_pose, utils.fpga_to_current_time(timestamp), vision_measurement_std_devs)
+        swerve.SwerveDrivetrain.add_vision_measurement(
+            self,
+            vision_robot_pose,
+            utils.fpga_to_current_time(timestamp),
+            vision_measurement_std_devs,
+        )
