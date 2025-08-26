@@ -496,6 +496,7 @@ class RobotContainer:
 
         # self.operator_controller.button(button_b).onTrue(self.wrist.command_intake())
 
+        self.operator_controller.button(button_b).onTrue(self.get_stow())
         # self.operator_controller.button(button_b).onTrue(
         #     self.wrist.angle_zero()
         #     .andThen(self.claw.cage())
@@ -523,7 +524,7 @@ class RobotContainer:
         ).onFalse(self.wrist.stop().andThen(self.claw.coral()))
 
     def periodic(self) -> None:
-        # self.nettable.putNumber("Elevator Level", self.level)
+        self.nettable.putNumber("Elevator Level", self.level)
         self.nettable.putBoolean("Coral", self.grabbing_coral)
         self.nettable.putNumber("Invert", self.invert)
         self.nettable.putBoolean("Field Oriented", self.field_oriented)

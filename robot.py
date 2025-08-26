@@ -57,11 +57,7 @@ class Robot(TimedRobot):
     def teleopInit(self):
         elastic.select_tab("Teleoperated")
         if self.m_robotContainer is not None:
-            self.m_robotContainer.elevator.enabled = True
-            # self.m_robotContainer.set_teleop_bindings()
-            self.m_robotContainer.elevator.set_setpoint(
-                self.m_robotContainer.elevator.max_height
-            )
+            self.m_robotContainer.set_teleop_bindings()
         #     # self.m_robotContainer.wrist.angle_zero().schedule()
         #     self.m_robotContainer.elevator.stop().schedule()
         #     self.m_robotContainer.fingers.stop().schedule()
@@ -75,9 +71,6 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self) -> None:
-        if self.m_robotContainer is not None:
-            self.m_robotContainer.elevator.enabled = True
-            self.m_robotContainer.elevator.set_setpoint(0)
         return super().testInit()
 
     # def testInit(self):
@@ -123,15 +116,13 @@ class Robot(TimedRobot):
         return super()._simulationInit()
 
     def _simulationPeriodic(self) -> None:
-        return
         self.zero_posepub.set([a := Pose3d(5, 5, 5, Rotation3d()), a, a, Pose3d()])
         if self.m_robotContainer is not None:
             if hasattr(self.m_robotContainer, "elevator"):
                 ele_pose = Translation3d(
                     0.245,
                     0,
-                    self.m_robotContainer.elevator.get_position_m()
-                    + inchesToMeters(9.384),
+                    self.m_robotContainer.elevator.get_height() + inchesToMeters(9.384),
                 )
                 wrist_pose = ele_pose + Translation3d(0, 0, 0.1924304)
                 wrist_angle = Rotation3d(

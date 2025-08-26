@@ -16,7 +16,7 @@ class Elevator(Subsystem):
     kV: float = 0
     kA: float = 0
 
-    kP: float = 100
+    kP: float = 50
     kI: float = 0
     kD: float = 0
 
