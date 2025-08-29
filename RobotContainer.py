@@ -42,8 +42,7 @@ from wpimath.units import feetToMeters
 
 from pathplannerlib.auto import AutoBuilder, PathConstraints
 
-from commands.elevator_manual import ElevatorManual
-from subsystems.drivetrain import Drivetrain
+from subsystems.drivetrain import CommandSwerveDrivetrain
 from subsystems.elevator import Elevator
 from subsystems.leds import Leds
 from subsystems.wrist import Wrist
@@ -55,9 +54,8 @@ from commands.score import score_coral
 from commands.score_l1 import score_l1_on_true
 from commands.score_l2 import score_l2_on_true
 from commands.score_l3 import score_l3_on_true
-
+from commands.elevator_manual import ElevatorManual
 from commands.intake import intake_coral
-
 from commands.wrist_angle_slow import WristAngleSlow
 from commands.elevator_bottom import ElevatorBottom
 
