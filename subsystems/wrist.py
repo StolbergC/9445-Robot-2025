@@ -1,307 +1,188 @@
-from math import pi
-from typing import Callable
-from rev import SparkMax, SparkMaxConfig, SparkBase, EncoderConfig, SparkSim
+from commands2 import Subsystem
 
-from wpilib import RobotBase, SmartDashboard
-from wpilib.simulation import SingleJointedArmSim, RoboRioSim, BatterySim
+from ntcore import NetworkTableInstance
 
-from commands2 import (
-    Command,
-    InstantCommand,
-    ParallelCommandGroup,
-    ParallelRaceGroup,
-    RepeatCommand,
-    Subsystem,
-    RunCommand,
-    WaitCommand,
-    WrapperCommand,
+from wpilib import Mechanism2d, RobotBase, SmartDashboard
+from wpilib.simulation import SingleJointedArmSim, RoboRioSim
+
+from wpimath.units import (
+    amperes,
+    degrees,
+    degrees_per_second,
+    degrees_per_second_squared,
+    meters,
+    kilograms,
 )
-
-from ntcore import NetworkTable, NetworkTableInstance, EventFlags, Event, ValueEventData
-
-from wpimath.controller import ProfiledPIDController, ArmFeedforward
-from wpimath.trajectory import TrapezoidProfile
 from wpimath.geometry import Rotation2d
-
 from wpimath.system.plant import DCMotor
-from wpimath.units import degreesToRadians, radiansPerSecondToRotationsPerMinute
+from wpimath.controller import ArmFeedforward
+
+from rev import (
+    MAXMotionConfig,
+    SparkBase,
+    SparkMax,
+    SparkBaseConfig,
+    SparkMaxSim,
+    SparkAbsoluteEncoderSim,
+)
 
 
 class Wrist(Subsystem):
-    """
-    YOU MUST SET THE GET CLAW DISTANCE AND SAFE DISTANCE AFTER CONSTRUCTION.
-    THIS IS INTENDED TO ALLOW THE CLAW TO BE CONSTRUCTED AFTER AND THEN PASS THE VALUES IN
-    """
+    kP: float = 2.5
+    kI: float = 0
+    kD: float = 0.3
 
-    get_claw_distance: Callable[[], float]
-    safe_claw_distance: float = 1
+    kG: float = 1.685
+    kS: float = 0
+
+    tolerance: degrees = 2
+
+    max_velocity: degrees_per_second = 90
+    max_acceleration: degrees_per_second_squared = 180
+
+    current_limit: amperes = 60
+
+    min_angle: Rotation2d = Rotation2d.fromDegrees(-70)
+    max_angle: Rotation2d = Rotation2d.fromDegrees(90)
+
+    gearing: float = 25
+    # SIMULATION ONLY
+    mass: kilograms = 2.5
+    length: meters = 0.75
 
     def __init__(self):
-        super().__init__()
-        self.motor = SparkMax(20, SparkBase.MotorType.kBrushless)
+        self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
+        self.setName("000Wrist")
+
+        self.motor = SparkMax(20, SparkMax.MotorType.kBrushless)
+
         self.encoder = self.motor.getAbsoluteEncoder()
-        self.motor_config = (
-            SparkMaxConfig()
-            .smartCurrentLimit(30)
-            .setIdleMode(SparkMaxConfig.IdleMode.kBrake)
+
+        motor_config = SparkBaseConfig()
+        motor_config.setIdleMode(SparkBaseConfig.IdleMode.kBrake).smartCurrentLimit(
+            self.current_limit
+        )
+        motor_config.absoluteEncoder.positionConversionFactor(
+            360
+        ).velocityConversionFactor(360 * 60).zeroCentered(True).zeroOffset(
+            (360 - 115) / 360
         )
 
-        self.motor_config.absoluteEncoder.zeroOffset((360 - 115) / 360).zeroCentered(
-            True
-        ).positionConversionFactor(360).velocityConversionFactor(360)
+        motor_config.closedLoop.P(self.kP).I(self.kI).D(self.kD).FeedbackSensor(
+            motor_config.closedLoop.FeedbackSensor.kAbsoluteEncoder
+        )
+        """.maxMotion.maxVelocity(
+            self.max_velocity
+        ).maxAcceleration(self.max_acceleration).positionMode(
+            MAXMotionConfig.MAXMotionPositionMode.kMAXMotionTrapezoidal
+        )
+        """
+
         self.motor.configure(
-            self.motor_config,
-            SparkBase.ResetMode.kResetSafeParameters,
-            SparkBase.PersistMode.kNoPersistParameters,
+            motor_config,
+            SparkBase.ResetMode.kNoResetSafeParameters,
+            SparkBase.PersistMode.kPersistParameters,
+        )
+
+        self.closed_loop = self.motor.getClosedLoopController()
+
+        self.setpoint = self.get_angle()
+
+        self.feedforward = ArmFeedforward(self.kS, self.kG, 0)
+
+        self.mech = Mechanism2d(220 * self.length, 220 * self.length)
+        self.mech_root = self.mech.getRoot(
+            "000Wrist", 110 * self.length, 110 * self.length
+        )
+        self.mech_lig = self.mech_root.appendLigament(
+            "wrist", 100 * self.length, self.get_angle().degrees()
         )
 
         if RobotBase.isSimulation():
-            gearbox = DCMotor.NEO(1)
-            self.spark_sim = SparkSim(self.motor, gearbox)
-            self.arm_sim = SingleJointedArmSim(
-                gearbox,
-                9,
-                2.5,
-                0.5,
-                degreesToRadians(-15),
-                degreesToRadians(90),
+            box = DCMotor.NEO()
+            self.spark_sim = SparkMaxSim(self.motor, box)
+            self.encoder_sim = self.spark_sim.getAbsoluteEncoderSim()
+            self.sim = SingleJointedArmSim(
+                box,
+                self.gearing,
+                moi := SingleJointedArmSim.estimateMOI(self.length, self.mass),
+                self.length,
+                self.min_angle.radians(),
+                self.max_angle.radians(),
                 True,
                 0,
+                # self.get_angle().radians(),
             )
-            self.sim_encoder_offset: float = 0
+            self.nettable.putNumber("moi", moi)
 
-        self.pid = ProfiledPIDController(
-            8, 0, 0, TrapezoidProfile.Constraints(pi, 3 * pi)
-        )
-
-        self.feedforward = ArmFeedforward(0, 0.02, 0, 0)
-
-        self.nettable = NetworkTableInstance.getDefault().getTable("000Wrist")
-
-        def nettable_updater(_nt: NetworkTable, key: str, ev: Event) -> None:
-            if isinstance(data := ev.data, ValueEventData):
-                if key == "PID/p":
-                    self.pid.setP(data.value.value())
-                elif key == "PID/i":
-                    self.pid.setI(data.value.value())
-                elif key == "PID/d":
-                    self.pid.setD(data.value.value())
-                elif key == "Feedforward/kS":
-                    self.feedforward = ArmFeedforward(
-                        data.value.value(),
-                        self.feedforward.getKg(),
-                        self.feedforward.getKv(),
-                        self.feedforward.getKa(),
-                    )
-                elif key == "Feedforward/kG":
-                    self.feedforward = ArmFeedforward(
-                        self.feedforward.getKs(),
-                        data.value.value(),
-                        self.feedforward.getKv(),
-                        self.feedforward.getKa(),
-                    )
-                elif key == "Feedforward/kV":
-                    self.feedforward = ArmFeedforward(
-                        self.feedforward.getKs(),
-                        self.feedforward.getKg(),
-                        data.value.value(),
-                        self.feedforward.getKa(),
-                    )
-                elif key == "Feedforward/kA":
-                    self.feedforward = ArmFeedforward(
-                        self.feedforward.getKs(),
-                        self.feedforward.getKg(),
-                        self.feedforward.getKv(),
-                        data.value.value(),
-                    )
-
-        self.nettable.addListener("PID/p", EventFlags.kValueAll, nettable_updater)
-        self.nettable.addListener("PID/i", EventFlags.kValueAll, nettable_updater)
-        self.nettable.addListener("PID/d", EventFlags.kValueAll, nettable_updater)
-        self.nettable.addListener(
-            "Feedforward/kS", EventFlags.kValueAll, nettable_updater
-        )
-        self.nettable.addListener(
-            "Feedforward/kG", EventFlags.kValueAll, nettable_updater
-        )
-        self.nettable.addListener(
-            "Feedforward/kV", EventFlags.kValueAll, nettable_updater
-        )
-        self.nettable.addListener(
-            "Feedforward/kA", EventFlags.kValueAll, nettable_updater
-        )
-
-        self.nettable.putNumber("PID/p", self.pid.getP())
-        self.nettable.putNumber("PID/i", self.pid.getI())
-        self.nettable.putNumber("PID/d", self.pid.getD())
-        self.nettable.putNumber("Feedforward/kS", self.feedforward.getKs())
-        self.nettable.putNumber("Feedforward/kG", self.feedforward.getKg())
-        self.nettable.putNumber("Feedforward/kV", self.feedforward.getKv())
-        self.nettable.putNumber("Feedforward/kA", self.feedforward.getKa())
-
-        self.setpoint: Rotation2d = self.get_angle()
         SmartDashboard.putData(self)
+        SmartDashboard.putData("Wrist Mech", self.mech)
 
     def periodic(self) -> None:
-        self.pid.calculate(self.get_angle().radians())
-        # self.pid.reset(self.get_angle().radians())
-        self.nettable.putNumber("State/angle (deg)", self.get_angle().degrees())
+        self.nettable.putNumber("Setpoint/degrees", self.setpoint.degrees())
+        self.nettable.putNumber("Setpoint/radians", self.setpoint.radians())
+        self.nettable.putNumber("Setpoint/rotations", self.setpoint.degrees() / 360)
+
+        angle = self.get_angle()
+
+        self.nettable.putNumber("Position/degrees", angle.degrees())
+        self.nettable.putNumber("Position/radians", angle.radians())
+        self.nettable.putNumber("Position/rotations", angle.degrees() / 360)
+
+        self.nettable.putNumber("Error/degrees", (self.setpoint - angle).degrees())
+        self.nettable.putNumber("Error/radians", (self.setpoint - angle).radians())
         self.nettable.putNumber(
-            "State/velocity (rad p s)", self.get_velocity().radians()
+            "Error/rotations", (self.setpoint - angle).degrees() / 360
         )
-        self.nettable.putNumber(
-            "Commanded/speed (rad p s)", self.pid.getSetpoint().velocity
+
+        self.mech_lig.setAngle(angle.degrees())
+
+        ff = self.feedforward.calculate(
+            self.get_angle().radians(), self.get_velocity().radians()
         )
-        self.nettable.putNumber(
-            "Commanded/speed goal (rad p s)", self.pid.getGoal().velocity
+        self.closed_loop.setReference(
+            self.setpoint.degrees() / 360,
+            SparkMax.ControlType.kPosition,
+            arbFeedforward=ff,
         )
-        self.nettable.putNumber(
-            "Commanded/angle pid (rads)", self.pid.getSetpoint().position
-        )
-        if (c := self.getCurrentCommand()) is not None:
-            self.nettable.putString("Running Command", c.getName())
-        else:
-            self.nettable.putString("Running Command", "None")
-        return super().periodic()
+
+        self.nettable.putNumber("Current", self.motor.getOutputCurrent())
+        self.nettable.putNumber("Output %", self.motor.getAppliedOutput())
 
     def simulationPeriodic(self) -> None:
-        self.arm_sim.setInput(
-            [self.spark_sim.getAppliedOutput() * RoboRioSim.getVInVoltage()]
-        )
-        self.arm_sim.update(0.02)
+        self.sim.update(0.02)
 
         self.spark_sim.iterate(
-            radiansPerSecondToRotationsPerMinute(self.arm_sim.getVelocity()),
+            (self.sim.getVelocityDps() / 360) * 60,
             RoboRioSim.getVInVoltage(),
             0.02,
         )
 
-        RoboRioSim.setVInVoltage(BatterySim.calculate([self.arm_sim.getCurrentDraw()]))
+        self.encoder_sim.setPosition(self.sim.getAngleDegrees())
+        self.encoder_sim.setVelocity(self.sim.getVelocityDps())
 
-        self.sim_encoder_offset += self.motor.getAppliedOutput() * 0.02
-        self.nettable.putNumber(
-            "Simulation/encoder offset (rotations)", self.sim_encoder_offset
-        )
-        self.nettable.putNumber(
-            "Simulation/Applied Output ", self.motor.getAppliedOutput()
-        )
-        return super().simulationPeriodic()
+        RoboRioSim.setVInCurrent(self.motor.getOutputCurrent())
 
-    def stop(self) -> InstantCommand:
-        return InstantCommand(lambda: self.motor.set(0))
+        self.sim.setInputVoltage(
+            RoboRioSim.getVInVoltage() * self.motor.getAppliedOutput()
+        )
 
     def get_angle(self) -> Rotation2d:
-        return Rotation2d.fromDegrees(
-            self.encoder.getPosition()
-            + (self.sim_encoder_offset * 360 if RobotBase.isSimulation() else 0)
-        )
+        return Rotation2d.fromDegrees(self.encoder.getPosition())
 
     def get_velocity(self) -> Rotation2d:
-        """rotation2d/s"""
         return Rotation2d.fromDegrees(self.encoder.getVelocity())
 
-    def follow_angle(self, angle: Callable[[], Rotation2d] | None = None) -> RunCommand:
-        return RunCommand(
-            lambda: self.set_state(angle() if angle is not None else self.setpoint),
-            self,
-        )
+    def get_setpoint(self) -> Rotation2d:
+        return self.setpoint
 
-    def default_follow_ff(self) -> RunCommand:
-        return RunCommand(
-            lambda: self.motor.set(
-                self.feedforward.calculate(self.get_angle().radians(), 0)
-            ),
-            self,
-        )
+    def at_setpoint(self) -> bool:
+        return abs((self.setpoint - self.get_angle()).degrees()) < self.tolerance
 
-    def set_state(self, angle: Rotation2d, slow: bool = False) -> None:
-        self.nettable.putNumber("Commanded/angle (deg)", angle.degrees())
-        if (
-            abs(self.get_claw_distance() - self.safe_claw_distance)
-            > 1  # TODO: This might be stupid. The claw has to be in the center of its range
-            and angle.degrees() >= 75  # this means that we are going up
-        ):
-            self.nettable.putBoolean("Safety/Waiting on Claw", True)
-            return
-        self.nettable.putBoolean("Safety/Waiting on Claw", False)
-        if angle.degrees() < -50:  # more ground pointing
-            angle = Rotation2d.fromDegrees(-50)
-        elif angle.degrees() > 90:  # more sky pointing
-            angle = Rotation2d.fromDegrees(90)
-        self.setpoint = angle
-        self.pid.setGoal(angle.radians())
-        volts = self.pid.calculate(
-            self.get_angle().radians(), angle.radians()
-        ) + self.feedforward.calculate(
-            self.get_angle().radians(),
-            self.get_velocity().radians(),
-            self.pid.getSetpoint().velocity,
-        )
+    def set_setpoint(self, setpoint: Rotation2d) -> None:
+        if setpoint.radians() < self.min_angle.radians():
+            setpoint = self.min_angle
 
-        self.nettable.putNumber("State/Speed (V)", volts)
-        self.motor.setVoltage(volts)
-
-    def run_angle(self, angle: Rotation2d) -> WrapperCommand:
-        # return WaitCommand(0)
-        return (
-            InstantCommand(lambda: self.pid.reset(self.get_angle().radians()), self)
-            # .andThen(InstantCommand(setattr(self, "setpoint", angle)))
-            .andThen(RepeatCommand(InstantCommand(lambda: self.set_state(angle), self)))
-            .onlyWhile(lambda: abs(angle.degrees() - self.get_angle().degrees()) > 10)
-            .andThen(self.stop())
-            .withName(f"Set Angle {angle.degrees()} (deg)")
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-        )
-
-    def angle_intake(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(62.5)).withName("Intake")
-
-    def angle_score(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(-20)).withName("Score")
-
-    def angle_score_l3(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(5)).withName("Score")
-
-    def angle_zero(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(10)).withName("Horizontal")
-
-    def angle_full_up(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(90)).withName("Max Angle")
-
-    def intake_algae_high(self) -> WrapperCommand:
-        return self.run_angle(Rotation2d.fromDegrees(10)).withName("Algae Intake high")
-
-    def command_intake(self) -> InstantCommand:
-        def do_it():
-            self.setpoint = Rotation2d.fromDegrees(62.5)
-
-        return InstantCommand(do_it)
-
-    def command_score(self) -> InstantCommand:
-        def do_it():
-            self.setpoint = Rotation2d.fromDegrees(-18.5)
-
-        return InstantCommand(do_it)
-
-    def command_zero(self) -> InstantCommand:
-        def do_it():
-            self.setpoint = Rotation2d.fromDegrees(10)
-
-        return InstantCommand(do_it)
-
-    def angle_intake_slow(self) -> ParallelRaceGroup:
-        return RepeatCommand(
-            InstantCommand(
-                lambda: self.motor.set(
-                    0.1 if self.get_angle().degrees() < 62.5 else -0.1
-                ),
-                self,
-            )
-        ).until(lambda: abs(62.5 - self.get_angle().degrees()) < 5)
-
-    def manual_control(self, power: Callable[[], float]) -> RunCommand:
-        """This should only be used in test mode for the pit to reset the robot"""
-        return RunCommand(lambda: self.motor.set(power()), self)
-
-    def _stop(self) -> None:
-        self.motor.set(0)
+        if setpoint.radians() > self.max_angle.radians():
+            setpoint = self.max_angle
+        self.setpoint = setpoint

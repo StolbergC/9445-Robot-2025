@@ -4,7 +4,7 @@ import pathplannerlib
 import pathplannerlib.auto
 from wpilib import RobotBase, TimedRobot, run, DataLogManager
 
-from wpimath.geometry import Pose3d, Translation3d, Rotation3d
+from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Rotation2d
 from wpimath.units import inchesToMeters
 
 
@@ -12,10 +12,12 @@ from RobotContainer import RobotContainer
 
 from util import elastic
 
+from subsystems.wrist import Wrist
+
 
 class Robot(TimedRobot):
-    m_autonomousCommand: Command | None = None
-    m_robotContainer: RobotContainer | None = None
+    m_autonomousCommand: Command
+    m_robotContainer: RobotContainer
     curr_auto: str = ""
     prev_auto: str = ""
 
@@ -70,8 +72,7 @@ class Robot(TimedRobot):
         pass
 
     # Test Robot Functions
-    def testInit(self) -> None:
-        return super().testInit()
+    def testInit(self) -> None: ...
 
     # def testInit(self):
     #     if RobotBase.isSimulation() and self.m_robotContainer is not None:
@@ -93,6 +94,7 @@ class Robot(TimedRobot):
         pass
 
     def testExit(self):
+        self.wrist.is_enabled = False
         pass
 
     # Disabled Robot Functions
