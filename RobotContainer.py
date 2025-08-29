@@ -42,7 +42,6 @@ from wpimath.units import feetToMeters
 
 from pathplannerlib.auto import AutoBuilder, PathConstraints
 
-from subsystems.drivetrain import CommandSwerveDrivetrain
 from subsystems.elevator import Elevator
 from subsystems.leds import Leds
 from subsystems.wrist import Wrist
