@@ -193,7 +193,7 @@ class Elevator(Subsystem):
     def set_setpoint(self, setpoint: meters) -> None:
         """
         If a regression is used in get_height, it should also be used here to invert the function
-        The implementation is up to the user.
+        The implementation is up to the subsystem.
         It should be trivial for linear, quite simple for quadratic, and somewhat more complicated afterwards
         """
         if setpoint < 0:
