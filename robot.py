@@ -17,14 +17,13 @@ from subsystems.wrist import Wrist
 
 class Robot(TimedRobot):
     m_autonomousCommand: Command
-    m_robotContainer: RobotContainer = None
+    m_robotContainer: RobotContainer
     curr_auto: str = ""
     prev_auto: str = ""
 
     # Initialize Robot
     def robotInit(self):
-        #     self.m_robotContainer = RobotContainer()
-        self.wrist = Wrist()
+        self.m_robotContainer = RobotContainer()
         DataLogManager.start()
 
     def robotPeriodic(self) -> None:

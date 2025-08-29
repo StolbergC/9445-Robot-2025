@@ -7,6 +7,9 @@ from commands2 import (
 )
 
 from commands.elevator_bottom import ElevatorBottom
+from commands.wrist_intake import WristIntake
+from commands.wrist_angle_zero import WristZero
+
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
 from subsystems.claw import Claw
@@ -23,10 +26,10 @@ def intake_coral(
     return (
         (
             SequentialCommandGroup(
-                wrist.angle_zero(),
+                WristZero(wrist),
                 ElevatorIntake(elevator),
                 claw.cage(),
-                wrist.angle_intake(),
+                WristIntake(wrist),
             )
         )
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
