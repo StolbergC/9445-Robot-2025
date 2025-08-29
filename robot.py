@@ -94,7 +94,6 @@ class Robot(TimedRobot):
         pass
 
     def testExit(self):
-        self.wrist.is_enabled = False
         pass
 
     # Disabled Robot Functions

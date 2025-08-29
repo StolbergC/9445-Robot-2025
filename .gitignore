@@ -18,4 +18,5 @@ ctre_sim/CANCoder vers. H - 016 - 0 - ext.dat
 ctre_sim/*
 *ext.dat
 *.wpilog
+*.hoot
 
