@@ -110,6 +110,17 @@ class RobotContainer:
                 swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
             )  # Use open-loop control for drive motors
         )
+        self._robot_drive = (
+            swerve.requests.RobotCentric()
+            .with_deadband(self._max_speed * 0.1)
+            .with_rotational_deadband(
+                self._max_angular_rate * 0.1
+            )  # Add a 10% deadband
+            .with_drive_request_type(
+                swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
+            )  # Use open-loop control for drive motors
+        )
+
         self._brake = swerve.requests.SwerveDriveBrake()
         self._point = swerve.requests.PointWheelsAt()
 
@@ -307,20 +318,16 @@ class RobotContainer:
         """testing"""
 
         (
-            self.driver_controller.button(button_left)
-            & self.driver_controller.button(button_y)
+            self.test_remote.button(button_left) & self.test_remote.button(button_y)
         ).whileTrue(self.drivetrain.sys_id_dynamic(SysIdRoutine.Direction.kForward))
         (
-            self.driver_controller.button(button_left)
-            & self.driver_controller.button(button_x)
+            self.test_remote.button(button_left) & self.test_remote.button(button_x)
         ).whileTrue(self.drivetrain.sys_id_dynamic(SysIdRoutine.Direction.kReverse))
         (
-            self.driver_controller.button(button_right)
-            & self.driver_controller.button(button_y)
+            self.test_remote.button(button_right) & self.test_remote.button(button_y)
         ).whileTrue(self.drivetrain.sys_id_quasistatic(SysIdRoutine.Direction.kForward))
         (
-            self.driver_controller.button(button_right)
-            & self.driver_controller.button(button_x)
+            self.test_remote.button(button_right) & self.test_remote.button(button_x)
         ).whileTrue(self.drivetrain.sys_id_quasistatic(SysIdRoutine.Direction.kReverse))
 
         """
@@ -395,9 +402,29 @@ class RobotContainer:
         """actual bindings"""
         """defaults"""
         # """driver"""
-        # self.driver_controller.button(button_b).onTrue(
-        #     self.drivetrain.reset_gyro_command(Rotation2d())
-        # )
+        self.drivetrain.setDefaultCommand(
+            ConditionalCommand(
+                onTrue=self.drivetrain.apply_request(
+                    lambda: (
+                        self._drive.with_velocity_x(self.get_drive_x())
+                        .with_velocity_y(self.get_drive_y())
+                        .with_rotational_rate(self.get_drive_t())
+                    )
+                ),
+                onFalse=self.drivetrain.apply_request(
+                    lambda: (
+                        self._robot_drive.with_velocity_x(self.get_drive_x())
+                        .with_velocity_y(self.get_drive_y())
+                        .with_rotational_rate(self.get_drive_t())
+                    )
+                ),
+                condition=lambda: self.field_oriented,
+            )
+        )
+
+        self.drivetrain.register_telemetry(
+            lambda state: self._logger.telemeterize(state)
+        )
 
         def toggle_field_oriented():
             print("Toggling field oriented")
