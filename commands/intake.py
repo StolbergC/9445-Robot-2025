@@ -16,6 +16,7 @@ from subsystems.claw import Claw
 from subsystems.fingers import Fingers
 
 from commands.elevator_intake import ElevatorIntake
+from commands.claw_neutral import ClawNeutral
 
 
 def intake_coral(
@@ -28,7 +29,7 @@ def intake_coral(
             SequentialCommandGroup(
                 WristZero(wrist),
                 ElevatorIntake(elevator),
-                claw.cage(),
+                ClawNeutral(claw),
                 WristIntake(wrist),
             )
         )

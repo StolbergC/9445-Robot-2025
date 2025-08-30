@@ -62,6 +62,9 @@ from commands.wrist_intake import WristIntake
 from commands.wrist_l1 import WristL1
 from commands.wrist_l2 import WristL2
 from commands.wrist_l3 import WristL3
+from commands.claw_coral import ClawCoral
+from commands.claw_algae import ClawAlgae
+from commands.claw_neutral import ClawNeutral
 
 button_a = 1
 button_b = 2
@@ -115,11 +118,7 @@ class RobotContainer:
         self.drivetrain = TunerConstants.create_drivetrain()
         self.wrist = Wrist()
         self.climber = Climber()
-        self.claw = Claw(
-            lambda: Rotation2d.fromDegrees(0),
-            Rotation2d.fromDegrees(68),
-            Rotation2d.fromDegrees(55),
-        )
+        self.claw = Claw()
         # self.elevator = Elevator(lambda: Rotation2d(0))  # self.wrist.get_angle)
         self.elevator = Elevator()
         # self.drivetrain.reset_pose(Pose2d(0, 0, Rotation2d(0)))
@@ -268,14 +267,14 @@ class RobotContainer:
         ).withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
 
     def get_intake_on_false(self) -> Command:
-        return self.claw.coral().withInterruptBehavior(
+        return ClawCoral(self.claw).withInterruptBehavior(
             Command.InterruptionBehavior.kCancelSelf
         )
 
     def get_stow(self) -> Command:
         return (
             WristZero(self.wrist)
-            .andThen(self.claw.cage())
+            .andThen(ClawNeutral(self.claw))
             .andThen(ElevatorBottom(self.elevator))
             .andThen(WristIntake(self.wrist))
             .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
@@ -386,7 +385,6 @@ class RobotContainer:
             ElevatorManual(self.elevator, self.operator_controller.getX)
         ).onFalse(InstantCommand(lambda: self.elevator.stop()))
 
-        self.claw.setDefaultCommand(self.claw.stop())
         self.operator_controller.button(button_x).onTrue(
             InstantCommand(lambda: self.elevator.reset_position(0))
         )
@@ -497,12 +495,7 @@ class RobotContainer:
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
             self.get_reef_score_command()
-        ).onFalse(
-            self.claw.stop()
-            .andThen(self.fingers.score())
-            .withTimeout(2)
-            .andThen(self.fingers.stop())
-        )
+        ).onFalse(self.fingers.score().withTimeout(2).andThen(self.fingers.stop()))
 
         Trigger(lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
             intake_coral(self.elevator, self.wrist, self.claw)
@@ -584,7 +577,7 @@ class RobotContainer:
 
         self.operator_controller.button(button_rb).whileTrue(
             # self.wrist.angle_zero()
-            self.claw.cage()
+            ClawNeutral(self.claw)
             # .andThen(self.elevator.command_intake())
             # .andThen(self.wrist.angle_intake_slow())
         )

@@ -1,294 +1,207 @@
 from math import pi
-from typing import Callable
-from time import time
 
-import commands2
-from ntcore import Event, EventFlags, NetworkTable, NetworkTableInstance, ValueEventData
-from wpimath.controller import ProfiledPIDController
-from wpimath.trajectory import TrapezoidProfile
-from wpimath.geometry import Rotation2d
-from wpimath.units import feet
+from wpilib import Mechanism2d, RobotBase, SmartDashboard, Timer
+from wpilib.simulation import ElevatorSim, RoboRioSim
+
+from wpimath.units import (
+    meters,
+    inchesToMeters,
+    kilograms,
+    metersToInches,
+    meters_per_second,
+    amperes,
+)
 from wpimath.system.plant import DCMotor
 
-from wpilib import RobotBase
-from wpilib.simulation import RoboRioSim
+from commands2 import Subsystem
 
-from commands2 import (
-    Command,
-    DeferredCommand,
-    InstantCommand,
-    InterruptionBehavior,
-    RunCommand,
-    Subsystem,
-    WaitCommand,
-    WrapperCommand,
-)
-from rev import SparkMax, SparkLowLevel, SparkMaxConfig, SparkBase, SparkMaxSim
+from ntcore import NetworkTableInstance
+
+
+from rev import SparkMax, SparkBaseConfig, SparkMaxSim
 
 
 class Claw(Subsystem):
-    def __init__(
-        self,
-        get_wrist_angle: Callable[[], Rotation2d],
-        safe_to_move_after_inside: Rotation2d,
-        safe_to_move_after_outside: Rotation2d,
-    ) -> None:
-        TEETH = 18
-        DIAMETERAL_PITCH = 20  # units??? maybe /= 12
-        PCD = TEETH / DIAMETERAL_PITCH
+    kP: float = 0.26
+    kI: float = 0
+    kD: float = 0.14
 
-        super().__init__()
-        self.get_wrist_angle = get_wrist_angle
-        self.safe_to_move_outside = safe_to_move_after_outside
-        self.safe_to_move_inside = safe_to_move_after_inside
+    TEETH = 18
+    DIAMETERAL_PITCH = 20
+    PCD = TEETH / DIAMETERAL_PITCH
 
+    gearing = 5
+
+    max_extention: meters = inchesToMeters(16)
+
+    current_limit: amperes = 35
+
+    # this should be configured such that positive power moves the fingers apart
+    inverted: bool = False
+
+    tolerance: meters = inchesToMeters(1)
+
+    # SIMULATION
+    moving_mass: kilograms = 0.5
+
+    def __init__(self):
         self.nettable = NetworkTableInstance.getDefault().getTable("000Claw")
+        self.setName("000Claw")
 
-        self.motor = SparkMax(28, SparkLowLevel.MotorType.kBrushless)
-        motor_config = SparkMaxConfig()
-        motor_config.setIdleMode(SparkMaxConfig.IdleMode.kCoast).smartCurrentLimit(
-            25
-        ).encoder.positionConversionFactor(pi * PCD / 5).velocityConversionFactor(
-            pi * PCD / (5 * 60)
-        )
-        self.motor.configure(
-            motor_config,
-            SparkBase.ResetMode.kResetSafeParameters,
-            SparkBase.PersistMode.kNoPersistParameters,
-        )
+        self.motor = SparkMax(28, SparkMax.MotorType.kBrushless)
 
         self.encoder = self.motor.getEncoder()
-        self.encoder.setPosition(0)
-        # max of 1 ft/s and accelerate in 10s
-        self.pid = ProfiledPIDController(
-            0.03, 0, 0, TrapezoidProfile.Constraints(120, 12000)
+
+        motor_config = SparkBaseConfig()
+        motor_config.setIdleMode(
+            SparkBaseConfig.IdleMode.kCoast,
+        ).smartCurrentLimit(
+            self.current_limit,
+        ).inverted(
+            self.inverted,
+        )
+        motor_config.closedLoop.pid(
+            self.kP,
+            self.kI,
+            self.kD,
+        )
+        motor_config.encoder.positionConversionFactor(
+            pi * self.PCD / self.gearing
+        ).velocityConversionFactor(pi * self.PCD / (self.gearing * 60))
+
+        self.motor.configure(
+            motor_config,
+            SparkMax.ResetMode.kResetSafeParameters,
+            SparkMax.PersistMode.kPersistParameters,
         )
 
-        self.stall_timer = time()
-        self.is_stalling = True
+        self.closed_loop = self.motor.getClosedLoopController()
 
-        self.has_homed = False if RobotBase.isReal() else True
+        self.setpoint: meters = self.get_distance()
 
-        def nettable_listener(_nt: NetworkTable, key: str, ev: Event):
-            if isinstance(v := ev.data, ValueEventData):
-                if key == "PID/p":
-                    self.pid.setP(v.value.value())
-                elif key == "PID/i":
-                    self.pid.setI(v.value.value())
-                elif key == "PID/d":
-                    self.pid.setD(v.value.value())
-                elif key == "Config/Velocity (ft/s)":
-                    self.pid.setConstraints(
-                        TrapezoidProfile.Constraints(
-                            v.value.value(), v.value.value() * 10
-                        )
-                    )
+        self.stall_timer = Timer()
 
-        self.nettable.addListener(EventFlags.kValueAll, nettable_listener)
+        self.mech = Mechanism2d(self.max_extention * 120, self.max_extention * 60)
+        self.mech_root = self.mech.getRoot(
+            "Claw", self.max_extention * 60, self.max_extention * 30
+        )
+        self.mech_lig_left = self.mech_root.appendLigament(
+            "ClawLeft", inchesToMeters(1), 0
+        )
+        self.mech_lig_right = self.mech_root.appendLigament(
+            "ClawRight", inchesToMeters(1), 180
+        )
+        self.mech_finger_left_lig = self.mech_lig_left.appendLigament(
+            "FingerL", self.max_extention * 15, 90
+        )
 
-        self.nettable.putNumber("PID/p", self.pid.getP())
-        self.nettable.putNumber("PID/i", self.pid.getI())
-        self.nettable.putNumber("PID/d", self.pid.getD())
-
-        self.nettable.putNumber(
-            "Config/Velocity (ft/s)", self.pid.getConstraints().maxVelocity
+        self.mech_finger_right_lig = self.mech_lig_right.appendLigament(
+            "FingerR", self.max_extention * 15, -90
         )
 
         if RobotBase.isSimulation():
-            self.sim_spark = SparkMaxSim(self.motor, DCMotor.NEO())
+            gearbox = DCMotor.NEO()
+            self.motor_sim = SparkMaxSim(self.motor, gearbox)
+            self.encoder_sim = self.motor_sim.getRelativeEncoderSim()
+            # a rack and pinion is basically an elevator on its side
+            # so that is the sim method we use
+            self.sim = ElevatorSim(
+                gearbox,
+                self.gearing,
+                self.moving_mass,
+                self.PCD,
+                0,
+                metersToInches(self.max_extention),
+                False,
+                2,
+            )
 
-    def at_center(self) -> bool:
-        return (
-            self.is_stalling
-            and time() - self.stall_timer > 0.25
-            and abs(self.encoder.getVelocity()) < 0.25
-            and self.motor.get() > 0
-        )
-
-    def at_outside(self) -> bool:
-        return (
-            self.is_stalling
-            and time() - self.stall_timer > 0.25
-            and abs(self.encoder.getVelocity()) < 0.25
-            and self.motor.get() < 0
-        )
+        SmartDashboard.putData(self)
+        SmartDashboard.putData("ClawMech", self.mech)
 
     def periodic(self) -> None:
-        if not self.is_stalling and self.motor.getOutputCurrent() > 18:
-            self.is_stalling = True
-            self.stall_timer = time()
+        dist = self.get_distance()
+        self.nettable.putNumber("Distance/inches", metersToInches(dist))
+        self.nettable.putNumber("Distance/meters", dist)
 
-        if self.is_stalling and self.motor.getOutputCurrent() < 15:
-            self.is_stalling = False
+        self.nettable.putNumber("Setpoint/inches", metersToInches(self.setpoint))
+        self.nettable.putNumber("Setpoint/meters", self.setpoint)
 
-        if self.at_center():
-            self.encoder.setPosition(-2.125 / 2)
-            self.has_homed = True
-        if self.at_outside():
-            self.encoder.setPosition(-8.75)
-            self.has_homed = True
-        self.nettable.putBoolean("State/inside hard stop", self.at_center())
-        self.nettable.putBoolean("State/outside hard stop", self.at_outside())
-        self.nettable.putNumber("State/Distance (in)", self.get_dist())
-        self.nettable.putNumber(
-            "State/Current draw (amps)", self.motor.getOutputCurrent()
+        self.nettable.putNumber("Error/inches", metersToInches(self.setpoint - dist))
+        self.nettable.putNumber("Error/meters", self.setpoint - dist)
+
+        velocity = self.get_velocity()
+        self.nettable.putNumber("Velocity/inches per second", metersToInches(velocity))
+        self.nettable.putNumber("Velocity/meters per second", velocity)
+
+        self.mech_lig_left.setLength(dist / 2 * 100)
+        self.mech_lig_right.setLength(dist / 2 * 100)
+
+        self.closed_loop.setReference(
+            metersToInches(self.setpoint), SparkMax.ControlType.kPosition
         )
-        self.nettable.putBoolean("State/has homed", self.has_homed)
-        self.nettable.putBoolean("State/stalling", self.is_stalling)
-        self.nettable.putNumber(
-            "State/stall time", (time() - self.stall_timer) if self.is_stalling else 0
-        )
-        if (c := self.getCurrentCommand()) is not None:
-            self.nettable.putString("Running Command", c.getName())
-        else:
-            self.nettable.putString("Running Command", "None")
 
-        return super().periodic()
+        self.nettable.putNumber("Output %", self.motor.getAppliedOutput())
+
+        current = self.motor.getOutputCurrent()
+        self.nettable.putNumber("Current", current)
+
+        if (
+            abs(current) >= self.current_limit * 0.9
+            and abs(velocity) <= 0.05
+            and not self.stall_timer.isRunning()
+        ):
+            self.stall_timer.start()
+        if (
+            abs(current) < self.current_limit * 0.9 or abs(velocity) > 0.05
+        ) and self.stall_timer.isRunning():
+            self.stall_timer.stop()
+            self.stall_timer.reset()
+
+        if self.stall_timer.hasElapsed(0.5):
+            # outside
+            if self.motor.get() > 0:
+                self.encoder.setPosition(metersToInches(self.max_extention))
+            else:
+                self.encoder.setPosition(0)
+
+        self.nettable.putBoolean("Stall/IsStalling", self.stall_timer.isRunning())
+        self.nettable.putNumber("Stall/Time (s)", self.stall_timer.get())
 
     def simulationPeriodic(self) -> None:
-        self.encoder.setPosition(
-            self.encoder.getPosition()
-            + self.motor.get()
-            * 0.02
-            * RoboRioSim.getVInVoltage()
-            * DCMotor.NEO().freeSpeed
-            / (2 * pi)
+        self.sim.update(0.02)
+
+        self.motor_sim.iterate(self.sim.getVelocity(), RoboRioSim.getVInVoltage(), 0.02)
+
+        # self.encoder_sim.setPosition()
+
+        RoboRioSim.setVInCurrent(self.motor.getOutputCurrent())
+
+        self.sim.setInputVoltage(
+            self.motor.getAppliedOutput() * RoboRioSim.getVInVoltage()
         )
 
-        # inside
-        if self.get_dist() <= -2.125 / 2:
-            # really big, just trigger the inside current spike
-            self.sim_spark.setMotorCurrent(50)
-            self.sim_spark.setVelocity(0)
-            self.encoder.setPosition(2.125 / 2)
-        # outside
-        elif self.get_dist() <= -8.75:
-            # really big, just trigger the outside current spike
-            self.sim_spark.setMotorCurrent(50)
-            self.sim_spark.setVelocity(0)
-            self.encoder.setPosition(8.75)
-        else:
-            self.sim_spark.setMotorCurrent(0)
-            self.sim_spark.setVelocity(self.motor.get() * DCMotor.NEO().freeSpeed)
+    def get_distance(self) -> meters:
+        return inchesToMeters(self.encoder.getPosition())
 
-    def get_dist(self) -> float:
-        """the distance in inches"""
-        return -2 * self.encoder.getPosition()
+    def get_velocity(self) -> meters_per_second:
+        return inchesToMeters(self.encoder.getVelocity())
 
-    def set_motor(self, power: float, max_power: float = 0.75) -> float:
-        power = (
-            max_power
-            if power > max_power
-            else -max_power if power < -max_power else power
-        )  # TODO: Push this if possible b/c gears are now aluminum
-        if (
-            (power < 0 and self.at_outside())
-            or (power > 0 and self.at_center())
-            or (
-                power > 0
-                and self.get_wrist_angle().radians()
-                > self.safe_to_move_inside.radians()
-            )
-            or (
-                power < 0
-                and self.get_wrist_angle().radians()
-                > self.safe_to_move_outside.radians()
-            )
-        ):
-            self.nettable.putNumber("State/Out Speed (%)", 0)
-            return 0
-        self.nettable.putNumber("State/Out Speed (%)", power)
-        self.motor.set(-power)
-        return power
+    def get_setpoint(self) -> meters:
+        return self.setpoint
 
-    def set_motor_lambda(self, power: Callable[[], float]):
-        self.set_motor(power())
+    def set_setpoint(self, setpoint: meters) -> None:
+        if setpoint < 0:
+            setpoint = 0
+        if setpoint > self.max_extention:
+            setpoint = self.max_extention
+        self.setpoint = setpoint
 
-    def set_position(self, distance: float) -> WrapperCommand:
-        """the distance is in inches"""
-        return (
-            (
-                self.home_outside()
-                .andThen(
-                    RunCommand(
-                        lambda: self.set_motor(
-                            self.pid.calculate(self.get_dist(), distance)
-                        ),
-                        self,
-                    )
-                )
-                .onlyWhile(lambda: abs(self.get_dist() - distance) > 1.5)
-            )
-            .withName(f"Go to {distance} ft")
-            .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
-        )
+    def at_setpoint(self) -> bool:
+        return abs(self.get_distance() - self.setpoint) < self.tolerance
 
-    def stop(self) -> WrapperCommand:
-        return InstantCommand(lambda: self.motor.set(0), self).withInterruptBehavior(
-            Command.InterruptionBehavior.kCancelSelf
-        )
+    def at_center(self) -> bool:
+        return self.stall_timer.isRunning() and self.motor.get() < 0
 
-    def algae_outside(self) -> WrapperCommand:
-        return self.set_position(17).withName("Algae Outside")
-
-    def algae(self) -> WrapperCommand:
-        return (
-            (
-                self.algae_outside()
-                .andThen(
-                    RunCommand(lambda: self.set_motor(-0.3), self).until(
-                        lambda: self.is_stalling and time() - self.stall_timer > 0.25
-                    )
-                )
-                .andThen(InstantCommand(lambda: self.set_motor(-0.25)))
-            )
-            .withName("Grab Algae")
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-        )
-
-    def coral(self) -> WrapperCommand:
-        # return WaitCommand(0)
-        return (
-            (
-                self.home_inside(lambda: False)
-                .until(self.at_center)
-                .andThen(InstantCommand(lambda: self.set_motor(-0.3), self))
-            )
-            .withName("Grab Coral")
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
-        )
-
-    def cage(self) -> WrapperCommand:
-        return (
-            ((self.set_position(10).until(self.at_outside)).andThen(self.stop()))
-            .withName("Inside of Cage")
-            .withInterruptBehavior(Command.InterruptionBehavior.kCancelIncoming)
-        )
-
-    def reset_position(self) -> None:
-        self.encoder.setPosition(0)
-
-    def reset(self) -> InstantCommand:
-        return InstantCommand(self.reset_position, self)
-
-    def home_outside(self) -> WrapperCommand:
-        return (
-            (
-                RunCommand(lambda: self.set_motor(0.25), self)
-                .until(lambda: self.has_homed)
-                .andThen(self.stop())
-            )
-            .withName("Homing Outside")
-            .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
-        )
-
-    def home_inside(self, end: Callable[[], bool] | None = None) -> WrapperCommand:
-        return (
-            (
-                RunCommand(lambda: self.set_motor(-0.25), self)
-                .until(lambda: (end() if end is not None else self.has_homed))
-                .andThen(self.stop())
-            )
-            .withName("Homing Outside")
-            .withInterruptBehavior(InterruptionBehavior.kCancelSelf)
-        )
+    def at_outside(self) -> bool:
+        return self.stall_timer.isRunning() and self.motor.get() > 0

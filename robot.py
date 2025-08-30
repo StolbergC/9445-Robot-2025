@@ -12,7 +12,7 @@ from RobotContainer import RobotContainer
 
 from util import elastic
 
-from subsystems.wrist import Wrist
+from subsystems.claw import Claw
 
 
 class Robot(TimedRobot):
@@ -72,7 +72,8 @@ class Robot(TimedRobot):
         pass
 
     # Test Robot Functions
-    def testInit(self) -> None: ...
+    def testInit(self) -> None:
+        pass
 
     # def testInit(self):
     #     if RobotBase.isSimulation() and self.m_robotContainer is not None:
@@ -154,10 +155,7 @@ class Robot(TimedRobot):
                                 wrist_pose
                                 + Translation3d(
                                     0,
-                                    inchesToMeters(
-                                        self.m_robotContainer.claw.get_dist()
-                                    )
-                                    / 2,
+                                    self.m_robotContainer.claw.get_distance() / 2,
                                     0,
                                 ),
                                 wrist_angle,
@@ -170,10 +168,7 @@ class Robot(TimedRobot):
                                 wrist_pose
                                 - Translation3d(
                                     0,
-                                    inchesToMeters(
-                                        self.m_robotContainer.claw.get_dist()
-                                    )
-                                    / 2,
+                                    self.m_robotContainer.claw.get_distance() / 2,
                                     0,
                                 ),
                                 wrist_angle,
