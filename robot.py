@@ -12,7 +12,7 @@ from RobotContainer import RobotContainer
 
 from util import elastic
 
-from subsystems.claw import Claw
+from subsystems.fingers import Fingers
 
 
 class Robot(TimedRobot):

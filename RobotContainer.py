@@ -65,6 +65,9 @@ from commands.wrist_l3 import WristL3
 from commands.claw_coral import ClawCoral
 from commands.claw_algae import ClawAlgae
 from commands.claw_neutral import ClawNeutral
+from commands.fingers_score import FingersScore
+from commands.fingers_intake import FingersIntake
+from commands.fingers_stop import FingersStop
 
 button_a = 1
 button_b = 2
@@ -524,7 +527,7 @@ class RobotContainer:
         """operator controls"""
         Trigger(lambda: self.operator_controller.getThrottle() > 0.5).whileTrue(
             self.get_reef_score_command()
-        ).onFalse(self.fingers.score().withTimeout(2).andThen(self.fingers.stop()))
+        ).onFalse(FingersScore(self.fingers, 2).andThen(FingersStop(self.fingers)))
 
         Trigger(lambda: self.operator_controller.getRawAxis(trigger_lt) > 0.5).onTrue(
             intake_coral(self.elevator, self.wrist, self.claw)
