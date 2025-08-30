@@ -4,6 +4,7 @@ from wpilib import Color, Color8Bit, Mechanism2d, MechanismLigament2d, SmartDash
 from wpimath.geometry import Pose2d
 from wpimath.kinematics import ChassisSpeeds, SwerveModulePosition, SwerveModuleState
 
+
 class Telemetry:
     def __init__(self, max_speed: units.meters_per_second):
         """
@@ -19,14 +20,28 @@ class Telemetry:
         self._inst = NetworkTableInstance.getDefault()
 
         # Robot swerve drive state
-        self._drive_state_table = self._inst.getTable("DriveState")
-        self._drive_pose = self._drive_state_table.getStructTopic("Pose", Pose2d).publish()
-        self._drive_speeds = self._drive_state_table.getStructTopic("Speeds", ChassisSpeeds).publish()
-        self._drive_module_states = self._drive_state_table.getStructArrayTopic("ModuleStates", SwerveModuleState).publish()
-        self._drive_module_targets = self._drive_state_table.getStructArrayTopic("ModuleTargets", SwerveModuleState).publish()
-        self._drive_module_positions = self._drive_state_table.getStructArrayTopic("ModulePositions", SwerveModulePosition).publish()
-        self._drive_timestamp = self._drive_state_table.getDoubleTopic("Timestamp").publish()
-        self._drive_odometry_frequency = self._drive_state_table.getDoubleTopic("OdometryFrequency").publish()
+        self._drive_state_table = self._inst.getTable("000Drivetrain")
+        self._drive_pose = self._drive_state_table.getStructTopic(
+            "Pose", Pose2d
+        ).publish()
+        self._drive_speeds = self._drive_state_table.getStructTopic(
+            "Speeds", ChassisSpeeds
+        ).publish()
+        self._drive_module_states = self._drive_state_table.getStructArrayTopic(
+            "ModuleStates", SwerveModuleState
+        ).publish()
+        self._drive_module_targets = self._drive_state_table.getStructArrayTopic(
+            "ModuleTargets", SwerveModuleState
+        ).publish()
+        self._drive_module_positions = self._drive_state_table.getStructArrayTopic(
+            "ModulePositions", SwerveModulePosition
+        ).publish()
+        self._drive_timestamp = self._drive_state_table.getDoubleTopic(
+            "Timestamp"
+        ).publish()
+        self._drive_odometry_frequency = self._drive_state_table.getDoubleTopic(
+            "OdometryFrequency"
+        ).publish()
 
         # Robot pose for field positioning
         self._table = self._inst.getTable("Pose")

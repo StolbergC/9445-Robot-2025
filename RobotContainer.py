@@ -151,10 +151,12 @@ class RobotContainer:
         EventTrigger("WristAnglePreload").onTrue(
             self.wrist.run_angle(Rotation2d.fromDegrees(90))
         )
+        """
 
-        # self.auto_chooser = AutoBuilder.buildAutoChooser()
-        # SmartDashboard.putData("Auto Chooser", self.auto_chooser)
+        self.auto_chooser = AutoBuilder.buildAutoChooser()
+        SmartDashboard.putData("Auto Chooser", self.auto_chooser)
 
+        """
         # self.auto_chooser.setDefaultOption("CHANGE ME", commands2.cmd.none())
         # self.auto_chooser.addOption(
         #     "Blue -- Four Coral Left", blue_left_two_coral.get_auto(self.drivetrain, self.elevator, self.wrist, self.claw,)
@@ -620,11 +622,9 @@ class RobotContainer:
         return self.alliance
 
     def get_auto_command(self) -> Command:
-        return commands2.cmd.none()
-        # return self.auto_chooser.getSelected()
+        # return commands2.cmd.none()
+        return self.auto_chooser.getSelected()
         # return blue_left_two_coral.get_auto(self.drivetrain)
 
     def get_auto_name(self) -> str:
-        return ""
-
         return self.auto_chooser.getSelected().getName()

@@ -34,7 +34,6 @@ class Robot(TimedRobot):
         # Autonomous Robot Functions
 
     def autonomousInit(self):
-        return
         elastic.select_tab("Autonomous")
         if self.m_robotContainer is not None:
             self.m_autonomousCommand = self.m_robotContainer.get_auto_command()
