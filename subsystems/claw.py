@@ -110,7 +110,7 @@ class Claw(Subsystem):
                 self.gearing,
                 self.moving_mass,
                 self.PCD,
-                0,
+                1.5,
                 metersToInches(self.max_extention),
                 False,
                 2,

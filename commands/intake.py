@@ -13,10 +13,10 @@ from commands.wrist_angle_zero import WristZero
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
 from subsystems.claw import Claw
-from subsystems.fingers import Fingers
 
 from commands.elevator_intake import ElevatorIntake
 from commands.claw_neutral import ClawNeutral
+from commands.claw_coral import ClawCoral
 
 
 def intake_coral(
@@ -36,3 +36,7 @@ def intake_coral(
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         .withName("Intake Coral")
     )
+
+
+def pinch_coral(claw: Claw) -> Command:
+    return ClawCoral(claw)

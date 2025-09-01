@@ -22,7 +22,7 @@ class Elevator(Subsystem):
 
     current_limit: amperes = 60
 
-    max_height: meters = 1.0
+    max_height: meters = 1.5
 
     tolerance: meters = 0.05
 
@@ -110,7 +110,7 @@ class Elevator(Subsystem):
                 self.max_height * 1.1,
                 True,
                 # 0,
-                self.get_height(),
+                0,
             )
 
             self.motor_l_sim = SparkMaxSim(self.motor_l, DCMotor.NEO(1))
