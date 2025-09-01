@@ -5,9 +5,22 @@
     "data": {
       "commands": [
         {
-          "type": "path",
+          "type": "parallel",
           "data": {
-            "pathName": "IIntake"
+            "commands": [
+              {
+                "type": "path",
+                "data": {
+                  "pathName": "IIntake"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "Intake"
+                }
+              }
+            ]
           }
         },
         {
@@ -20,6 +33,12 @@
           "type": "path",
           "data": {
             "pathName": "IntakeI"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ScoreL2"
           }
         },
         {

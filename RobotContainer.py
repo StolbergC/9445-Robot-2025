@@ -1,4 +1,4 @@
-from commands2 import Command, InstantCommand
+from commands2 import Command, ConditionalCommand, InstantCommand
 import commands2
 from phoenix6 import swerve
 from wpimath import applyDeadband
@@ -12,7 +12,7 @@ from ntcore.util import ntproperty
 
 from wpilib import PowerDistribution, DriverStation, SmartDashboard
 
-from pathplannerlib.auto import AutoBuilder
+from pathplannerlib.auto import AutoBuilder, NamedCommands
 
 from subsystems.elevator import Elevator
 from subsystems.leds import Leds
@@ -24,23 +24,15 @@ from subsystems.fingers import Fingers
 from commands.score_l1 import score_l1_on_true
 from commands.score_l2 import score_l2_on_true
 from commands.score_l3 import score_l3_on_true
-from commands.elevator_manual import ElevatorManual
-from commands.intake import intake_coral
-from commands.elevator_bottom import ElevatorBottom
-from commands.wrist_angle_zero import WristZero
-from commands.wrist_intake import WristIntake
-from commands.wrist_l1 import WristL1
-from commands.wrist_l2 import WristL2
-from commands.wrist_l3 import WristL3
-from commands.claw_coral import ClawCoral
-from commands.claw_neutral import ClawNeutral
-from commands.fingers_score import FingersScore
+from commands.intake import intake_coral, pinch_coral
+from commands.score import score_coral
 from commands.fingers_stop import FingersStop
+from commands.stow import get_stow
 
 
 class RobotContainer:
-    _max_speed_percent = ntproperty("MaxVelocityPercent", 1)
-    _max_angular_rate_percent = ntproperty("MaxOmegaPercent", 1)
+    _max_speed_percent = ntproperty("MaxVelocityPercent", 1.0)
+    _max_angular_rate_percent = ntproperty("MaxOmegaPercent", 1.0)
 
     _max_speed = TunerConstants.speed_at_12_volts
     _max_angular_rate = 0.75  # radians per second
@@ -52,13 +44,23 @@ class RobotContainer:
         self.pdh.setSwitchableChannel(True)
         self.nettable = NetworkTableInstance.getDefault().getTable("0000DriverInfo")
 
+        self.level = 1
+
         # Setting up bindings for necessary control of the swerve drive platform
-        self._drive = swerve.requests.FieldCentric().with_drive_request_type(
-            swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
+        self._drive = (
+            swerve.requests.FieldCentric()
+            .with_deadband(0)  # deadband is handled in get_velocity_x/y
+            .with_drive_request_type(
+                swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
+            )
         )  # Use open-loop control for drive motors
 
-        self._robot_drive = swerve.requests.RobotCentric().with_drive_request_type(
-            swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
+        self._robot_drive = (
+            swerve.requests.RobotCentric()
+            .with_deadband(0)  # deadband is handled in get_velocity_x/y
+            .with_drive_request_type(
+                swerve.SwerveModule.DriveRequestType.OPEN_LOOP_VOLTAGE
+            )
         )  # Use open-loop control for drive motors
 
         self._brake = swerve.requests.SwerveDriveBrake()
@@ -75,23 +77,37 @@ class RobotContainer:
 
         self.leds = Leds()
 
+        self.drivetrain.register_telemetry(
+            lambda telem: self._logger.telemeterize(telem)
+        )
+
         self.auto_chooser = AutoBuilder.buildAutoChooser()
 
+        self.set_pp_named_commands()
+
         SmartDashboard.putData(self.auto_chooser)
+        SmartDashboard.putData(self.drivetrain)
 
     def get_velocity_x(self) -> float:
-        x = applyDeadband(self.driver_controller.getLeftX(), 0.05)
+        # x and y are swapped in wpilib vs/common convention
+        # this is considered a rotation about the joystick, so forwards is negative
+        x = -applyDeadband(self.driver_controller.getLeftY(), 0.05)
         return x * abs(x) * self._max_speed * self._max_speed_percent
 
     def get_velocity_y(self) -> float:
-        y = applyDeadband(self.driver_controller.getLeftY(), 0.05)
+        # x and y are swapped in wpilib vs/common convention
+        # West/left is positive in wpilib, not on controller
+        y = -applyDeadband(self.driver_controller.getLeftX(), 0.05)
         return y * abs(y) * self._max_speed * self._max_speed_percent
 
     def get_angular_rate(self) -> float:
-        t = applyDeadband(self.driver_controller.getRightY(), 0.05)
+        t = -applyDeadband(self.driver_controller.getRightX(), 0.05)
         return t * abs(t) * self._max_angular_rate * self._max_angular_rate_percent
 
     def set_teleop_bindings(self) -> None:
+        self.fingers.setDefaultCommand(FingersStop(self.fingers))
+
+        """driver"""
         self.drivetrain.setDefaultCommand(
             self.drivetrain.apply_request(
                 lambda: self._drive.with_velocity_x(self.get_velocity_x())
@@ -128,12 +144,69 @@ class RobotContainer:
             InstantCommand(double_speed)
         ).onFalse(InstantCommand(half_speed))
 
+        """Operator"""
+
+        def increase_level():
+            self.level += 1
+            if self.level > 3:
+                self.level = 3
+
+        def decrease_level():
+            self.level -= 1
+            if self.level < 1:
+                self.level = 1
+
+        self.operator_controller.povUp().onTrue(InstantCommand(increase_level))
+        self.operator_controller.povDown().onTrue(InstantCommand(decrease_level))
+
+        self.operator_controller.rightTrigger().onTrue(
+            ConditionalCommand(
+                score_l1_on_true(self.elevator, self.wrist),
+                ConditionalCommand(
+                    score_l2_on_true(self.elevator, self.wrist),
+                    score_l3_on_true(self.elevator, self.wrist),
+                    lambda: self.level == 2,
+                ),
+                lambda: self.level == 1,
+            )
+        ).onFalse(score_coral(self.fingers, 2))
+
+        self.operator_controller.leftTrigger().onTrue(
+            intake_coral(self.elevator, self.wrist, self.claw)
+        ).onFalse(pinch_coral(self.claw))
+
+        self.operator_controller.b().onTrue(
+            get_stow(self.elevator, self.wrist, self.claw)
+        )
+
     def set_test_bindings(self) -> None:
         # will be sysid testing for drivetrain (+others?) sometime
         self.test_remote = CommandXboxController(2)
 
+    def set_pp_named_commands(self) -> None:
+        NamedCommands.registerCommand(
+            "ScoreL1", score_l1_on_true(self.elevator, self.wrist)
+        )
+        NamedCommands.registerCommand(
+            "ScoreL2", score_l2_on_true(self.elevator, self.wrist)
+        )
+        NamedCommands.registerCommand(
+            "ScoreL3", score_l3_on_true(self.elevator, self.wrist)
+        )
+        NamedCommands.registerCommand(
+            "Intake", intake_coral(self.elevator, self.wrist, self.claw)
+        )
+        NamedCommands.registerCommand("Poop", score_coral(self.fingers, 2))
+
     def get_auto_command(self) -> Command:
-        return commands2.cmd.none()
+        return self.auto_chooser.getSelected()
 
     def get_auto_name(self) -> str:
+        a = self.auto_chooser.getSelected()
+        if isinstance(a, commands2.Command):
+            return a.getName()
         return ""
+
+    def periodic(self) -> None:
+        # may have to do vision here, other logging
+        pass
