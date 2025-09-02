@@ -28,10 +28,8 @@ class Robot(TimedRobot):
 
     def robotPeriodic(self) -> None:
         CommandScheduler.getInstance().run()
-        if self.m_robotContainer:
-            self.m_robotContainer.periodic()
-
-        # Autonomous Robot Functions
+        # if self.m_robotContainer:
+        #     self.m_robotContainer.periodic()
 
     def autonomousInit(self):
         elastic.select_tab("Autonomous")

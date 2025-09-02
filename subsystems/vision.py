@@ -1,4 +1,7 @@
-from wpilib import RobotBase
+from typing import Callable
+
+from commands2 import Command, InstantCommand, Subsystem
+from wpilib import RobotBase, SmartDashboard
 from math import e, pi
 from ntcore import NetworkTableInstance
 from photonlibpy import photonCamera, photonPoseEstimator
@@ -14,15 +17,43 @@ from wpimath.geometry import (
     Pose3d,
     Rotation2d,
 )
-from wpimath.estimator import SwerveDrive4PoseEstimator
+from wpimath.units import (
+    seconds,
+    meters,
+    radians,
+    meters_per_second,
+    degrees_per_second,
+)
+from wpimath.kinematics import ChassisSpeeds
 
-from wpilib import Field2d, RobotBase
+from wpilib import RobotBase
 
 
-class Vision:
-    def __init__(self):
+class Vision(Subsystem):
+    enabled: bool = True
+
+    strategy: photonPoseEstimator.PoseStrategy = (
+        photonPoseEstimator.PoseStrategy.LOWEST_AMBIGUITY
+    )
+
+    max_omega: degrees_per_second = 90
+    max_velocity: meters_per_second = 4
+
+    std_devs = (1.0, 1.0, pi / 4)
+    std_dev_target_factor = 1.75
+
+    def __init__(
+        self,
+        log_vision_measurement: Callable[
+            [Pose2d, seconds, tuple[meters, meters, radians]], None
+        ],
+        get_robot_pose: Callable[[], Pose2d],
+        get_robot_velocity: Callable[[], ChassisSpeeds],
+    ):
         self.field_layout = AprilTagFieldLayout.loadField(AprilTagField.kDefaultField)
-        self.std_devs = (0.01, 0.01, pi / 8)
+        self.log_vision_measurement = log_vision_measurement
+        self.get_robot_pose = get_robot_pose
+        self.get_speeds = get_robot_velocity
 
         self.nettable = NetworkTableInstance.getDefault().getTable("Vision")
         self.sightline_pub = self.nettable.getStructArrayTopic(
@@ -55,25 +86,25 @@ class Vision:
 
         self.fl_est = photonPoseEstimator.PhotonPoseEstimator(
             self.field_layout,
-            photonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.strategy,
             self.fl,
             self.to_fl,
         )
         self.fr_est = photonPoseEstimator.PhotonPoseEstimator(
             self.field_layout,
-            photonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.strategy,
             self.fr,
             self.to_fr,
         )
         self.bl_est = photonPoseEstimator.PhotonPoseEstimator(
             self.field_layout,
-            photonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.strategy,
             self.bl,
             self.to_bl,
         )
         self.br_est = photonPoseEstimator.PhotonPoseEstimator(
             self.field_layout,
-            photonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+            self.strategy,
             self.br,
             self.to_br,
         )
@@ -132,8 +163,19 @@ class Vision:
             # fr_sim.enableDrawWireframe(True)
             # bl_sim.enableDrawWireframe(True)
             # br_sim.enableDrawWireframe(True)
+            SmartDashboard.putData(self.vision_sim.getDebugField())
 
-    def update_position(self, odometry: SwerveDrive4PoseEstimator) -> None:
+    def periodic(self) -> None:
+        self.nettable.putBoolean("Enabled", self.enabled)
+        speeds = self.get_speeds()
+        if (
+            not self.enabled
+            or abs(speeds.omega_dps) > self.max_omega
+            or abs(speeds.vx) >= self.max_velocity
+            or abs(speeds.vy) >= self.max_velocity
+        ):
+            self.sightline_pub.set([])
+            return
         seen_ids: list[int] = []
 
         fr_est = self.fr_est.update()
@@ -143,11 +185,12 @@ class Vision:
                 dist = fr_est.estimatedPose.translation().distance(
                     self.to_fr.translation()
                 )
-                odometry.addVisionMeasurement(
+                self.log_vision_measurement(
                     fr_pose,
                     fr_est.timestampSeconds,
                     self._calc_std_dev(dist, len(fr_est.targetsUsed)),
                 )
+
                 seen_ids.extend([target.fiducialId for target in fr_est.targetsUsed])
 
         fl_est = self.fl_est.update()
@@ -157,11 +200,12 @@ class Vision:
                 dist = fl_est.estimatedPose.translation().distance(
                     self.to_fl.translation()
                 )
-                odometry.addVisionMeasurement(
+                self.log_vision_measurement(
                     fl_pose,
                     fl_est.timestampSeconds,
                     self._calc_std_dev(dist, len(fl_est.targetsUsed)),
                 )
+
                 seen_ids.extend([target.fiducialId for target in fl_est.targetsUsed])
 
         bl_est = self.bl_est.update()
@@ -171,11 +215,12 @@ class Vision:
                 dist = bl_est.estimatedPose.translation().distance(
                     self.to_bl.translation()
                 )
-                odometry.addVisionMeasurement(
+                self.log_vision_measurement(
                     bl_pose,
                     bl_est.timestampSeconds,
                     self._calc_std_dev(dist, len(bl_est.targetsUsed)),
                 )
+
                 seen_ids.extend([target.fiducialId for target in bl_est.targetsUsed])
 
         br_est = self.br_est.update()
@@ -185,19 +230,18 @@ class Vision:
                 dist = br_est.estimatedPose.translation().distance(
                     self.to_br.translation()
                 )
-                odometry.addVisionMeasurement(
+                self.log_vision_measurement(
                     br_pose,
                     br_est.timestampSeconds,
                     self._calc_std_dev(dist, len(br_est.targetsUsed)),
                 )
+
                 seen_ids.extend([target.fiducialId for target in br_est.targetsUsed])
 
         self.sightline_pub.set([self.field_layout.getTagPose(id) for id in seen_ids])
 
-    def sim_update(self, pose: Pose2d) -> Field2d | None:
-        if RobotBase.isSimulation():
-            self.vision_sim.update(pose)
-            return self.vision_sim.getDebugField()
+    def simulationPeriodic(self) -> None:
+        self.vision_sim.update(self.get_robot_pose())
 
     # calculate standard deviation based on the target distance
     def _calc_std_dev(
@@ -205,7 +249,19 @@ class Vision:
     ) -> tuple[float, float, float]:
         # stddevs increase with distance, 0 is full trust. Distance is in meters
         return (
-            (e**-targets_used) * self.std_devs[0] * dist**2,
-            (e**-targets_used) * self.std_devs[1] * dist**2,
-            (e**-targets_used) * self.std_devs[2] * dist**2,
+            (self.std_dev_target_factor**-targets_used) * self.std_devs[0] * dist**2,
+            (self.std_dev_target_factor**-targets_used) * self.std_devs[1] * dist**2,
+            (self.std_dev_target_factor**-targets_used) * self.std_devs[2] * dist**2,
         )
+
+    def disable_measurements(self) -> None:
+        self.enabled = False
+
+    def enable_measurements(self) -> None:
+        self.enabled = True
+
+    def toggle_vision_measurements(self) -> None:
+        self.enabled = not self.enabled
+
+    def toggle_vision_measurements_command(self) -> Command:
+        return InstantCommand(self.toggle_vision_measurements)

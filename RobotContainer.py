@@ -2,6 +2,7 @@ from commands2 import Command, ConditionalCommand, InstantCommand
 import commands2
 from phoenix6 import swerve
 from wpimath import applyDeadband
+from subsystems.vision import Vision
 from telemetry import Telemetry
 from generated.tuner_constants import TunerConstants
 
@@ -75,6 +76,12 @@ class RobotContainer:
         self.elevator = Elevator()
         self.fingers = Fingers()
 
+        self.vision = Vision(
+            self.drivetrain.add_vision_measurement,
+            lambda: self.drivetrain.get_state().pose,
+            lambda: self.drivetrain.get_state().speeds,
+        )
+
         self.leds = Leds()
 
         self.drivetrain.register_telemetry(
@@ -143,6 +150,10 @@ class RobotContainer:
         self.driver_controller.rightTrigger().onTrue(
             InstantCommand(double_speed)
         ).onFalse(InstantCommand(half_speed))
+
+        self.driver_controller.x().onTrue(
+            self.vision.toggle_vision_measurements_command()
+        )
 
         """Operator"""
 
