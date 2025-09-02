@@ -33,13 +33,13 @@ class Vision(Subsystem):
     enabled: bool = True
 
     strategy: photonPoseEstimator.PoseStrategy = (
-        photonPoseEstimator.PoseStrategy.LOWEST_AMBIGUITY
+        photonPoseEstimator.PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR
     )
 
     max_omega: degrees_per_second = 90
     max_velocity: meters_per_second = 4
 
-    std_devs = (1.0, 1.0, pi / 4)
+    std_devs = (1, 1, pi / 2)
     std_dev_target_factor = 1.75
 
     def __init__(
@@ -59,28 +59,31 @@ class Vision(Subsystem):
         self.sightline_pub = self.nettable.getStructArrayTopic(
             "VisibleTargets", Pose3d
         ).publish()
+        self.pose_est_pub = self.nettable.getStructArrayTopic(
+            "EstimatedPoses", Pose3d
+        ).publish()
 
         self.to_fl = Transform3d(
             Translation3d(inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, -15, 45),
+            Rotation3d.fromDegrees(0, 15, -45),
         )
         self.fl = photonCamera.PhotonCamera("Arducam_FL (1)")
 
         self.to_fr = Transform3d(
             Translation3d(inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, -15, -45),
+            Rotation3d.fromDegrees(0, 15, 45),
         )
         self.fr = photonCamera.PhotonCamera("Arducam_FR")
 
         self.to_bl = Transform3d(
             Translation3d(-inchesToMeters(14), inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, -15, 135),
+            Rotation3d.fromDegrees(0, 15, -135),
         )
         self.bl = photonCamera.PhotonCamera("Arducam_BL")
 
         self.to_br = Transform3d(
             Translation3d(-inchesToMeters(14), -inchesToMeters(14), inchesToMeters(7)),
-            Rotation3d.fromDegrees(0, -15, -135),
+            Rotation3d.fromDegrees(0, 15, 135),
         )
         self.br = photonCamera.PhotonCamera("Arducam_BR")
 
@@ -175,8 +178,10 @@ class Vision(Subsystem):
             or abs(speeds.vy) >= self.max_velocity
         ):
             self.sightline_pub.set([])
+            self.pose_est_pub.set([])
             return
         seen_ids: list[int] = []
+        estimated_poses: list[Pose3d] = []
 
         fr_est = self.fr_est.update()
         if fr_est:
@@ -193,6 +198,8 @@ class Vision(Subsystem):
 
                 seen_ids.extend([target.fiducialId for target in fr_est.targetsUsed])
 
+                estimated_poses.append(fr_est.estimatedPose)
+
         fl_est = self.fl_est.update()
         if fl_est:
             if len(fl_est.targetsUsed) > 0:
@@ -207,6 +214,7 @@ class Vision(Subsystem):
                 )
 
                 seen_ids.extend([target.fiducialId for target in fl_est.targetsUsed])
+                estimated_poses.append(fl_est.estimatedPose)
 
         bl_est = self.bl_est.update()
         if bl_est:
@@ -222,6 +230,7 @@ class Vision(Subsystem):
                 )
 
                 seen_ids.extend([target.fiducialId for target in bl_est.targetsUsed])
+                estimated_poses.append(bl_est.estimatedPose)
 
         br_est = self.br_est.update()
         if br_est:
@@ -237,8 +246,10 @@ class Vision(Subsystem):
                 )
 
                 seen_ids.extend([target.fiducialId for target in br_est.targetsUsed])
+                estimated_poses.append(br_est.estimatedPose)
 
         self.sightline_pub.set([self.field_layout.getTagPose(id) for id in seen_ids])
+        self.pose_est_pub.set(estimated_poses)
 
     def simulationPeriodic(self) -> None:
         self.vision_sim.update(self.get_robot_pose())

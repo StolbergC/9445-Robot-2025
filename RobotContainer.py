@@ -1,4 +1,11 @@
-from commands2 import Command, ConditionalCommand, InstantCommand
+from commands2 import (
+    Command,
+    ConditionalCommand,
+    InstantCommand,
+    ParallelCommandGroup,
+    SelectCommand,
+    SequentialCommandGroup,
+)
 import commands2
 from phoenix6 import swerve
 from wpimath import applyDeadband
@@ -13,7 +20,7 @@ from ntcore.util import ntproperty
 
 from wpilib import PowerDistribution, DriverStation, SmartDashboard
 
-from pathplannerlib.auto import AutoBuilder, NamedCommands
+from pathplannerlib.auto import AutoBuilder, NamedCommands, PathConstraints
 
 from subsystems.elevator import Elevator
 from subsystems.leds import Leds
@@ -29,6 +36,7 @@ from commands.intake import intake_coral, pinch_coral
 from commands.score import score_coral
 from commands.fingers_stop import FingersStop
 from commands.stow import get_stow
+from commands.autoalign_reef import autoalign_reef_left, autoalign_reef_right  # left
 
 
 class RobotContainer:
@@ -88,9 +96,9 @@ class RobotContainer:
             lambda telem: self._logger.telemeterize(telem)
         )
 
-        self.auto_chooser = AutoBuilder.buildAutoChooser()
-
         self.set_pp_named_commands()
+
+        self.auto_chooser = AutoBuilder.buildAutoChooser()
 
         SmartDashboard.putData(self.auto_chooser)
         SmartDashboard.putData(self.drivetrain)
@@ -111,6 +119,24 @@ class RobotContainer:
         t = -applyDeadband(self.driver_controller.getRightX(), 0.05)
         return t * abs(t) * self._max_angular_rate * self._max_angular_rate_percent
 
+    def get_pathfind_constraints(self) -> PathConstraints:
+        return PathConstraints(
+            self._max_speed * self._max_speed_percent * 2,
+            5,
+            self._max_angular_rate * self._max_angular_rate_percent * 2,
+            3,
+        )
+
+    def get_score_command(self) -> Command:
+        return SelectCommand(
+            {
+                1: score_l1_on_true(self.elevator, self.wrist),
+                2: score_l2_on_true(self.elevator, self.wrist),
+                3: score_l3_on_true(self.elevator, self.wrist),
+            },
+            lambda: self.level,
+        )
+
     def set_teleop_bindings(self) -> None:
         self.fingers.setDefaultCommand(FingersStop(self.fingers))
 
@@ -123,8 +149,8 @@ class RobotContainer:
             )
         )
 
-        # robot oriented on LB Hold
-        self.driver_controller.leftBumper().whileTrue(
+        # robot oriented on Left stick push hold
+        self.driver_controller.leftStick().whileTrue(
             self.drivetrain.apply_request(
                 lambda: self._robot_drive.with_velocity_x(self.get_velocity_x())
                 .with_velocity_y(self.get_velocity_y())
@@ -155,6 +181,30 @@ class RobotContainer:
             self.vision.toggle_vision_measurements_command()
         )
 
+        self.driver_controller.leftBumper().whileTrue(
+            ParallelCommandGroup(
+                autoalign_reef_left(
+                    self.drivetrain,
+                    self.get_pathfind_constraints(),
+                ),
+                self.get_score_command(),
+            )
+        ).onFalse(
+            score_coral(self.fingers, 2),
+        )
+
+        self.driver_controller.rightBumper().whileTrue(
+            ParallelCommandGroup(
+                autoalign_reef_right(
+                    self.drivetrain,
+                    self.get_pathfind_constraints(),
+                ),
+                self.get_score_command(),
+            ),
+        ).onFalse(
+            score_coral(self.fingers, 2),
+        )
+
         """Operator"""
 
         def increase_level():
@@ -171,15 +221,7 @@ class RobotContainer:
         self.operator_controller.povDown().onTrue(InstantCommand(decrease_level))
 
         self.operator_controller.rightTrigger().onTrue(
-            ConditionalCommand(
-                score_l1_on_true(self.elevator, self.wrist),
-                ConditionalCommand(
-                    score_l2_on_true(self.elevator, self.wrist),
-                    score_l3_on_true(self.elevator, self.wrist),
-                    lambda: self.level == 2,
-                ),
-                lambda: self.level == 1,
-            )
+            self.get_score_command(),
         ).onFalse(score_coral(self.fingers, 2))
 
         self.operator_controller.leftTrigger().onTrue(

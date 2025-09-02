@@ -264,9 +264,9 @@ class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
             ),
             PPHolonomicDriveController(
                 # PID constants for translation
-                PIDConstants(3.5, 0.0, 1.0),
+                PIDConstants(3, 0.0, 0),
                 # PID constants for rotation
-                PIDConstants(3.5, 0.0, 0.5),
+                PIDConstants(3, 0.0, 0),
             ),
             config,
             # Assume the path needs to be flipped for Red vs Blue, this is normally the case

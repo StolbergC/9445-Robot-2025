@@ -1,8 +1,14 @@
 from commands2 import Command, CommandScheduler
 from ntcore import NetworkTableInstance
-import pathplannerlib
-import pathplannerlib.auto
-from wpilib import RobotBase, TimedRobot, run, DataLogManager
+from wpilib import (
+    DriverStation,
+    RobotBase,
+    SmartDashboard,
+    TimedRobot,
+    run,
+    DataLogManager,
+)
+import wpilib
 
 from wpimath.geometry import Pose3d, Translation3d, Rotation3d, Rotation2d
 from wpimath.units import inchesToMeters
@@ -25,9 +31,13 @@ class Robot(TimedRobot):
     def robotInit(self):
         self.m_robotContainer = RobotContainer()
         DataLogManager.start()
+        DriverStation.startDataLog(DataLogManager.getLog())
 
     def robotPeriodic(self) -> None:
-        CommandScheduler.getInstance().run()
+        try:
+            CommandScheduler.getInstance().run()
+        except Exception as e:
+            wpilib.reportError(f"Got Error from Command Scheduler: {e}", True)
         # if self.m_robotContainer:
         #     self.m_robotContainer.periodic()
 
