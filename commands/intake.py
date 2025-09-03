@@ -27,9 +27,11 @@ def intake_coral(
     return (
         (
             SequentialCommandGroup(
-                WristZero(wrist),
-                ElevatorIntake(elevator),
-                ClawNeutral(claw),
+                WristZero(wrist).onlyIf(lambda: wrist.get_angle().degrees() > 60),
+                ParallelCommandGroup(
+                    ElevatorIntake(elevator),
+                    ClawNeutral(claw),
+                ),
                 WristIntake(wrist),
             )
         )

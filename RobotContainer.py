@@ -9,6 +9,7 @@ from commands2 import (
 import commands2
 from phoenix6 import swerve
 from wpimath import applyDeadband
+from wpimath.geometry import Rotation2d
 from subsystems.vision import Vision
 from telemetry import Telemetry
 from generated.tuner_constants import TunerConstants
@@ -36,7 +37,8 @@ from commands.intake import intake_coral, pinch_coral
 from commands.score import score_coral
 from commands.fingers_stop import FingersStop
 from commands.stow import get_stow
-from commands.autoalign_reef import autoalign_reef_left, autoalign_reef_right  # left
+from commands.autoalign_reef import autoalign_reef_left, autoalign_reef_right
+from commands.autoalign_intake import autoalign_intake
 
 
 class RobotContainer:
@@ -122,9 +124,9 @@ class RobotContainer:
     def get_pathfind_constraints(self) -> PathConstraints:
         return PathConstraints(
             self._max_speed * self._max_speed_percent * 2,
-            5,
-            self._max_angular_rate * self._max_angular_rate_percent * 2,
-            3,
+            1,
+            self._max_angular_rate * self._max_angular_rate_percent * 3,
+            1,
         )
 
     def get_score_command(self) -> Command:
@@ -186,6 +188,7 @@ class RobotContainer:
                 autoalign_reef_left(
                     self.drivetrain,
                     self.get_pathfind_constraints(),
+                    wait_until=lambda: self.elevator.at_setpoint(),  # prevent slamming the fingers into the reef
                 ),
                 self.get_score_command(),
             )
@@ -198,11 +201,27 @@ class RobotContainer:
                 autoalign_reef_right(
                     self.drivetrain,
                     self.get_pathfind_constraints(),
+                    wait_until=lambda: self.elevator.at_setpoint(),  # prevent slamming the fingers into the reef
                 ),
                 self.get_score_command(),
             ),
         ).onFalse(
             score_coral(self.fingers, 2),
+        )
+
+        self.driver_controller.leftTrigger().whileTrue(
+            ParallelCommandGroup(
+                autoalign_intake(
+                    self.drivetrain,
+                    self.get_pathfind_constraints(),
+                    wait_until=lambda: self.wrist.at_setpoint()
+                    and self.wrist.get_setpoint().degrees()
+                    > 0,  # prevent slamming the fingers into the intake wall
+                ),
+                intake_coral(self.elevator, self.wrist, self.claw),
+            )
+        ).onFalse(
+            pinch_coral(self.claw),
         )
 
         """Operator"""

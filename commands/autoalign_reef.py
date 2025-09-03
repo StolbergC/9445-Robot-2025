@@ -1,4 +1,11 @@
-from commands2 import Command, DeferredCommand, SelectCommand, SequentialCommandGroup
+from typing import Callable
+from commands2 import (
+    Command,
+    DeferredCommand,
+    SelectCommand,
+    SequentialCommandGroup,
+    WaitCommand,
+)
 import commands2
 
 from subsystems.drivetrain import CommandSwerveDrivetrain
@@ -34,9 +41,11 @@ RED = [
 ]
 
 
-def _get_near_pose(drivetrain: CommandSwerveDrivetrain) -> Pose2d:
+def _get_near_pose(
+    drivetrain: CommandSwerveDrivetrain, blue: list[Pose2d], red: list[Pose2d]
+) -> Pose2d:
     return drivetrain.get_state().pose.nearest(
-        BLUE if drivetrain.get_operator_forward_direction() == Rotation2d(0) else RED
+        blue if drivetrain.get_operator_forward_direction() == Rotation2d(0) else red
     )
 
 
@@ -44,6 +53,11 @@ def autoalign_reef_offset(
     drivetrain: CommandSwerveDrivetrain,
     constraints: PathConstraints,
     offset: Transform2d,
+    wait_until: Callable[
+        [], bool
+    ] = lambda: True,  # optionally wait until this becomes true to do final alignment
+    blue=BLUE,
+    red=RED,
 ) -> Command:
     try:
         return DeferredCommand(
@@ -54,30 +68,40 @@ def autoalign_reef_offset(
                             pose.X(),
                             pose.Y(),
                             pose.rotation().radians(),
-                        ): AutoBuilder.pathfindToPose(pose + offset, constraints)
+                        ): AutoBuilder.pathfindToPose(
+                            pose
+                            + offset
+                            + Transform2d(inchesToMeters(-12), 0, Rotation2d(0)),
+                            constraints,
+                        )
                         for pose in (
-                            BLUE
+                            blue
                             if drivetrain.get_operator_forward_direction()
                             == Rotation2d(0)
-                            else RED
+                            else red
                         )
                     },
                     lambda: (
                         (
-                            (pose := _get_near_pose(drivetrain)).X(),
+                            (pose := _get_near_pose(drivetrain, blue, red)).X(),
                             pose.Y(),
                             pose.rotation().radians(),
                         )
                     ),
                 ),
+                WaitCommand(0.1).until(wait_until),
                 PIDAlign(
-                    drivetrain, _get_near_pose(drivetrain) + offset
+                    drivetrain, _get_near_pose(drivetrain, blue, red) + offset
                 ),  # fix any weird pathplanner problems,
             ).onlyIf(
                 lambda: 0 < (p := drivetrain.get_state().pose).X()
                 and p.X() < field.getFieldLength()
                 and 0 < p.Y()
                 and p.Y() < field.getFieldWidth()
+                and (pose := _get_near_pose(drivetrain, blue, red)).X() > 0
+                and pose.X() < field.getFieldLength()
+                and pose.Y() > 0
+                and pose.Y() < field.getFieldWidth()
             ),
             drivetrain,
         )
@@ -89,20 +113,24 @@ def autoalign_reef_offset(
 def autoalign_reef_right(
     drivetrain: CommandSwerveDrivetrain,
     constraints: PathConstraints,
+    wait_until: Callable[[], bool] = lambda: True,
 ) -> Command:
     return autoalign_reef_offset(
         drivetrain,
         constraints,
         Transform2d(-inchesToMeters(24), -inchesToMeters(13 / 2), 0),
+        wait_until,
     )
 
 
 def autoalign_reef_left(
     drivetrain: CommandSwerveDrivetrain,
     constraints: PathConstraints,
+    wait_until: Callable[[], bool] = lambda: True,
 ) -> Command:
     return autoalign_reef_offset(
         drivetrain,
         constraints,
         Transform2d(-inchesToMeters(24), inchesToMeters(13 / 2), 0),
+        wait_until,
     )
