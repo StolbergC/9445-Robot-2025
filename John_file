@@ -1,0 +1,28 @@
+# x =
+# if x % 2 = 0
+# ``
+def print_character(character) -> None:
+    for line in character:
+        for i in range(len(line)):
+            if i % 2 == 0:
+                print("x" * line[i], end='')
+            else:
+                print(" " * line[i], end='')
+        print()
+
+
+"""
+   xxx  
+xxx   xxx
+xxx   xxx
+   xxx
+"""
+
+
+print_character([
+    [9],
+    [2, 5, 2],
+    [2, 5, 2],
+    [9],
+   ]
+)
