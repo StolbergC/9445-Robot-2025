@@ -12,26 +12,30 @@ from rev import SparkMax, SparkMaxConfig, SparkBaseConfig, SparkMaxSim
 
 
 class Elevator(Subsystem):
-    kG: float = 0
-    kV: float = 0
-    kA: float = 0
+    kG: float = 0 if RobotBase.isReal() else 5
+    kV: float = 0 if RobotBase.isReal() else 0
+    kA: float = 0 if RobotBase.isReal() else 0
 
-    kP: float = 50
-    kI: float = 0
-    kD: float = 0
+    kP: float = 0.05 if RobotBase.isReal() else 50
+    kI: float = 0 if RobotBase.isReal() else 0
+    kD: float = 0 if RobotBase.isReal() else 0
 
     current_limit: amperes = 60
 
     max_height: meters = 1.5
 
-    tolerance: meters = 0.05
+    tolerance: meters = 0.35 if RobotBase.isReal() else 0.05
+
+    inverted: bool = True if RobotBase.isReal() else False
 
     """
     this is meters/rotation
     move the elevator manually to get n rotations, measure height from base of elevator
     this value is (height in meters)/rotations
+    height = a * encoder_counts + b
     """
-    conversion_factor: float = 1.0
+    a = 0.3005 if RobotBase.isSimulation() else 0.3005
+    b = 12.3937 if RobotBase.isSimulation() else 144
 
     nettable_name: str = "000Elevator"
 
@@ -58,15 +62,9 @@ class Elevator(Subsystem):
 
         self.master_motor_config = SparkMaxConfig()
         self.master_motor_config.closedLoop.P(self.kP).I(self.kI).D(self.kD)
+        self.master_motor_config.inverted(self.inverted)
         self.master_motor_config.smartCurrentLimit(self.current_limit)
         self.master_motor_config.setIdleMode(SparkBaseConfig.IdleMode.kBrake)
-
-        self.master_motor_config.encoder.positionConversionFactor(
-            self.conversion_factor
-        )
-        self.master_motor_config.encoder.velocityConversionFactor(
-            self.conversion_factor / 60
-        )
 
         self.slave_motor_config = (
             SparkMaxConfig()
@@ -89,8 +87,7 @@ class Elevator(Subsystem):
 
         self.encoder = self.motor_l.getEncoder()
 
-        # self.encoder.setPosition(0)
-        self.encoder.setPosition(self.max_height / 2)
+        self.encoder.setPosition(0)
 
         self.closed_loop = self.motor_l.getClosedLoopController()
 
@@ -103,7 +100,7 @@ class Elevator(Subsystem):
         if RobotBase.isSimulation():
             self.ele_sim = ElevatorSim(
                 DCMotor.NEO(2),
-                self.gearing,
+                self.gearing * self.b,
                 self.moving_mass,
                 self.drum_radius,
                 0,
@@ -126,19 +123,18 @@ class Elevator(Subsystem):
             "current_velocity (mps)", velocity := self.encoder.getVelocity()
         )
         self.nettable.putNumber("Closed Loop Error", self.setpoint - self.get_height())
+        self.nettable.putNumber("Raw Position (rot)", self.encoder.getPosition())
+        self.nettable.putBoolean("At Setpoint", self.at_setpoint())
 
         # this allows for
-        ff = self.feedforward.calculate(velocity)
         self.closed_loop.setReference(
             self.setpoint,
             SparkMax.ControlType.kPosition,
-            arbFeedforward=ff,
             arbFFUnits=self.closed_loop.ArbFFUnits.kVoltage,
         )
 
         self.mech_lig.setLength(100 * self.encoder.getPosition() + 10)
 
-        self.nettable.putNumber("ArbFF", ff)
         self.nettable.putNumber("Motor_l Output %", self.motor_l.get())
         self.nettable.putNumber("Motor_r Output %", self.motor_r.get())
 
@@ -152,12 +148,8 @@ class Elevator(Subsystem):
 
         vel = self.ele_sim.getVelocity()
 
-        self.motor_l_sim.iterate(
-            vel / self.conversion_factor, RoboRioSim.getVInVoltage(), 0.02
-        )
-        self.motor_r_sim.iterate(
-            vel / self.conversion_factor, RoboRioSim.getVInVoltage(), 0.02
-        )
+        self.motor_l_sim.iterate(vel, RoboRioSim.getVInVoltage(), 0.02)
+        self.motor_r_sim.iterate(vel, RoboRioSim.getVInVoltage(), 0.02)
 
         # this number ends up really big and would cause brown out if real
         # it does not soft limit current, so the elevator is too fast in simulation
@@ -175,7 +167,7 @@ class Elevator(Subsystem):
         See this graph with some pre-built regressions
         https://www.desmos.com/calculator/ylq4aebgkp
         """
-        return self.encoder.getPosition()
+        # return self.encoder.getPosition()
         """Example regression code"""
         """
         a = 0.03
@@ -186,6 +178,7 @@ class Elevator(Subsystem):
         encoder_counts = self.encoder.getPosition() / self.conversion_factor
         return a * (encoder_counts**2) + b * encoder_counts
         """
+        return inchesToMeters(self.a * self.encoder.getPosition() + self.b)
 
     def get_setpoint(self) -> meters:
         return self.setpoint
@@ -196,15 +189,19 @@ class Elevator(Subsystem):
         The implementation is up to the subsystem.
         It should be trivial for linear, quite simple for quadratic, and somewhat more complicated afterwards
         """
-        if setpoint < 0:
-            self.setpoint = 0
-        elif setpoint > self.max_height:
-            self.setpoint = self.max_height
-        else:
+        if RobotBase.isSimulation():
             self.setpoint = setpoint
+            return
+        if setpoint < 0:
+            _setpoint = 0
+        elif setpoint > self.max_height:
+            _setpoint = self.max_height
+        else:
+            _setpoint = setpoint
+        self.setpoint = (_setpoint - inchesToMeters(self.b)) / inchesToMeters(self.a)
 
     def at_setpoint(self) -> bool:
-        return abs(self.get_height() - self.setpoint) < self.tolerance
+        return abs(self.get_height() - (self.setpoint / 100)) < self.tolerance
 
     def stop(self) -> None:
         """
@@ -228,4 +225,4 @@ class Elevator(Subsystem):
     def reset_position(self, position: meters) -> None:
         # self.encoder.setPosition(position / self.conversion_factor)
         # not sure which is right
-        self.encoder.setPosition(position)
+        self.encoder.setPosition(position + inchesToMeters(self.b) / 100)

@@ -28,24 +28,26 @@ from rev import (
 
 
 class Wrist(Subsystem):
-    kP: float = 2.5
-    kI: float = 0
-    kD: float = 0.3
+    kP: float = 0 if RobotBase.isReal() else 10.0
+    kI: float = 0 if RobotBase.isReal() else 0.0
+    kD: float = 0 if RobotBase.isReal() else 0.3
 
-    kG: float = 1.685
+    kG: float = 2.25 if RobotBase.isReal() else 1.685
     kS: float = 0
 
-    tolerance: degrees = 2
+    inverted: bool = False
+
+    tolerance: degrees = 2 if RobotBase.isReal() else 5
 
     max_velocity: degrees_per_second = 90
     max_acceleration: degrees_per_second_squared = 180
 
-    current_limit: amperes = 60
+    current_limit: amperes = 30
 
     min_angle: Rotation2d = Rotation2d.fromDegrees(-70)
     max_angle: Rotation2d = Rotation2d.fromDegrees(90)
 
-    gearing: float = 25
+    gearing: float = 81
     # SIMULATION ONLY
     mass: kilograms = 2.5
     length: meters = 0.75
@@ -61,7 +63,7 @@ class Wrist(Subsystem):
         motor_config = SparkBaseConfig()
         motor_config.setIdleMode(SparkBaseConfig.IdleMode.kBrake).smartCurrentLimit(
             self.current_limit
-        )
+        ).inverted(self.inverted)
         motor_config.absoluteEncoder.positionConversionFactor(
             360
         ).velocityConversionFactor(360 * 60).zeroCentered(True).zeroOffset(
@@ -137,13 +139,13 @@ class Wrist(Subsystem):
 
         self.mech_lig.setAngle(angle.degrees())
 
-        ff = self.feedforward.calculate(
-            self.get_angle().radians(), self.get_velocity().radians()
-        )
+        # ff = self.feedforward.calculate(
+        #     self.get_angle().radians(), self.get_velocity().radians()
+        # )
         self.closed_loop.setReference(
             self.setpoint.degrees() / 360,
             SparkMax.ControlType.kPosition,
-            arbFeedforward=ff,
+            # arbFeedforward=ff,
         )
 
         self.nettable.putNumber("Current", self.motor.getOutputCurrent())
@@ -180,9 +182,9 @@ class Wrist(Subsystem):
         return abs((self.setpoint - self.get_angle()).degrees()) < self.tolerance
 
     def set_setpoint(self, setpoint: Rotation2d) -> None:
-        if setpoint.radians() < self.min_angle.radians():
-            setpoint = self.min_angle
+        # if setpoint.radians() < self.min_angle.radians():
+        #     setpoint = self.min_angle
 
-        if setpoint.radians() > self.max_angle.radians():
-            setpoint = self.max_angle
+        # if setpoint.radians() > self.max_angle.radians():
+        #     setpoint = self.max_angle
         self.setpoint = setpoint

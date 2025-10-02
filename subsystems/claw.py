@@ -37,7 +37,7 @@ class Claw(Subsystem):
     current_limit: amperes = 35
 
     # this should be configured such that positive power moves the fingers apart
-    inverted: bool = False
+    inverted: bool = True
 
     tolerance: meters = inchesToMeters(1)
 
@@ -130,6 +130,8 @@ class Claw(Subsystem):
         self.nettable.putNumber("Error/inches", metersToInches(self.setpoint - dist))
         self.nettable.putNumber("Error/meters", self.setpoint - dist)
 
+        self.nettable.putBoolean("AtSetpoint", self.at_setpoint())
+
         velocity = self.get_velocity()
         self.nettable.putNumber("Velocity/inches per second", metersToInches(velocity))
         self.nettable.putNumber("Velocity/meters per second", velocity)
@@ -142,6 +144,7 @@ class Claw(Subsystem):
         )
 
         self.nettable.putNumber("Output %", self.motor.getAppliedOutput())
+        self.nettable.putNumber("Output Get", self.motor.get())
 
         current = self.motor.getOutputCurrent()
         self.nettable.putNumber("Current", current)
@@ -160,13 +163,15 @@ class Claw(Subsystem):
 
         if self.stall_timer.hasElapsed(0.5):
             # outside
-            if self.motor.get() > 0:
+            if self.at_outside():
                 self.encoder.setPosition(metersToInches(self.max_extention))
             else:
                 self.encoder.setPosition(0)
 
         self.nettable.putBoolean("Stall/IsStalling", self.stall_timer.isRunning())
         self.nettable.putNumber("Stall/Time (s)", self.stall_timer.get())
+        self.nettable.putBoolean("Stall/outisde", self.at_outside())
+        self.nettable.putBoolean("Stall/inisde", self.at_center())
 
     def simulationPeriodic(self) -> None:
         self.sim.update(0.02)
@@ -201,7 +206,7 @@ class Claw(Subsystem):
         return abs(self.get_distance() - self.setpoint) < self.tolerance
 
     def at_center(self) -> bool:
-        return self.stall_timer.isRunning() and self.motor.get() < 0
+        return self.stall_timer.isRunning() and self.motor.getAppliedOutput() < 0
 
     def at_outside(self) -> bool:
-        return self.stall_timer.isRunning() and self.motor.get() > 0
+        return self.stall_timer.isRunning() and self.motor.getAppliedOutput() > 0

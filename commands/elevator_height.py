@@ -6,7 +6,7 @@ from subsystems.elevator import Elevator
 
 
 class ElevatorHeight(Command):
-    height: meters = 0.25
+    height: meters
 
     def __init__(self, elevator: Elevator):
         super().__init__()

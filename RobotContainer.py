@@ -7,9 +7,11 @@ from commands2 import (
     SequentialCommandGroup,
 )
 import commands2
+from commands2.button import Trigger
 from phoenix6 import swerve
 from wpimath import applyDeadband
 from wpimath.geometry import Rotation2d
+from commands import elevator_reset
 from subsystems.vision import Vision
 from telemetry import Telemetry
 from generated.tuner_constants import TunerConstants
@@ -39,6 +41,8 @@ from commands.fingers_stop import FingersStop
 from commands.stow import get_stow
 from commands.autoalign_reef import autoalign_reef_left, autoalign_reef_right
 from commands.autoalign_intake import autoalign_intake
+from commands.elevator_manual import ElevatorManual
+from commands.elevator_reset import ResetElevator
 
 
 class RobotContainer:
@@ -183,6 +187,11 @@ class RobotContainer:
             self.vision.toggle_vision_measurements_command()
         )
 
+        self.driver_controller.b().onTrue(
+            InstantCommand(lambda: self.drivetrain.seed_field_centric())
+        )
+
+        """
         self.driver_controller.leftBumper().whileTrue(
             ParallelCommandGroup(
                 autoalign_reef_left(
@@ -223,8 +232,16 @@ class RobotContainer:
         ).onFalse(
             pinch_coral(self.claw),
         )
+        """
 
         """Operator"""
+
+        Trigger(lambda: abs(self.operator_controller.getLeftY()) > 0.1).whileTrue(
+            ElevatorManual(
+                self.elevator,
+                lambda: -self.operator_controller.getLeftY(),  # no apply deadband because trigger does it
+            )
+        )
 
         def increase_level():
             self.level += 1
@@ -250,6 +267,8 @@ class RobotContainer:
         self.operator_controller.b().onTrue(
             get_stow(self.elevator, self.wrist, self.claw)
         )
+
+        self.operator_controller.x().onTrue(ResetElevator(self.elevator))
 
     def set_test_bindings(self) -> None:
         # will be sysid testing for drivetrain (+others?) sometime

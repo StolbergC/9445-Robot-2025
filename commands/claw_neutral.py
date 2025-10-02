@@ -4,7 +4,7 @@ from commands.claw_distance import ClawDistance
 
 
 class ClawNeutral(ClawDistance):
-    distance: meters = inchesToMeters(8)
+    distance: meters = inchesToMeters(4.65)
 
     def isFinished(self) -> bool:
         return (

@@ -17,7 +17,7 @@ class ElevatorManual(Command):
         self,
         elevator: Elevator,
         get_power: Callable[[], float],
-        speed_mult: float = 0.1,
+        speed_mult: float = 0.05,
     ):
         super().__init__()
         self.elevator = elevator
@@ -28,9 +28,9 @@ class ElevatorManual(Command):
 
     def execute(self) -> None:
         setpoint = self.elevator.get_height() + self.get_power() * self.speed_mult
-        if setpoint > self.elevator.max_height:
-            setpoint = self.elevator.max_height
-        if setpoint < 0:
-            setpoint = 0
+        # if setpoint > self.elevator.max_height:
+        # setpoint = self.elevator.max_height
+        # if setpoint < 0:
+        #     setpoint = 0
 
         self.elevator.set_setpoint(setpoint)
