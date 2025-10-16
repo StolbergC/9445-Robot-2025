@@ -2,4 +2,4 @@ from commands.fingers_velocity import FingersVelocity
 
 
 class FingersScore(FingersVelocity):
-    velocity_rpm: float = 10
+    velocity_rpm: float = 600

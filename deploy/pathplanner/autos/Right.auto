@@ -11,40 +11,22 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "IIntake"
+                  "pathName": "RightSide"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "Intake"
+                  "name": "ScoreL2"
                 }
               }
             ]
           }
         },
         {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "IntakeI"
-          }
-        },
-        {
           "type": "named",
           "data": {
-            "name": "ScoreL2"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 0.5
+            "name": "Poop"
           }
         }
       ]

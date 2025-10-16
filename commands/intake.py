@@ -12,36 +12,25 @@ from commands.wrist_angle_zero import WristZero
 
 from subsystems.elevator import Elevator
 from subsystems.wrist import Wrist
-from subsystems.claw import Claw
+from subsystems.fingers import Fingers
 
 from commands.elevator_intake import ElevatorIntake
-from commands.claw_neutral import ClawNeutral
-from commands.claw_coral import ClawCoral
+from commands.fingers_intake import FingersIntake
 
 
-def intake_coral(
-    elevator: Elevator,
-    wrist: Wrist,
-    claw: Claw,
-) -> WrapperCommand:
+def intake_coral(elevator: Elevator, wrist: Wrist, fingers: Fingers) -> WrapperCommand:
     return (
         (
             SequentialCommandGroup(
                 WristZero(wrist).onlyIf(
-                    lambda: wrist.get_angle().degrees() > 60
-                    or wrist.get_angle().degrees() < -60
+                    lambda: wrist.get_angle().degrees() > 20
+                    or wrist.get_angle().degrees() < -30
                 ),
-                ParallelCommandGroup(
-                    ElevatorIntake(elevator),
-                    ClawNeutral(claw),
-                ),
+                ElevatorIntake(elevator),
                 WristIntake(wrist),
+                FingersIntake(fingers),
             )
         )
         .withInterruptBehavior(Command.InterruptionBehavior.kCancelSelf)
         .withName("Intake Coral")
     )
-
-
-def pinch_coral(claw: Claw) -> Command:
-    return ClawCoral(claw)

@@ -3,4 +3,4 @@ from wpimath.geometry import Rotation2d
 
 
 class WristIntake(WristAngle):
-    setpoint: Rotation2d = Rotation2d.fromDegrees(60)
+    setpoint: Rotation2d = Rotation2d.fromDegrees(27)

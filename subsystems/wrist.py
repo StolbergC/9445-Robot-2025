@@ -16,6 +16,8 @@ from wpimath.units import (
 from wpimath.geometry import Rotation2d
 from wpimath.system.plant import DCMotor
 from wpimath.controller import ArmFeedforward
+from wpimath.trajectory import TrapezoidProfile
+from wpimath.trajectory.constraint import TrajectoryConstraint
 
 from rev import (
     MAXMotionConfig,
@@ -28,11 +30,11 @@ from rev import (
 
 
 class Wrist(Subsystem):
-    kP: float = 0 if RobotBase.isReal() else 10.0
+    kP: float = 0.017 if RobotBase.isReal() else 10.0
     kI: float = 0 if RobotBase.isReal() else 0.0
-    kD: float = 0 if RobotBase.isReal() else 0.3
+    kD: float = 0.005 if RobotBase.isReal() else 0.3
 
-    kG: float = 2.25 if RobotBase.isReal() else 1.685
+    kG: float = 0 if RobotBase.isReal() else 1.685
     kS: float = 0
 
     inverted: bool = False
@@ -42,10 +44,10 @@ class Wrist(Subsystem):
     max_velocity: degrees_per_second = 90
     max_acceleration: degrees_per_second_squared = 180
 
-    current_limit: amperes = 30
+    current_limit: amperes = 20
 
-    min_angle: Rotation2d = Rotation2d.fromDegrees(-70)
-    max_angle: Rotation2d = Rotation2d.fromDegrees(90)
+    min_angle: Rotation2d = Rotation2d.fromDegrees(-45)
+    max_angle: Rotation2d = Rotation2d.fromDegrees(30)
 
     gearing: float = 81
     # SIMULATION ONLY
@@ -66,11 +68,11 @@ class Wrist(Subsystem):
         ).inverted(self.inverted)
         motor_config.absoluteEncoder.positionConversionFactor(
             360
-        ).velocityConversionFactor(360 * 60).zeroCentered(True).zeroOffset(
-            (360 - 115) / 360
-        )
+        ).velocityConversionFactor(360 * 60).zeroCentered(True).zeroOffset(0.9093159)
 
-        motor_config.closedLoop.P(self.kP).I(self.kI).D(self.kD).FeedbackSensor(
+        self.motor.getEncoder().setPosition(self.get_angle().degrees())
+
+        motor_config.closedLoop.P(self.kP).I(self.kI).D(self.kD).setFeedbackSensor(
             motor_config.closedLoop.FeedbackSensor.kAbsoluteEncoder
         )
         """.maxMotion.maxVelocity(
@@ -87,6 +89,9 @@ class Wrist(Subsystem):
         )
 
         self.closed_loop = self.motor.getClosedLoopController()
+        self.profile = TrapezoidProfile(
+            TrapezoidProfile.Constraints(self.max_velocity, self.max_acceleration)
+        )
 
         self.setpoint = self.get_angle()
 
@@ -121,9 +126,28 @@ class Wrist(Subsystem):
         SmartDashboard.putData("Wrist Mech", self.mech)
 
     def periodic(self) -> None:
-        self.nettable.putNumber("Setpoint/degrees", self.setpoint.degrees())
-        self.nettable.putNumber("Setpoint/radians", self.setpoint.radians())
-        self.nettable.putNumber("Setpoint/rotations", self.setpoint.degrees() / 360)
+        self.nettable.putNumber("Setpoint/raw/degrees", self.setpoint.degrees())
+        self.nettable.putNumber("Setpoint/raw/radians", self.setpoint.radians())
+        self.nettable.putNumber("Setpoint/raw/rotations", self.setpoint.degrees() / 360)
+
+        # setpoint_profiled = Rotation2d(
+        #     self.profile.calculate(
+        #         0.02,
+        #         TrapezoidProfile.State(
+        #             self.get_angle().degrees(), self.get_velocity().degrees()
+        #         ),
+        #         TrapezoidProfile.State(self.setpoint.degrees()),
+        #     ).position
+        # )
+
+        # if setpoint_profiled.degrees() > self.max_angle.degrees():
+        #     setpoint_profiled = self.max_angle
+        # elif setpoint_profiled.degrees() < self.min_angle.degrees():
+        #     setpoint_profiled = self.min_angle
+
+        # self.nettable.putNumber("Setpoint/degrees", setpoint_profiled.degrees())
+        # self.nettable.putNumber("Setpoint/radians", setpoint_profiled.radians())
+        # self.nettable.putNumber("Setpoint/rotations", setpoint_profiled.degrees() / 360)
 
         angle = self.get_angle()
 
@@ -143,7 +167,7 @@ class Wrist(Subsystem):
         #     self.get_angle().radians(), self.get_velocity().radians()
         # )
         self.closed_loop.setReference(
-            self.setpoint.degrees() / 360,
+            self.setpoint.degrees(),
             SparkMax.ControlType.kPosition,
             # arbFeedforward=ff,
         )
@@ -163,7 +187,7 @@ class Wrist(Subsystem):
         self.encoder_sim.setPosition(self.sim.getAngleDegrees())
         self.encoder_sim.setVelocity(self.sim.getVelocityDps())
 
-        RoboRioSim.setVInCurrent(self.motor.getOutputCurrent())
+        # RoboRioSim.setVInCurrent(self.motor.getOutputCurrent())
 
         self.sim.setInputVoltage(
             RoboRioSim.getVInVoltage() * self.motor.getAppliedOutput()

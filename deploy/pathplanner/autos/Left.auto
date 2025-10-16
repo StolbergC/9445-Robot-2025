@@ -11,13 +11,13 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "CenterH"
+                  "pathName": "LeftSide"
                 }
               },
               {
                 "type": "named",
                 "data": {
-                  "name": "ScoreL1"
+                  "name": "ScoreL2"
                 }
               }
             ]

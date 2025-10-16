@@ -20,7 +20,7 @@ class Elevator(Subsystem):
     kI: float = 0 if RobotBase.isReal() else 0
     kD: float = 0 if RobotBase.isReal() else 0
 
-    current_limit: amperes = 60
+    current_limit: amperes = 60 if RobotBase.isReal() else 120
 
     max_height: meters = 1.5
 
@@ -44,8 +44,8 @@ class Elevator(Subsystem):
     This is the number of rotations of the motor to one rotation of the output
     It is used only for simulation
     """
-    gearing: float = 3
-    moving_mass: kilograms = lbsToKilograms(10)
+    gearing: float = 27
+    moving_mass: kilograms = lbsToKilograms(1)
     drum_radius: meters = inchesToMeters(
         0.25
     )  # radius of the drum that the cable winds on
@@ -100,12 +100,12 @@ class Elevator(Subsystem):
         if RobotBase.isSimulation():
             self.ele_sim = ElevatorSim(
                 DCMotor.NEO(2),
-                self.gearing * self.b,
+                self.gearing,
                 self.moving_mass,
-                self.drum_radius,
+                self.drum_radius * 10,
                 0,
-                self.max_height * 1.1,
-                True,
+                float("infinity"),
+                False,
                 # 0,
                 0,
             )
@@ -127,11 +127,11 @@ class Elevator(Subsystem):
         self.nettable.putBoolean("At Setpoint", self.at_setpoint())
 
         # this allows for
-        self.closed_loop.setReference(
-            self.setpoint,
-            SparkMax.ControlType.kPosition,
-            arbFFUnits=self.closed_loop.ArbFFUnits.kVoltage,
-        )
+        # self.closed_loop.setReference(
+        #     self.setpoint,
+        #     SparkMax.ControlType.kPosition,
+        #     arbFFUnits=self.closed_loop.ArbFFUnits.kVoltage,
+        # )
 
         self.mech_lig.setLength(100 * self.encoder.getPosition() + 10)
 
@@ -139,12 +139,16 @@ class Elevator(Subsystem):
         self.nettable.putNumber("Motor_r Output %", self.motor_r.get())
 
     def simulationPeriodic(self) -> None:
-        self.ele_sim.setInputVoltage(RoboRioSim.getVInVoltage())
-        self.ele_sim.setInput(
-            [self.motor_l.getAppliedOutput() * RoboRioSim.getVInVoltage()]
+        self.ele_sim.setInputVoltage(
+            self.motor_l.getAppliedOutput() * RoboRioSim.getVInVoltage()
         )
+        # self.ele_sim.setInput(
+        #     [self.motor_l.getAppliedOutput() * RoboRioSim.getVInVoltage()]
+        # )
 
         self.ele_sim.update(0.02)
+
+        print(self.ele_sim.getPosition())
 
         vel = self.ele_sim.getVelocity()
 
@@ -153,10 +157,10 @@ class Elevator(Subsystem):
 
         # this number ends up really big and would cause brown out if real
         # it does not soft limit current, so the elevator is too fast in simulation
-        self.motor_l_sim.setMotorCurrent(self.ele_sim.getCurrentDraw() / 2)
-        self.motor_r_sim.setMotorCurrent(self.ele_sim.getCurrentDraw() / 2)
+        # self.motor_l_sim.setMotorCurrent(self.ele_sim.getCurrentDraw() / 2)
+        # self.motor_r_sim.setMotorCurrent(self.ele_sim.getCurrentDraw() / 2)
 
-        RoboRioSim.setVInVoltage(BatterySim.calculate([self.ele_sim.getCurrentDraw()]))
+        # RoboRioSim.setVInVoltage(BatterySim.calculate([self.ele_sim.getCurrentDraw()]))
 
     def get_height(self) -> meters:
         """
@@ -178,6 +182,8 @@ class Elevator(Subsystem):
         encoder_counts = self.encoder.getPosition() / self.conversion_factor
         return a * (encoder_counts**2) + b * encoder_counts
         """
+        if RobotBase.isSimulation():
+            return self.encoder.getPosition() * self.a + inchesToMeters(self.b)
         return inchesToMeters(self.a * self.encoder.getPosition() + self.b)
 
     def get_setpoint(self) -> meters:
@@ -201,6 +207,7 @@ class Elevator(Subsystem):
         self.setpoint = (_setpoint - inchesToMeters(self.b)) / inchesToMeters(self.a)
 
     def at_setpoint(self) -> bool:
+        return True
         return abs(self.get_height() - (self.setpoint / 100)) < self.tolerance
 
     def stop(self) -> None:
@@ -226,3 +233,4 @@ class Elevator(Subsystem):
         # self.encoder.setPosition(position / self.conversion_factor)
         # not sure which is right
         self.encoder.setPosition(position + inchesToMeters(self.b) / 100)
+        self.setpoint = position

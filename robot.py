@@ -80,23 +80,7 @@ class Robot(TimedRobot):
 
     # Test Robot Functions
     def testInit(self) -> None:
-        pass
-
-    # def testInit(self):
-    #     if RobotBase.isSimulation() and self.m_robotContainer is not None:
-    #         if (
-    #             self.m_robotContainer.elevator is not None
-    #             and self.m_robotContainer.wrist is not None
-    #             and self.m_robotContainer.claw is not None
-    #         ):
-    #             self.m_robotContainer.wrist.angle_zero().andThen(
-    #                 self.m_robotContainer.claw.cage()
-    #             ).andThen(self.m_robotContainer.elevator.command_bottom()).andThen(
-    #                 self.m_robotContainer.wrist.angle_intake()
-    #             ).withInterruptBehavior(
-    #                 Command.InterruptionBehavior.kCancelSelf
-    #             ).schedule()
-    #     pass
+        self.m_robotContainer.set_test_bindings()
 
     def testPeriodic(self):
         pass
@@ -131,7 +115,7 @@ class Robot(TimedRobot):
                 ele_pose = Translation3d(
                     0.245,
                     0,
-                    self.m_robotContainer.elevator.get_height() + inchesToMeters(9.384),
+                    self.m_robotContainer.elevator.get_height(),
                 )
                 wrist_pose = ele_pose + Translation3d(0, 0, 0.1924304)
                 wrist_angle = Rotation3d(
@@ -155,32 +139,6 @@ class Robot(TimedRobot):
                                 wrist_angle,
                             )
                             if hasattr(self.m_robotContainer, "wrist")
-                            else None
-                        ),
-                        (
-                            Pose3d(
-                                wrist_pose
-                                + Translation3d(
-                                    0,
-                                    self.m_robotContainer.claw.get_distance() / 2,
-                                    0,
-                                ),
-                                wrist_angle,
-                            )
-                            if hasattr(self.m_robotContainer, "claw")
-                            else None
-                        ),
-                        (
-                            Pose3d(
-                                wrist_pose
-                                - Translation3d(
-                                    0,
-                                    self.m_robotContainer.claw.get_distance() / 2,
-                                    0,
-                                ),
-                                wrist_angle,
-                            )
-                            if hasattr(self.m_robotContainer, "claw")
                             else None
                         ),
                     ]

@@ -1,16 +1,13 @@
 from commands2 import (
     Command,
-    ConditionalCommand,
     InstantCommand,
-    ParallelCommandGroup,
     SelectCommand,
-    SequentialCommandGroup,
 )
+
 import commands2
 from commands2.button import Trigger
 from phoenix6 import swerve
 from wpimath import applyDeadband
-from wpimath.geometry import Rotation2d
 from commands import elevator_reset
 from subsystems.vision import Vision
 from telemetry import Telemetry
@@ -21,7 +18,7 @@ from commands2.button import CommandXboxController
 from ntcore import NetworkTableInstance
 from ntcore.util import ntproperty
 
-from wpilib import PowerDistribution, DriverStation, SmartDashboard
+from wpilib import PowerDistribution, SmartDashboard
 
 from pathplannerlib.auto import AutoBuilder, NamedCommands, PathConstraints
 
@@ -29,20 +26,20 @@ from subsystems.elevator import Elevator
 from subsystems.leds import Leds
 from subsystems.wrist import Wrist
 from subsystems.climber import Climber
-from subsystems.claw import Claw
 from subsystems.fingers import Fingers
 
 from commands.score_l1 import score_l1_on_true
 from commands.score_l2 import score_l2_on_true
 from commands.score_l3 import score_l3_on_true
-from commands.intake import intake_coral, pinch_coral
 from commands.score import score_coral
 from commands.fingers_stop import FingersStop
 from commands.stow import get_stow
-from commands.autoalign_reef import autoalign_reef_left, autoalign_reef_right
-from commands.autoalign_intake import autoalign_intake
 from commands.elevator_manual import ElevatorManual
 from commands.elevator_reset import ResetElevator
+from commands.intake import intake_coral
+
+from commands.wrist_l2 import WristL2
+from commands.wrist_intake import WristIntake
 
 
 class RobotContainer:
@@ -86,7 +83,6 @@ class RobotContainer:
         self.drivetrain = TunerConstants.create_drivetrain()
         self.wrist = Wrist()
         self.climber = Climber()
-        self.claw = Claw()
         self.elevator = Elevator()
         self.fingers = Fingers()
 
@@ -261,18 +257,19 @@ class RobotContainer:
         ).onFalse(score_coral(self.fingers, 2))
 
         self.operator_controller.leftTrigger().onTrue(
-            intake_coral(self.elevator, self.wrist, self.claw)
-        ).onFalse(pinch_coral(self.claw))
+            intake_coral(self.elevator, self.wrist, self.fingers)
+        ).onFalse(FingersStop(self.fingers, 5))
 
-        self.operator_controller.b().onTrue(
-            get_stow(self.elevator, self.wrist, self.claw)
-        )
+        self.operator_controller.b().onTrue(get_stow(self.elevator, self.wrist))
 
         self.operator_controller.x().onTrue(ResetElevator(self.elevator))
 
     def set_test_bindings(self) -> None:
         # will be sysid testing for drivetrain (+others?) sometime
         self.test_remote = CommandXboxController(2)
+
+        self.test_remote.a().onTrue(WristL2(self.wrist))
+        self.test_remote.x().onTrue(WristIntake(self.wrist))
 
     def set_pp_named_commands(self) -> None:
         NamedCommands.registerCommand(
@@ -285,7 +282,7 @@ class RobotContainer:
             "ScoreL3", score_l3_on_true(self.elevator, self.wrist)
         )
         NamedCommands.registerCommand(
-            "Intake", intake_coral(self.elevator, self.wrist, self.claw)
+            "Intake", intake_coral(self.elevator, self.wrist, self.fingers)
         )
         NamedCommands.registerCommand("Poop", score_coral(self.fingers, 2))
 
