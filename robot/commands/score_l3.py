@@ -10,10 +10,6 @@ from commands.wrist_angle_zero import WristZero
 
 def score_l3_on_true(elevator: Elevator, wrist: Wrist) -> SequentialCommandGroup:
     return SequentialCommandGroup(
-        WristZero(wrist).onlyIf(
-            lambda: wrist.get_angle().degrees() > 40
-            or wrist.get_angle().degrees() < -40
-        ),
+        WristZero(wrist),
         ElevatorL3(elevator),
-        WristL3(wrist),
     )

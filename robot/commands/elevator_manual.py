@@ -17,20 +17,28 @@ class ElevatorManual(Command):
         self,
         elevator: Elevator,
         get_power: Callable[[], float],
-        speed_mult: float = 0.05,
+        speed_mult: float = 1,
     ):
         super().__init__()
         self.elevator = elevator
         self.get_power = get_power
         self.speed_mult = speed_mult
-        self.addRequirements(elevator)
+        self.setpoint = 0
+        # ! require elevator b/c we want to run this with other sequential commands
         self.setName("Elevator Manual")
 
+    def init(self) -> None:
+        self.setpoint = self.elevator.get_setpoint()
+
     def execute(self) -> None:
-        setpoint = self.elevator.get_height() + self.get_power() * self.speed_mult
+        setpoint = self.setpoint
+        self.setpoint = (
+            self.elevator.get_setpoint() + self.get_power() * self.speed_mult
+        )
         # if setpoint > self.elevator.max_height:
         # setpoint = self.elevator.max_height
         # if setpoint < 0:
         #     setpoint = 0
 
-        self.elevator.set_setpoint(setpoint)
+        if setpoint != self.setpoint:
+            self.elevator.set_setpoint(self.setpoint)

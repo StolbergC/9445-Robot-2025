@@ -1,8 +1,4 @@
-from commands2 import (
-    Command,
-    InstantCommand,
-    SelectCommand,
-)
+from commands2 import Command, InstantCommand, SelectCommand, DeferredCommand
 
 import commands2
 from commands2.button import Trigger
@@ -14,6 +10,7 @@ from telemetry import Telemetry
 from generated.tuner_constants import TunerConstants
 
 from commands2.button import CommandXboxController
+from commands2 import Subsystem
 
 from ntcore import NetworkTableInstance
 from ntcore.util import ntproperty
@@ -42,12 +39,17 @@ from commands.wrist_l2 import WristL2
 from commands.wrist_intake import WristIntake
 
 
+class FakeSubsystem(Subsystem): ...
+
+
 class RobotContainer:
-    _max_speed_percent = ntproperty("MaxVelocityPercent", 1.0)
-    _max_angular_rate_percent = ntproperty("MaxOmegaPercent", 1.0)
+    _max_speed_percent = ntproperty("MaxVelocityPercent", 0.5)
+    _max_angular_rate_percent = ntproperty("MaxOmegaPercent", 0.5)
 
     _max_speed = TunerConstants.speed_at_12_volts
     _max_angular_rate = 0.75  # radians per second
+
+    fake_subsystem = FakeSubsystem()
 
     def __init__(self) -> None:
         self.driver_controller = CommandXboxController(0)
@@ -86,11 +88,11 @@ class RobotContainer:
         self.elevator = Elevator()
         self.fingers = Fingers()
 
-        self.vision = Vision(
-            self.drivetrain.add_vision_measurement,
-            lambda: self.drivetrain.get_state().pose,
-            lambda: self.drivetrain.get_state().speeds,
-        )
+        # self.vision = Vision(
+        #     self.drivetrain.add_vision_measurement,
+        #     lambda: self.drivetrain.get_state().pose,
+        #     lambda: self.drivetrain.get_state().speeds,
+        # )
 
         self.leds = Leds()
 
@@ -130,13 +132,18 @@ class RobotContainer:
         )
 
     def get_score_command(self) -> Command:
-        return SelectCommand(
-            {
-                1: score_l1_on_true(self.elevator, self.wrist),
-                2: score_l2_on_true(self.elevator, self.wrist),
-                3: score_l3_on_true(self.elevator, self.wrist),
-            },
-            lambda: self.level,
+        return DeferredCommand(
+            lambda: (
+                score_l1_on_true(self.elevator, self.wrist)
+                if self.level == 1
+                else (
+                    score_l2_on_true(self.elevator, self.wrist)
+                    if self.level == 2
+                    else score_l3_on_true(self.elevator, self.wrist)
+                )
+            ),
+            self.elevator,
+            self.wrist,
         )
 
     def set_teleop_bindings(self) -> None:
@@ -146,6 +153,14 @@ class RobotContainer:
         self.drivetrain.setDefaultCommand(
             self.drivetrain.apply_request(
                 lambda: self._drive.with_velocity_x(self.get_velocity_x())
+                .with_velocity_y(self.get_velocity_y())
+                .with_rotational_rate(self.get_angular_rate())
+            )
+        )
+
+        self.driver_controller.rightBumper().whileTrue(
+            self.drivetrain.apply_request(
+                lambda: self._robot_drive.with_velocity_x(self.get_velocity_x())
                 .with_velocity_y(self.get_velocity_y())
                 .with_rotational_rate(self.get_angular_rate())
             )
@@ -179,9 +194,9 @@ class RobotContainer:
             InstantCommand(double_speed)
         ).onFalse(InstantCommand(half_speed))
 
-        self.driver_controller.x().onTrue(
-            self.vision.toggle_vision_measurements_command()
-        )
+        # self.driver_controller.x().onTrue(
+        #     self.vision.toggle_vision_measurements_command()
+        # )
 
         self.driver_controller.b().onTrue(
             InstantCommand(lambda: self.drivetrain.seed_field_centric())
@@ -249,8 +264,12 @@ class RobotContainer:
             if self.level < 1:
                 self.level = 1
 
-        self.operator_controller.povUp().onTrue(InstantCommand(increase_level))
-        self.operator_controller.povDown().onTrue(InstantCommand(decrease_level))
+        self.operator_controller.povUp().onTrue(
+            InstantCommand(increase_level, self.fake_subsystem)
+        )
+        self.operator_controller.povDown().onTrue(
+            InstantCommand(decrease_level, self.fake_subsystem)
+        )
 
         self.operator_controller.rightTrigger().onTrue(
             self.get_score_command(),
@@ -262,7 +281,7 @@ class RobotContainer:
 
         self.operator_controller.b().onTrue(get_stow(self.elevator, self.wrist))
 
-        self.operator_controller.x().onTrue(ResetElevator(self.elevator))
+        # self.operator_controller.x().onTrue(ResetElevator(self.elevator))
 
     def set_test_bindings(self) -> None:
         # will be sysid testing for drivetrain (+others?) sometime
@@ -298,3 +317,4 @@ class RobotContainer:
     def periodic(self) -> None:
         # may have to do vision here, other logging
         pass
+        self.nettable.putNumber("Level", self.level)

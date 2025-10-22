@@ -6,25 +6,28 @@ from wpilib import Mechanism2d, RobotBase, SmartDashboard
 from wpilib.simulation import ElevatorSim, RoboRioSim, BatterySim
 from wpimath.system.plant import DCMotor
 from wpimath.controller import ElevatorFeedforward
-from wpimath.units import amperes, meters, kilograms, lbsToKilograms, inchesToMeters
+from wpimath.units import (
+    amperes,
+    meters,
+    kilograms,
+    lbsToKilograms,
+    inchesToMeters,
+    metersToInches,
+)
 
 from rev import SparkMax, SparkMaxConfig, SparkBaseConfig, SparkMaxSim
 
 
 class Elevator(Subsystem):
-    kG: float = 0 if RobotBase.isReal() else 5
-    kV: float = 0 if RobotBase.isReal() else 0
-    kA: float = 0 if RobotBase.isReal() else 0
-
     kP: float = 0.05 if RobotBase.isReal() else 50
     kI: float = 0 if RobotBase.isReal() else 0
     kD: float = 0 if RobotBase.isReal() else 0
 
-    current_limit: amperes = 60 if RobotBase.isReal() else 120
+    current_limit: amperes = 40 if RobotBase.isReal() else 120
 
-    max_height: meters = 1.5
+    max_height: meters = 184
 
-    tolerance: meters = 0.35 if RobotBase.isReal() else 0.05
+    tolerance: meters = 1.5 if RobotBase.isReal() else 0.05
 
     inverted: bool = True if RobotBase.isReal() else False
 
@@ -34,8 +37,8 @@ class Elevator(Subsystem):
     this value is (height in meters)/rotations
     height = a * encoder_counts + b
     """
-    a = 0.3005 if RobotBase.isSimulation() else 0.3005
-    b = 12.3937 if RobotBase.isSimulation() else 144
+    a = 0.2219 if RobotBase.isSimulation() else 0.3005
+    b = 14.3294 if RobotBase.isSimulation() else 144
 
     nettable_name: str = "000Elevator"
 
@@ -91,8 +94,6 @@ class Elevator(Subsystem):
 
         self.closed_loop = self.motor_l.getClosedLoopController()
 
-        self.feedforward = ElevatorFeedforward(0, self.kG, self.kV, self.kA)
-
         self.mech = Mechanism2d(50, 130 * self.max_height)
         self.mech_root = self.mech.getRoot(self.nettable_name, 25, 0)
         self.mech_lig = self.mech_root.appendLigament("elevator", 10, 90)
@@ -117,21 +118,17 @@ class Elevator(Subsystem):
         SmartDashboard.putData(self)
 
     def periodic(self) -> None:
-        self.nettable.putNumber("setpoint (m)", self.setpoint)
+        self.nettable.putNumber("setpoint (rot)", self.setpoint)
         self.nettable.putNumber("current_position (m)", self.get_height())
-        self.nettable.putNumber(
-            "current_velocity (mps)", velocity := self.encoder.getVelocity()
-        )
+        self.nettable.putNumber("current_velocity (mps)", self.encoder.getVelocity())
         self.nettable.putNumber("Closed Loop Error", self.setpoint - self.get_height())
         self.nettable.putNumber("Raw Position (rot)", self.encoder.getPosition())
         self.nettable.putBoolean("At Setpoint", self.at_setpoint())
 
-        # this allows for
-        # self.closed_loop.setReference(
-        #     self.setpoint,
-        #     SparkMax.ControlType.kPosition,
-        #     arbFFUnits=self.closed_loop.ArbFFUnits.kVoltage,
-        # )
+        self.closed_loop.setReference(
+            self.setpoint,
+            SparkMax.ControlType.kPosition,
+        )
 
         self.mech_lig.setLength(100 * self.encoder.getPosition() + 10)
 
@@ -147,8 +144,6 @@ class Elevator(Subsystem):
         # )
 
         self.ele_sim.update(0.02)
-
-        print(self.ele_sim.getPosition())
 
         vel = self.ele_sim.getVelocity()
 
@@ -182,11 +177,13 @@ class Elevator(Subsystem):
         encoder_counts = self.encoder.getPosition() / self.conversion_factor
         return a * (encoder_counts**2) + b * encoder_counts
         """
-        if RobotBase.isSimulation():
-            return self.encoder.getPosition() * self.a + inchesToMeters(self.b)
-        return inchesToMeters(self.a * self.encoder.getPosition() + self.b)
+        return self.encoder.getPosition()
+        # return inchesToMeters(self.encoder.getPosition() * self.a + self.b)
 
-    def get_setpoint(self) -> meters:
+    def get_setpoint(self) -> float:
+        """
+        rotations
+        """
         return self.setpoint
 
     def set_setpoint(self, setpoint: meters) -> None:
@@ -195,20 +192,21 @@ class Elevator(Subsystem):
         The implementation is up to the subsystem.
         It should be trivial for linear, quite simple for quadratic, and somewhat more complicated afterwards
         """
-        if RobotBase.isSimulation():
-            self.setpoint = setpoint
-            return
         if setpoint < 0:
-            _setpoint = 0
+            self.setpoint = 0
         elif setpoint > self.max_height:
-            _setpoint = self.max_height
+            self.setpoint = self.max_height
         else:
-            _setpoint = setpoint
-        self.setpoint = (_setpoint - inchesToMeters(self.b)) / inchesToMeters(self.a)
+            self.setpoint = setpoint
+
+    def meters_to_rotations(self, height: meters) -> float:
+        """
+        returns rotations
+        """
+        return (metersToInches(height) - self.b) / self.a
 
     def at_setpoint(self) -> bool:
-        return True
-        return abs(self.get_height() - (self.setpoint / 100)) < self.tolerance
+        return self.setpoint - self.encoder.getPosition() < self.tolerance
 
     def stop(self) -> None:
         """

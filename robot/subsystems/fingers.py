@@ -21,8 +21,8 @@ from rev import SparkBaseConfig, SparkMax, SparkMaxSim
 
 class Fingers(Subsystem):
     current_limit: amperes = 25
-    slip_current_limit: amperes = 18
-    left_inverted: bool = False
+    slip_current_limit: amperes = 28
+    inverted: bool = False
 
     kS: float = 0
     kV: float = 1 / 60
@@ -41,7 +41,7 @@ class Fingers(Subsystem):
         motor_config = (
             SparkBaseConfig()
             .smartCurrentLimit(self.current_limit)
-            .inverted(self.left_inverted)
+            .inverted(self.inverted)
             .setIdleMode(SparkBaseConfig.IdleMode.kCoast)
         )
         motor_config.encoder.velocityConversionFactor(self.gearing)

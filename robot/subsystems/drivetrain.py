@@ -8,6 +8,7 @@ from typing import Callable, overload
 from wpilib import DriverStation, Notifier, RobotController
 from wpilib.sysid import SysIdRoutineLog
 from wpimath.geometry import Pose2d, Rotation2d
+from wpimath.kinematics import ChassisSpeeds
 
 
 class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
@@ -254,7 +255,9 @@ class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
             lambda: self.get_state().speeds,  # Supplier of current robot speeds
             # Consumer of ChassisSpeeds and feedforwards to drive the robot
             lambda speeds, feedforwards: self.set_control(
-                self._apply_robot_speeds.with_speeds(speeds)
+                self._apply_robot_speeds.with_speeds(
+                    ChassisSpeeds(speeds.vx / 3, speeds.vy / 3, speeds.omega / 3)
+                )
                 .with_wheel_force_feedforwards_x(
                     feedforwards.robotRelativeForcesXNewtons
                 )
@@ -264,9 +267,9 @@ class CommandSwerveDrivetrain(Subsystem, swerve.SwerveDrivetrain):
             ),
             PPHolonomicDriveController(
                 # PID constants for translation
-                PIDConstants(3, 0.0, 0),
+                PIDConstants(0.2, 0.0, 0.0),
                 # PID constants for rotation
-                PIDConstants(3, 0.0, 0),
+                PIDConstants(0.3, 0.0, 0),
             ),
             config,
             # Assume the path needs to be flipped for Red vs Blue, this is normally the case

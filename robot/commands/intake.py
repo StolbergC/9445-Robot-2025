@@ -22,11 +22,9 @@ def intake_coral(elevator: Elevator, wrist: Wrist, fingers: Fingers) -> WrapperC
     return (
         (
             SequentialCommandGroup(
-                WristZero(wrist).onlyIf(
-                    lambda: wrist.get_angle().degrees() > 20
-                    or wrist.get_angle().degrees() < -30
-                ),
+                WristZero(wrist),
                 ElevatorIntake(elevator),
+                WaitCommand(2.5),
                 WristIntake(wrist),
                 FingersIntake(fingers),
             )

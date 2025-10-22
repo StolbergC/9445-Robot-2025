@@ -38,6 +38,7 @@ class Robot(TimedRobot):
             CommandScheduler.getInstance().run()
         except Exception as e:
             wpilib.reportError(f"Got Error from Command Scheduler: {e}", True)
+        self.m_robotContainer.periodic()
         # if self.m_robotContainer:
         #     self.m_robotContainer.periodic()
 

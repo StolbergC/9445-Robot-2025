@@ -1,3 +1,4 @@
+from commands2.command import InterruptionBehavior
 from wpimath.units import meters
 
 from commands2 import Command
@@ -18,4 +19,10 @@ class ElevatorHeight(Command):
         self.elevator.set_setpoint(self.height)
 
     def isFinished(self) -> bool:
-        return self.elevator.at_setpoint()
+        return (
+            self.elevator.at_setpoint()
+            and abs(self.elevator.get_setpoint() - self.height) < 0.1
+        )
+
+    def getInterruptionBehavior(self) -> InterruptionBehavior:
+        return Command.InterruptionBehavior.kCancelSelf

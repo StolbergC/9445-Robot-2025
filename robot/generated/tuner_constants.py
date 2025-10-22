@@ -50,7 +50,7 @@ class TunerConstants:
 
     # The remote sensor feedback type to use for the steer motors;
     # When not Pro-licensed, Fused*/Sync* automatically fall back to Remote*
-    _steer_feedback_type = swerve.SteerFeedbackType.FUSED_CANCODER
+    _steer_feedback_type = swerve.SteerFeedbackType.REMOTE_CANCODER
 
     # The stator current at which the wheels start to slip;
     # This needs to be tuned to your individual robot
@@ -60,7 +60,7 @@ class TunerConstants:
     # Some configs will be overwritten; check the `with_*_initial_configs()` API documentation.
     _drive_initial_configs = configs.TalonFXConfiguration().with_current_limits(
         configs.CurrentLimitsConfigs()
-        .with_stator_current_limit(60)
+        .with_stator_current_limit(25)
         .with_stator_current_limit_enable(True)
     )
     _steer_initial_configs = configs.TalonFXConfiguration().with_current_limits(
@@ -75,7 +75,7 @@ class TunerConstants:
 
     # CAN bus that the devices are located on;
     # All swerve devices must share the same CAN bus
-    canbus = CANBus("canivore1", "./logs/example.hoot")
+    canbus = CANBus("canivore1")
 
     # Theoretical free speed (m/s) at 12 V applied output;
     # This needs to be tuned to your individual robot
@@ -89,8 +89,8 @@ class TunerConstants:
     _steer_gear_ratio = 21.428571428571427
     _wheel_radius: units.meter = inchesToMeters(2)
 
-    _invert_left_side = False
-    _invert_right_side = True
+    _invert_left_side = True
+    _invert_right_side = False
 
     _pigeon_id = 0
 
@@ -137,10 +137,10 @@ class TunerConstants:
     )
 
     # Front Left
-    _front_left_drive_motor_id = 14
-    _front_left_steer_motor_id = 16
-    _front_left_encoder_id = 15
-    _front_left_encoder_offset: units.rotation = 0.0888671875
+    _front_left_drive_motor_id = 11
+    _front_left_steer_motor_id = 13
+    _front_left_encoder_id = 12
+    _front_left_encoder_offset: units.rotation = 0.2
     _front_left_steer_motor_inverted = True
     _front_left_encoder_inverted = False
 
@@ -148,10 +148,10 @@ class TunerConstants:
     _front_left_y_pos: units.meter = inchesToMeters(11.5)
 
     # Front Right
-    _front_right_drive_motor_id = 11
-    _front_right_steer_motor_id = 13
-    _front_right_encoder_id = 12
-    _front_right_encoder_offset: units.rotation = -0.050048828125
+    _front_right_drive_motor_id = 14
+    _front_right_steer_motor_id = 16
+    _front_right_encoder_id = 15
+    _front_right_encoder_offset: units.rotation = -0.167
     _front_right_steer_motor_inverted = True
     _front_right_encoder_inverted = False
 
@@ -159,10 +159,10 @@ class TunerConstants:
     _front_right_y_pos: units.meter = inchesToMeters(-11.5)
 
     # Back Left
-    _back_left_drive_motor_id = 5
-    _back_left_steer_motor_id = 7
-    _back_left_encoder_id = 6
-    _back_left_encoder_offset: units.rotation = -0.0185546875
+    _back_left_drive_motor_id = 8
+    _back_left_steer_motor_id = 10
+    _back_left_encoder_id = 9
+    _back_left_encoder_offset: units.rotation = 0.275
     _back_left_steer_motor_inverted = True
     _back_left_encoder_inverted = False
 
@@ -170,10 +170,10 @@ class TunerConstants:
     _back_left_y_pos: units.meter = inchesToMeters(11.5)
 
     # Back Right
-    _back_right_drive_motor_id = 8
-    _back_right_steer_motor_id = 10
-    _back_right_encoder_id = 9
-    _back_right_encoder_offset: units.rotation = -0.473388671875
+    _back_right_drive_motor_id = 5
+    _back_right_steer_motor_id = 7
+    _back_right_encoder_id = 6
+    _back_right_encoder_offset: units.rotation = 0.229
     _back_right_steer_motor_inverted = True
     _back_right_encoder_inverted = False
 
