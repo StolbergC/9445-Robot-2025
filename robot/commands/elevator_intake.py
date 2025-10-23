@@ -2,7 +2,7 @@ from commands.elevator_height import Elevator, ElevatorHeight
 
 
 class ElevatorIntake(ElevatorHeight):
-    height = 73
+    height = 75
 
     # inheritance covers the rest in this case. The only behavioral change is height
     def __init__(self, elevator: Elevator):

@@ -250,7 +250,7 @@ class RobotContainer:
         Trigger(lambda: abs(self.operator_controller.getLeftY()) > 0.1).whileTrue(
             ElevatorManual(
                 self.elevator,
-                lambda: -self.operator_controller.getLeftY(),  # no apply deadband because trigger does it
+                lambda: self.operator_controller.getLeftY(),  # no apply deadband because trigger does it
             )
         )
 

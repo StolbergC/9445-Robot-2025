@@ -73,7 +73,6 @@ class Fingers(Subsystem):
         self.mech_root = self.mech.getRoot("FingerWheel", 50, 50)
         self.lig = self.mech_root.appendLigament("FingerLigament", 30, 0)
 
-        self.stall_timer = Timer()
 
         SmartDashboard.putData(self)
         SmartDashboard.putData("FingerMech", self.mech)
@@ -95,27 +94,15 @@ class Fingers(Subsystem):
         self.nettable.putNumber("Velocity/Degrees Per Second", velocity.degrees() / 60)
         self.nettable.putNumber("Velocity/Radians Per Second", velocity.radians() / 60)
 
-        if current_l > self.slip_current_limit * 0.9:
-            self.stall_timer.start()
-        if self.stall_timer.isRunning() and (
-            self.get_velocity().degrees() >= 5
-            or current_l < self.slip_current_limit * 0.8
-        ):
-            self.stall_timer.stop()
-
         ff = self.feedforward.calculate(
             self.get_velocity().radians(), self.setpoint.radians() / self.gearing
         )
         self.motor.setVoltage(ff)
-        if self.stall_timer.hasElapsed(0.5):
-            self.motor.stopMotor()
 
         self.lig.setAngle(self.lig.getAngle() + velocity.degrees() / 60)
 
         self.nettable.putNumber("FF/Volts", ff)
         self.nettable.putNumber("Current/left", current_l)
-        self.nettable.putNumber("Stalling/left", self.stall_timer.get())
-        self.nettable.putBoolean("Stalling/isLeft", self.stall_timer.isRunning())
 
     def simulationPeriodic(self) -> None:
         self.sim.update(0.02)

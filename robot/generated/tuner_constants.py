@@ -60,14 +60,14 @@ class TunerConstants:
     # Some configs will be overwritten; check the `with_*_initial_configs()` API documentation.
     _drive_initial_configs = configs.TalonFXConfiguration().with_current_limits(
         configs.CurrentLimitsConfigs()
-        .with_stator_current_limit(25)
+        .with_stator_current_limit(20)
         .with_stator_current_limit_enable(True)
     )
     _steer_initial_configs = configs.TalonFXConfiguration().with_current_limits(
         configs.CurrentLimitsConfigs()
         # Swerve azimuth does not require much torque output, so we can set a relatively low
         # stator current limit to help avoid brownouts without impacting performance.
-        .with_stator_current_limit(60).with_stator_current_limit_enable(True)
+        .with_stator_current_limit(30).with_stator_current_limit_enable(True)
     )
     _encoder_initial_configs = configs.CANcoderConfiguration()
     # Configs for the Pigeon 2; leave this None to skip applying Pigeon 2 configs

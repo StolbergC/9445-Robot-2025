@@ -11,5 +11,6 @@ from commands.wrist_angle_zero import WristZero
 def score_l3_on_true(elevator: Elevator, wrist: Wrist) -> SequentialCommandGroup:
     return SequentialCommandGroup(
         WristZero(wrist),
+        WaitCommand(0.5),
         ElevatorL3(elevator),
     )
